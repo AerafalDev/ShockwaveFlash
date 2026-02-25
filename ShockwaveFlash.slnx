@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ShockwaveFlash.Playground/ShockwaveFlash.Playground.csproj" />
     <Project Path="src/ShockwaveFlash/ShockwaveFlash.csproj" />
   </Folder>
 </Solution>
