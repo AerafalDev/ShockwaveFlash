@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using ShockwaveFlash.IO.Buffers;
 using ShockwaveFlash.IO.Extensions;
+using ShockwaveFlash.Types.Abstractions;
 
 namespace ShockwaveFlash.IO.Binary;
 
@@ -193,6 +194,13 @@ public ref struct SpanReader
     {
         EnsureBuffer(count);
         _position += count;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T Read<T>()
+        where T : IReadable<T>
+    {
+        return T.Read(ref this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
