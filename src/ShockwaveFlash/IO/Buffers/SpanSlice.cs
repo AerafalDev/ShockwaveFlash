@@ -17,6 +17,9 @@ public readonly struct SpanSlice :
     IEquatable<SpanSlice>,
     IEqualityOperators<SpanSlice, SpanSlice, bool>
 {
+    public static SpanSlice Empty =>
+        new(0, 0);
+
     public readonly int Offset;
 
     public readonly int Length;
