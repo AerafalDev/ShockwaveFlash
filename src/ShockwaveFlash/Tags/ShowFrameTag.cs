@@ -1,0 +1,7 @@
+﻿// Copyright (c) Aerafal 2026.
+// Licensed under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+namespace ShockwaveFlash.Tags;
+
+public sealed record ShowFrameTag(TagMetadata Metadata) : Tag(Metadata);
