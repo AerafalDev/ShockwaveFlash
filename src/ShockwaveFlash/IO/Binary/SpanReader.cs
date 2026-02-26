@@ -203,7 +203,7 @@ public ref struct SpanReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ReadOnlySpan<byte> ReadSpan(int count)
+    public ReadOnlySpan<byte> ReadSpan(int count)
     {
         EnsureBuffer(count);
         var span = _buffer.Slice(_position, count);
