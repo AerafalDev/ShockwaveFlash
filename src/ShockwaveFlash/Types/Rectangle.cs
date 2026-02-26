@@ -7,8 +7,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ShockwaveFlash.IO.Binary;
-using ShockwaveFlash.IO.Bits;
 using ShockwaveFlash.Types.Abstractions;
 
 namespace ShockwaveFlash.Types;
