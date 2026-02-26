@@ -8,6 +8,11 @@ namespace ShockwaveFlash.Tags.Action;
 
 public sealed record DoActionTag(TagMetadata Metadata, SpanSlice Data) : Tag(Metadata)
 {
+    public IReadOnlyList<Actions.Avm1.Action> DecodeActions(ref SpanReader reader, byte swfVersion)
+    {
+        return Actions.Avm1.Action.DecodeCollection(reader.ReadSlice(Data), swfVersion);
+    }
+
     public static DoActionTag Decode(ref SpanReader reader, TagMetadata metadata)
     {
         return new DoActionTag(metadata, reader.SliceToEnd());
