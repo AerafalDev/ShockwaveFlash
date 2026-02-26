@@ -230,7 +230,7 @@ public ref struct SpanReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<byte> ReadSlice(ref readonly SpanSlice slice)
+    public ReadOnlySpan<byte> ReadSlice(SpanSlice slice)
     {
         EnsureSlice(in slice);
         return _buffer.Slice(slice.Offset, slice.Length);
