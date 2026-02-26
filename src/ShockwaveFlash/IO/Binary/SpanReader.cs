@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ShockwaveFlash.IO.Buffers;
@@ -164,6 +165,12 @@ public ref struct SpanReader
     public string ReadLengthPrefixedString()
     {
         return Encoding.UTF8.GetString(ReadSpan(ReadUInt8()));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector2 ReadVector2()
+    {
+        return new Vector2(ReadFixed(), ReadFixed());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
