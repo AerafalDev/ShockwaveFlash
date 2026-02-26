@@ -17,9 +17,24 @@ public struct Point :
     IEquatable<Point>,
     IEqualityOperators<Point, Point, bool>
 {
+    public static Point Zero =>
+        new(0);
+
+    public static Point One =>
+        new(1);
+
+    public static Point UnitX =>
+        new(1, 0);
+
+    public static Point UnitY =>
+        new(0, 1);
+
     public int X;
 
     public int Y;
+
+    public bool IsZero =>
+        X is 0 && Y is 0;
 
     public Point(int value) : this(value, value)
     {
