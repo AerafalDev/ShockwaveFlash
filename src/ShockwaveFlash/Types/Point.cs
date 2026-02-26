@@ -63,7 +63,7 @@ public struct Point :
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
     {
-        return $"{X.ToString(format, formatProvider)}, {Y.ToString(format, formatProvider)}";
+        return $"Point(X: {X.ToString(format, formatProvider)}, Y: {Y.ToString(format, formatProvider)})";
     }
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)

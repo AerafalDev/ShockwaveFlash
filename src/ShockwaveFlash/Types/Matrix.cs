@@ -26,6 +26,11 @@ public struct Matrix :
 
     public Point Translation;
 
+    public Matrix()
+    {
+        this = Identity;
+    }
+
     public Matrix(Vector2 scale, Vector2 rotation, Point translation)
     {
         Scale = scale;
@@ -50,7 +55,7 @@ public struct Matrix :
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
     {
-        return $"{Translation.ToString(format, formatProvider)}, {Scale.ToString(format, formatProvider)}, {Rotation.ToString(format, formatProvider)}";
+        return $"Matrix(Translation: {Translation.ToString(format, formatProvider)}, Scale: {Scale.ToString(format, formatProvider)}, Rotation: {Rotation.ToString(format, formatProvider)})";
     }
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)
@@ -75,7 +80,7 @@ public struct Matrix :
 
     public static Matrix Read(ref SpanReader reader)
     {
-        var matrix = Identity;
+        var matrix = new Matrix();
 
         var bits = new BitReader();
 

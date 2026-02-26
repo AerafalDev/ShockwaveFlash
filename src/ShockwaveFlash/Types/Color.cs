@@ -100,7 +100,7 @@ public struct Color :
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
     {
-        return $"RGBA({R.ToString(format, formatProvider)}, {G.ToString(format, formatProvider)}, {B.ToString(format, formatProvider)}, {A.ToString(format, formatProvider)})";
+        return $"Color(R: {R.ToString(format, formatProvider)}, G: {G.ToString(format, formatProvider)}, B: {B.ToString(format, formatProvider)}, A: {A.ToString(format, formatProvider)})";
     }
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)

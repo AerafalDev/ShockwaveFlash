@@ -71,7 +71,7 @@ public struct Rectangle :
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
     {
-        return $"{XMin.ToString(format, formatProvider)}..{XMax.ToString(format, formatProvider)}, {YMin.ToString(format, formatProvider)}..{YMax.ToString(format, formatProvider)}";
+        return $"Rectangle(XMin: {XMin.ToString(format, formatProvider)}, XMax: {XMax.ToString(format, formatProvider)}, YMin: {YMin.ToString(format, formatProvider)}, YMax: {YMax.ToString(format, formatProvider)})";
     }
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)
