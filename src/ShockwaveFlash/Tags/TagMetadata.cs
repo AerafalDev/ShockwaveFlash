@@ -19,11 +19,11 @@ public readonly struct TagMetadata :
 {
     public readonly TagCode Code;
 
-    public readonly uint Offset;
+    public readonly int Offset;
 
-    public readonly uint Length;
+    public readonly int Length;
 
-    public TagMetadata(TagCode code, uint offset, uint length)
+    public TagMetadata(TagCode code, int offset, int length)
     {
         Code = code;
         Offset = offset;
