@@ -12,20 +12,10 @@ public struct BitReader
     private uint _bits;
     private int _position;
 
-    public uint ReadUBits(ref SpanReader reader, int nBits)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int ReadIBits(ref SpanReader reader, int nBits)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nBits);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(nBits, 32);
-
-        while (_position < nBits)
-        {
-            _bits = (_bits << 8) | reader.ReadUInt8();
-            _position += 8;
-        }
-
-        _position -= nBits;
-
-        return (_bits >> _position) & (nBits is 32 ? uint.MaxValue : (1u << nBits) - 1);
+        return (int)ReadUBits(ref reader, nBits);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,5 +37,21 @@ public struct BitReader
     public bool ReadBit(ref SpanReader reader)
     {
         return ReadUBits(ref reader, 1) is 1;
+    }
+
+    private uint ReadUBits(ref SpanReader reader, int nBits)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nBits);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(nBits, 32);
+
+        while (_position < nBits)
+        {
+            _bits = (_bits << 8) | reader.ReadUInt8();
+            _position += 8;
+        }
+
+        _position -= nBits;
+
+        return (_bits >> _position) & (nBits is 32 ? uint.MaxValue : (1u << nBits) - 1);
     }
 }
