@@ -78,7 +78,7 @@ public struct Matrix :
         return !left.Equals(right);
     }
 
-    public static Matrix Read(ref SpanReader reader)
+    public static Matrix Decode(ref SpanReader reader)
     {
         var matrix = new Matrix();
 
