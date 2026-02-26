@@ -4,7 +4,7 @@
 
 namespace ShockwaveFlash.Actions.Avm1;
 
-public enum Opcode : byte
+public enum ActionOpcode : byte
 {
     End = 0x00,
     NextFrame = 0x04,
