@@ -123,33 +123,32 @@ public struct Color :
         return !left.Equals(right);
     }
 
-    public static implicit operator Color(Argb argb)
+    internal static Color DecodeArgb(ref SpanReader reader)
     {
-        return new Color(argb.R, argb.G, argb.B, argb.A);
+        var a = reader.ReadUInt8();
+        var r = reader.ReadUInt8();
+        var g = reader.ReadUInt8();
+        var b = reader.ReadUInt8();
+
+        return new Color(r, g, b, a);
     }
 
-    public static implicit operator Color(Rgba rgba)
+    internal static Color DecodeRgba(ref SpanReader reader)
     {
-        return new Color(rgba.R, rgba.G, rgba.B, rgba.A);
+        var r = reader.ReadUInt8();
+        var g = reader.ReadUInt8();
+        var b = reader.ReadUInt8();
+        var a = reader.ReadUInt8();
+
+        return new Color(r, g, b, a);
     }
 
-    public static implicit operator Color(Rgb rgb)
+    internal static Color DecodeRgb(ref SpanReader reader)
     {
-        return new Color(rgb.R, rgb.G, rgb.B, 255);
-    }
+        var r = reader.ReadUInt8();
+        var g = reader.ReadUInt8();
+        var b = reader.ReadUInt8();
 
-    public static implicit operator Argb(Color color)
-    {
-        return new Argb(color.A, color.R, color.G, color.B);
-    }
-
-    public static implicit operator Rgba(Color color)
-    {
-        return new Rgba(color.R, color.G, color.B, color.A);
-    }
-
-    public static implicit operator Rgb(Color color)
-    {
-        return new Rgb(color.R, color.G, color.B);
+        return new Color(r, g, b, 255);
     }
 }

@@ -7,7 +7,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ShockwaveFlash.Types.Abstractions;
 
 namespace ShockwaveFlash.Types;
 
@@ -16,8 +15,7 @@ namespace ShockwaveFlash.Types;
 public struct Rectangle :
     IFormattable,
     IEquatable<Rectangle>,
-    IEqualityOperators<Rectangle, Rectangle, bool>,
-    IReadable<Rectangle>
+    IEqualityOperators<Rectangle, Rectangle, bool>
 {
     public int XMin;
 
@@ -96,17 +94,19 @@ public struct Rectangle :
         return !left.Equals(right);
     }
 
-    public static Rectangle Read(ref SpanReader reader)
+    internal static Rectangle Decode(ref SpanReader reader)
     {
+        var rectangle = new Rectangle();
+
         var bits = new BitReader();
 
         var nBits = bits.ReadIBits(ref reader, 5);
 
-        var xMin = bits.ReadSBits(ref reader, nBits);
-        var xMax = bits.ReadSBits(ref reader, nBits);
-        var yMin = bits.ReadSBits(ref reader, nBits);
-        var yMax = bits.ReadSBits(ref reader, nBits);
+        rectangle.XMin = bits.ReadSBits(ref reader, nBits);
+        rectangle.XMax = bits.ReadSBits(ref reader, nBits);
+        rectangle.YMin = bits.ReadSBits(ref reader, nBits);
+        rectangle.YMax = bits.ReadSBits(ref reader, nBits);
 
-        return new Rectangle(xMin, xMax, yMin, yMax);
+        return rectangle;
     }
 }
