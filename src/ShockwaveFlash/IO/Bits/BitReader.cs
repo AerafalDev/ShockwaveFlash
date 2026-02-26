@@ -38,7 +38,7 @@ public struct BitReader
         return ReadUBits(ref reader, 1) is 1;
     }
 
-    private uint ReadUBits(ref SpanReader reader, int nBits)
+    public uint ReadUBits(ref SpanReader reader, int nBits)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nBits);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(nBits, 32);
