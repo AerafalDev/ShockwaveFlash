@@ -8,10 +8,10 @@ public sealed record DefineFontNameTag(TagMetadata Metadata, ushort Id, string F
 {
     public static DefineFontNameTag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var name = reader.ReadNullTerminatedString();
         var copyright = reader.ReadNullTerminatedString();
 
-        return new DefineFontNameTag(metadata, characterId, name, copyright);
+        return new DefineFontNameTag(metadata, id, name, copyright);
     }
 }

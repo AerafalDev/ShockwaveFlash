@@ -10,7 +10,7 @@ public sealed record DefineButton2Tag(TagMetadata Metadata, ushort Id, bool IsTr
 {
     public static DefineButton2Tag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var flags = reader.ReadUInt8();
         var isTrackAsMenu = (flags & 1) is not 0;
         var actionsOffset = reader.ReadUInt16();
@@ -39,6 +39,6 @@ public sealed record DefineButton2Tag(TagMetadata Metadata, ushort Id, bool IsTr
             }
         }
 
-        return new DefineButton2Tag(metadata, characterId, isTrackAsMenu, records, actions);
+        return new DefineButton2Tag(metadata, id, isTrackAsMenu, records, actions);
     }
 }

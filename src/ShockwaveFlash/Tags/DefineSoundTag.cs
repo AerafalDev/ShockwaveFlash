@@ -7,15 +7,15 @@ using ShockwaveFlash.Types.Sound;
 
 namespace ShockwaveFlash.Tags;
 
-public sealed record DefineSoundTag(TagMetadata Metadata, ushort CharacterId, SoundFormat Format, uint NumSamples, SpanSlice Data) : Tag(Metadata)
+public sealed record DefineSoundTag(TagMetadata Metadata, ushort Id, SoundFormat Format, uint NumSamples, SpanSlice Data) : Tag(Metadata)
 {
     public static DefineSoundTag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var format = SoundFormat.Decode(ref reader);
         var numSamples = reader.ReadUInt32();
         var data = reader.SliceToEnd();
 
-        return new DefineSoundTag(metadata, characterId, format, numSamples, data);
+        return new DefineSoundTag(metadata, id, format, numSamples, data);
     }
 }

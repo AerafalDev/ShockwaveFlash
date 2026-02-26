@@ -11,7 +11,7 @@ public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ush
 {
     public static DefineBitsLossless2Tag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var formatFlags = reader.ReadUInt8();
         var width = reader.ReadUInt16();
         var height = reader.ReadUInt16();
@@ -24,6 +24,6 @@ public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ush
         };
         var zlibBitmapData = reader.SliceToEnd();
 
-        return new DefineBitsLossless2Tag(metadata, characterId, width, height, format, zlibBitmapData);
+        return new DefineBitsLossless2Tag(metadata, id, width, height, format, zlibBitmapData);
     }
 }

@@ -10,7 +10,7 @@ public sealed record DefineButtonTag(TagMetadata Metadata, ushort Id, IReadOnlyL
 {
     public static DefineButtonTag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var records = new List<ButtonRecord>();
 
         var record = ButtonRecord.Decode(ref reader, 1);
@@ -23,6 +23,6 @@ public sealed record DefineButtonTag(TagMetadata Metadata, ushort Id, IReadOnlyL
 
         var actions = reader.SliceToEnd();
 
-        return new DefineButtonTag(metadata, characterId, records, [new ButtonAction(ButtonActionCondition.OverDownToOverUp, actions)]);
+        return new DefineButtonTag(metadata, id, records, [new ButtonAction(ButtonActionCondition.OverDownToOverUp, actions)]);
     }
 }

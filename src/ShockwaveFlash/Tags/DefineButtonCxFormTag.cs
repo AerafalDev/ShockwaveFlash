@@ -10,12 +10,12 @@ public sealed record DefineButtonCxFormTag(TagMetadata Metadata, ushort Id, IRea
 {
     public static DefineButtonCxFormTag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var colorTransforms = new List<ColorTransform>();
 
         while (reader.Remaining > 0)
             colorTransforms.Add(ColorTransform.DecodeRgb(ref reader));
 
-        return new DefineButtonCxFormTag(metadata, characterId, colorTransforms);
+        return new DefineButtonCxFormTag(metadata, id, colorTransforms);
     }
 }

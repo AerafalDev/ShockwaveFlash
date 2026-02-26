@@ -13,7 +13,7 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
         if (flags is 0)
             return null;
 
-        ushort? characterId = (flags & 8) is not 0
+        ushort? id = (flags & 8) is not 0
             ? reader.ReadUInt16()
             : null;
 
@@ -46,6 +46,6 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
         for (var i = 0; i < numGlyphs; i++)
             glyphs[i] = new Glyph(bits.ReadUBits(ref reader, numGlyphBits), bits.ReadSBits(ref reader, numAdvanceBits));
 
-        return new TextRecord(characterId, color, offset, height, glyphs);
+        return new TextRecord(id, color, offset, height, glyphs);
     }
 }

@@ -85,7 +85,7 @@ public sealed record DefineEditTextTag(
 
     public static DefineEditTextTag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var bounds = Rectangle.Decode(ref reader);
         var flags = (EditTextFlags)reader.ReadUInt16();
         ushort? fontId = flags.HasFlag(EditTextFlags.HasFont) ? reader.ReadUInt16() : null;
@@ -97,6 +97,6 @@ public sealed record DefineEditTextTag(
         var variableName = reader.ReadNullTerminatedString();
         var initialText = flags.HasFlag(EditTextFlags.HasText) ? reader.ReadNullTerminatedString() : null;
 
-        return new DefineEditTextTag(metadata, characterId, bounds, fontId, fontClass, height, color, maxLength, layout, variableName, initialText, flags);
+        return new DefineEditTextTag(metadata, id, bounds, fontId, fontClass, height, color, maxLength, layout, variableName, initialText, flags);
     }
 }

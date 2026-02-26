@@ -8,7 +8,7 @@ using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Tags;
 
-public sealed record DefineMorphShape2Tag(TagMetadata Metadata, ushort CharacterId, DefineMorphShapeFlags Flags, MorphShape Start, MorphShape End) : Tag(Metadata)
+public sealed record DefineMorphShape2Tag(TagMetadata Metadata, ushort Id, DefineMorphShapeFlags Flags, MorphShape Start, MorphShape End) : Tag(Metadata)
 {
     public bool HasScalingStrokes =>
         Flags.HasFlag(DefineMorphShapeFlags.HasScalingStrokes);
@@ -18,7 +18,7 @@ public sealed record DefineMorphShape2Tag(TagMetadata Metadata, ushort Character
 
     public static DefineMorphShape2Tag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var startShapeBounds = Rectangle.Decode(ref reader);
         var endShapeBounds = Rectangle.Decode(ref reader);
 
@@ -85,6 +85,6 @@ public sealed record DefineMorphShape2Tag(TagMetadata Metadata, ushort Character
         var startShape = new MorphShape(startShapeBounds, startEdgeBounds, startFillStyles, startLineStyles, startShapes);
         var endShape = new MorphShape(endShapeBounds, endEdgeBounds, endFillStyles, endLineStyles, endShapes);
 
-        return new DefineMorphShape2Tag(metadata, characterId, flags, startShape, endShape);
+        return new DefineMorphShape2Tag(metadata, id, flags, startShape, endShape);
     }
 }

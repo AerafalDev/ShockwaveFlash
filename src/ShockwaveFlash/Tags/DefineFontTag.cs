@@ -10,7 +10,7 @@ public sealed record DefineFontTag(TagMetadata Metadata, ushort Id, ushort[] Off
 {
     public static DefineFontTag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var firstOffset = reader.ReadUInt16();
         var numGlyphs = firstOffset >> 1;
 
@@ -42,6 +42,6 @@ public sealed record DefineFontTag(TagMetadata Metadata, ushort Id, ushort[] Off
             glyphs.Add(glyph);
         }
 
-        return new DefineFontTag(metadata, characterId, offsetTable, glyphs);
+        return new DefineFontTag(metadata, id, offsetTable, glyphs);
     }
 }

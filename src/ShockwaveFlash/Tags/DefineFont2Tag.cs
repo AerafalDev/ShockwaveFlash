@@ -36,7 +36,7 @@ public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name
 
     public static DefineFont2Tag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var flags = (FontFlags)reader.ReadUInt8();
         var language = (Language)reader.ReadUInt8();
         var name = reader.ReadLengthPrefixedString();
@@ -122,6 +122,6 @@ public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name
             layout = new FontLayout(ascent, descent, leading, kerning);
         }
 
-        return new DefineFont2Tag(metadata, characterId, name, language, layout, glyphs, flags);
+        return new DefineFont2Tag(metadata, id, name, language, layout, glyphs, flags);
     }
 }

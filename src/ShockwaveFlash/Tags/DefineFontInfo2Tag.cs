@@ -28,7 +28,7 @@ public sealed record DefineFontInfo2Tag(TagMetadata Metadata, ushort Id, string 
 
     public static DefineFontInfo2Tag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var name = reader.ReadLengthPrefixedString();
         var flags = (FontInfoFlags)reader.ReadUInt8();
         var language = (Language)reader.ReadUInt8();
@@ -37,6 +37,6 @@ public sealed record DefineFontInfo2Tag(TagMetadata Metadata, ushort Id, string 
         while (reader.Remaining > 0)
             codeTable.Add(flags.HasFlag(FontInfoFlags.HasWideCodes) ? reader.ReadUInt16() : reader.ReadUInt8());
 
-        return new DefineFontInfo2Tag(metadata, characterId, name, language, flags, codeTable);
+        return new DefineFontInfo2Tag(metadata, id, name, language, flags, codeTable);
     }
 }

@@ -10,13 +10,13 @@ public sealed record DefineFontAlignZonesTag(TagMetadata Metadata, ushort Id, Fo
 {
     public static DefineFontAlignZonesTag Decode(ref SpanReader reader, TagMetadata metadata)
     {
-        var characterId = reader.ReadUInt16();
+        var id = reader.ReadUInt16();
         var thickness = (FontThickness)(reader.ReadUInt8() >> 6);
         var zones = new List<FontAlignZone>();
 
         while (reader.Remaining > 0)
             zones.Add(FontAlignZone.Decode(ref reader));
 
-        return new DefineFontAlignZonesTag(metadata, characterId, thickness, zones);
+        return new DefineFontAlignZonesTag(metadata, id, thickness, zones);
     }
 }
