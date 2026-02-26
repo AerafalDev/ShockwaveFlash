@@ -175,6 +175,17 @@ public ref struct SpanReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public string ReadNullTerminatedString(Encoding encoding)
+    {
+        var slice = _buffer[_position..];
+        var index = slice.IndexOf((byte)0);
+        EnsureNullTerminatedStringIndex(index);
+        var str = encoding.GetString(slice[..index]);
+        _position += index + 1;
+        return str;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ReadLengthPrefixedString()
     {
         return Encoding.UTF8.GetString(ReadSpan(ReadUInt8()));
