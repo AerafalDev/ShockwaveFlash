@@ -7,4 +7,10 @@ using System.Diagnostics;
 namespace ShockwaveFlash.Tags;
 
 [DebuggerDisplay("{Metadata.Code,nq}")]
-public abstract record Tag(TagMetadata Metadata);
+public abstract record Tag(TagMetadata Metadata)
+{
+    public static IReadOnlyList<Tag> DecodeCollection(ref SpanReader reader, byte swfVersion)
+    {
+        throw new NotImplementedException();
+    }
+}
