@@ -46,7 +46,7 @@ public abstract record Tag(TagMetadata Metadata)
             var tag = Decode(ref tagReader, metadata, swfVersion);
 
             if (tagReader.Remaining is not 0)
-                throw new Exception($"Tag length mismatch. Expected {length} bytes, got {tagReader.Position - offset}.");
+                throw new Exception($"Tag length mismatch. Expected {length} bytes, got {tagReader.Position}.");
 
             tags.Add(tag);
         }
