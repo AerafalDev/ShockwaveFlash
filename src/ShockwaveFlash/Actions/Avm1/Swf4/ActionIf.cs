@@ -4,4 +4,10 @@
 
 namespace ShockwaveFlash.Actions.Avm1.Swf4;
 
-public sealed record ActionIf(short BranchOffset) : Action(ActionOpcode.If);
+public sealed record ActionIf(short BranchOffset) : Action(ActionOpcode.If)
+{
+    public static ActionIf Decode(ref SpanReader reader)
+    {
+        return new ActionIf(reader.ReadInt16());
+    }
+}
