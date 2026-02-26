@@ -4,4 +4,10 @@
 
 namespace ShockwaveFlash.Actions.Avm1.Swf1;
 
-public sealed record ActionGotoFrame(ushort Frame) : Action(ActionOpcode.GotoFrame);
+public sealed record ActionGotoFrame(ushort Frame) : Action(ActionOpcode.GotoFrame)
+{
+    public static ActionGotoFrame Decode(ref SpanReader reader)
+    {
+        return new ActionGotoFrame(reader.ReadUInt16());
+    }
+}
