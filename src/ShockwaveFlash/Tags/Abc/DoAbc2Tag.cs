@@ -9,7 +9,7 @@ namespace ShockwaveFlash.Tags.Abc;
 
 public sealed record DoAbc2Tag(TagMetadata Metadata, DoAbc2Flags Flags, string Name, SpanSlice Data) : Tag(Metadata)
 {
-    public static DoAbc2Tag Decode(ref SpanReader reader, TagMetadata metadata, byte tagVersion)
+    public static DoAbc2Tag Decode(ref SpanReader reader, TagMetadata metadata)
     {
         var flags = (DoAbc2Flags)reader.ReadUInt32();
         var name = reader.ReadNullTerminatedString();

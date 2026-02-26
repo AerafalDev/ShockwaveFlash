@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Sound;
 
 public sealed record SoundStreamHead2Tag(TagMetadata Metadata, SoundFormat StreamFormat, SoundFormat PlaybackFormat, ushort NumSamplesPerBlock, short LatencySeek) : Tag(Metadata)
 {
-    public static SoundStreamHead2Tag Decode(ref SpanReader reader, TagMetadata metadata, byte tagVersion)
+    public static SoundStreamHead2Tag Decode(ref SpanReader reader, TagMetadata metadata)
     {
         var streamFormat = SoundFormat.Decode(ref reader);
         var playbackFormat = SoundFormat.Decode(ref reader);
