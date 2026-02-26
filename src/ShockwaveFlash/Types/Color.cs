@@ -50,12 +50,12 @@ public struct Color :
         A = (byte)(a * 255);
     }
 
-    public Color(uint color)
+    public Color(int color)
     {
-        A = (byte)(color >> 24);
-        R = (byte)(color >> 16);
-        G = (byte)(color >> 8);
-        B = (byte)color;
+        A = (byte)((color >> 24) & 0xFF);
+        R = (byte)((color >> 16) & 0xFF);
+        G = (byte)((color >> 8) & 0xFF);
+        B = (byte)(color & 0xFF);
     }
 
     public (float R, float G, float B, float A) ToFloat()
@@ -63,9 +63,9 @@ public struct Color :
         return (R / 255f, G / 255f, B / 255f, A / 255f);
     }
 
-    public uint ToUInt()
+    public int ToInt()
     {
-        return (uint)(A << 24 | R << 16 | G << 8 | B);
+        return A << 24 | R << 16 | G << 8 | B;
     }
 
     public string ToHexArgb()
