@@ -1,0 +1,9 @@
+﻿// Copyright (c) Aerafal 2026.
+// Licensed under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using ShockwaveFlash.Actions.Types;
+
+namespace ShockwaveFlash.Actions.Avm1.Swf7;
+
+public sealed record ActionTry(TryFlags Flags, byte CatchRegister, string CatchVariable, ushort TrySize, ushort CatchSize, ushort FinallySize) : Action(ActionOpcode.Try);
