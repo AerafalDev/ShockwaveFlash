@@ -13,6 +13,10 @@ namespace ShockwaveFlash.IO.Binary;
 
 public ref struct SpanReader
 {
+    private const int Mask10000000 = 128;
+    private const int Mask01111111 = 127;
+    private const int ChunkBitSize = 7;
+
     private readonly ReadOnlySpan<byte> _buffer;
 
     private int _position;
@@ -171,6 +175,23 @@ public ref struct SpanReader
     public Vector2 ReadVector2()
     {
         return new Vector2(ReadFixed(), ReadFixed());
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public uint ReadEncodedU32()
+    {
+        uint result = 0;
+        byte b;
+        var shift = 0;
+
+        do
+        {
+            b = ReadUInt8();
+            result |= (uint)(b & Mask01111111) << shift;
+            shift += ChunkBitSize;
+        } while ((b & Mask10000000) is not 0);
+
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
