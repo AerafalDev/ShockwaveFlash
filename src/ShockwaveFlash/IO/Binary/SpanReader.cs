@@ -253,6 +253,12 @@ public ref struct SpanReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ReadOnlySpan<byte> ReadSpanToEnd()
+    {
+        return ReadSpan(Remaining);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureSlice(ref readonly SpanSlice slice)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(slice.Offset);
