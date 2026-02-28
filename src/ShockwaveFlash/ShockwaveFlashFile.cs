@@ -2,25 +2,22 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Buffers.Binary;
 using ShockwaveFlash.Tags;
 
 namespace ShockwaveFlash;
 
 public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyList<Tag> Tags)
 {
-    public static ShockwaveFlashFile Disassemble(in ReadOnlySpan<byte> buffer)
+    public static ShockwaveFlashFile Disassemble(ref SpanReader reader)
     {
-        var compression = (ShockwaveFlashCompression)buffer[0];
-        var version = buffer[3];
-        var fileLength = BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(4, 4));
+        var compression = (ShockwaveFlashCompression)reader.ReadUInt8();
 
-        var decompressed = compression.Decompress(buffer[8..], fileLength);
+        reader.Advance(sizeof(ushort));
 
-        if (decompressed.Length != fileLength)
-            throw new InvalidDataException("Decompressed length does not match header length.");
+        var version = reader.ReadUInt8();
+        var fileLength = reader.ReadInt32();
 
-        var reader = new SpanReader(decompressed);
+        reader = new SpanReader(compression.Decompress(reader.ReadSpanToEnd(), fileLength));
 
         var header = ShockwaveFlashHeader.Decode(ref reader, compression, version, fileLength);
 
