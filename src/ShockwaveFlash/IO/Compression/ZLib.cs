@@ -10,7 +10,7 @@ public static class ZLib
 {
     private const int MaxDecompressedSize = 512 * 1024 * 1024;
 
-    public static unsafe ReadOnlySpan<byte> Decompress(ref readonly ReadOnlySpan<byte> compressed, int uncompressedLength)
+    public static unsafe ReadOnlySpan<byte> Decompress(ReadOnlySpan<byte> compressed, int uncompressedLength)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uncompressedLength);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(uncompressedLength, MaxDecompressedSize);

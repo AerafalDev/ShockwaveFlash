@@ -6,7 +6,7 @@ namespace ShockwaveFlash.IO.Compression;
 
 public static class Lzma
 {
-    public static ReadOnlySpan<byte> Decompress(ref readonly ReadOnlySpan<byte> compressed, int uncompressedLength)
+    public static ReadOnlySpan<byte> Decompress(ReadOnlySpan<byte> compressed, int uncompressedLength)
     {
         throw new NotSupportedException(
             "ZWS (LZMA-compressed) SWF files require an LZMA decoder. " +
