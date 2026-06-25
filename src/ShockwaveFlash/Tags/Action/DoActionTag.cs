@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 namespace ShockwaveFlash.Tags.Action;
 
 public sealed record DoActionTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data) : Tag(Metadata)

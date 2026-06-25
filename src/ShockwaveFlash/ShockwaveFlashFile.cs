@@ -1,7 +1,4 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Tags;
 
 namespace ShockwaveFlash;
@@ -16,7 +13,11 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 
         var compression = (ShockwaveFlashCompression)reader.ReadUInt8();
 
-        reader.Advance(sizeof(ushort));
+        if (compression is not (ShockwaveFlashCompression.None or ShockwaveFlashCompression.ZLib or ShockwaveFlashCompression.Lzma))
+            throw new SwfFormatException($"Invalid SWF signature byte 0x{(byte)compression:X2}; expected 'F', 'C' or 'Z'.");
+
+        if (reader.ReadUInt8() is not (byte)'W' || reader.ReadUInt8() is not (byte)'S')
+            throw new SwfFormatException("Invalid SWF signature; expected 'WS' after the compression byte.");
 
         var version = reader.ReadUInt8();
         var fileLength = reader.ReadInt32();

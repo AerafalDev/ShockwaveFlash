@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System.Numerics;
 
 namespace ShockwaveFlash.Types.Filter;
@@ -35,7 +31,7 @@ public sealed record DropShadowFilter(Color Color, Vector2 Blur, float Angle, fl
         return new GlowFilter(Color, Blur, Strength, flags);
     }
 
-    public static new DropShadowFilter Decode(MemoryReader reader)
+    public static DropShadowFilter DecodeBody(MemoryReader reader)
     {
         var color = Color.DecodeRgba(reader);
         var blur = reader.ReadVector2();
@@ -47,7 +43,7 @@ public sealed record DropShadowFilter(Color Color, Vector2 Blur, float Angle, fl
         return new DropShadowFilter(color, blur, angle, distance, strength, flags);
     }
 
-    public void Encode(MemoryWriter writer)
+    public void EncodeBody(MemoryWriter writer)
     {
         Color.EncodeRgba(writer);
         writer.WriteVector2(Blur);

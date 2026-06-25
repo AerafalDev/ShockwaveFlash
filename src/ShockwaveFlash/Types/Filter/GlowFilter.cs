@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System.Numerics;
 
 namespace ShockwaveFlash.Types.Filter;
@@ -25,7 +21,7 @@ public sealed record GlowFilter(Color Color, Vector2 Blur, float Strength, GlowF
         return new BlurFilter(Blur, BlurFilterFlags.FromPasses(Passes));
     }
 
-    public static new GlowFilter Decode(MemoryReader reader)
+    public static GlowFilter DecodeBody(MemoryReader reader)
     {
         var color = Color.DecodeRgba(reader);
         var blur = reader.ReadVector2();
@@ -35,7 +31,7 @@ public sealed record GlowFilter(Color Color, Vector2 Blur, float Strength, GlowF
         return new GlowFilter(color, blur, strength, flags);
     }
 
-    public void Encode(MemoryWriter writer)
+    public void EncodeBody(MemoryWriter writer)
     {
         Color.EncodeRgba(writer);
         writer.WriteVector2(Blur);

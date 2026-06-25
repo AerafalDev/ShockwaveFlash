@@ -1,11 +1,8 @@
-// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.IO.Binary;
 
@@ -227,11 +224,16 @@ public sealed class MemoryWriter
 
     private void Grow(int required)
     {
-        var capacity = _buffer.Length * 2;
+        var capacity = Math.Max((long)_buffer.Length * 2, required);
 
-        while (capacity < required)
-            capacity *= 2;
+        if (capacity > Array.MaxLength)
+        {
+            if (required > Array.MaxLength)
+                throw new SwfException($"Required buffer size {required} exceeds the maximum array length.");
 
-        Array.Resize(ref _buffer, capacity);
+            capacity = Array.MaxLength;
+        }
+
+        Array.Resize(ref _buffer, (int)capacity);
     }
 }

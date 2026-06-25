@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System.Numerics;
 
 namespace ShockwaveFlash.Types.Filter;
@@ -25,7 +21,7 @@ public sealed record BevelFilter(Color ShadowColor, Color HighlightColor, Vector
         return new BlurFilter(Blur, BlurFilterFlags.FromPasses(Passes));
     }
 
-    public static new BevelFilter Decode(MemoryReader reader)
+    public static BevelFilter DecodeBody(MemoryReader reader)
     {
         var highlightColor = Color.DecodeRgba(reader);
         var shadowColor = Color.DecodeRgba(reader);
@@ -38,7 +34,7 @@ public sealed record BevelFilter(Color ShadowColor, Color HighlightColor, Vector
         return new BevelFilter(shadowColor, highlightColor, blur, angle, distance, strength, flags);
     }
 
-    public void Encode(MemoryWriter writer)
+    public void EncodeBody(MemoryWriter writer)
     {
         HighlightColor.EncodeRgba(writer);
         ShadowColor.EncodeRgba(writer);

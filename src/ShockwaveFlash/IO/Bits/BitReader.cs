@@ -1,14 +1,10 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System.Runtime.CompilerServices;
 
 namespace ShockwaveFlash.IO.Bits;
 
 public sealed class BitReader
 {
-    private uint _bits;
+    private ulong _bits;
     private int _position;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -61,6 +57,6 @@ public sealed class BitReader
 
         _position -= nBits;
 
-        return (_bits >> _position) & (nBits is 32 ? uint.MaxValue : (1u << nBits) - 1);
+        return (uint)((_bits >> _position) & (nBits is 32 ? uint.MaxValue : (1u << nBits) - 1));
     }
 }

@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 namespace ShockwaveFlash.Types.Filter;
 
 public sealed record ConvolutionFilter(byte NumMatrixRows, byte NumMatrixColumns, float[] Matrix, float Divisor, float Bias, Color DefaultColor, ConvolutionFilterFlags Flags) : Filter
@@ -12,7 +8,7 @@ public sealed record ConvolutionFilter(byte NumMatrixRows, byte NumMatrixColumns
     public bool IsPreserveAlpha =>
         Flags.HasFlag(ConvolutionFilterFlags.PreserveAlpha);
 
-    public static new ConvolutionFilter Decode(MemoryReader reader)
+    public static ConvolutionFilter DecodeBody(MemoryReader reader)
     {
         var numMatrixRows = reader.ReadUInt8();
         var numMatrixColumns = reader.ReadUInt8();
@@ -31,7 +27,7 @@ public sealed record ConvolutionFilter(byte NumMatrixRows, byte NumMatrixColumns
         return new ConvolutionFilter(numMatrixRows, numMatrixColumns, matrix, divisor, bias, defaultColor, flags);
     }
 
-    public void Encode(MemoryWriter writer)
+    public void EncodeBody(MemoryWriter writer)
     {
         writer.WriteUInt8(NumMatrixRows);
         writer.WriteUInt8(NumMatrixColumns);

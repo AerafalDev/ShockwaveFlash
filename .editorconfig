@@ -1,30 +1,39 @@
 root = true
 
 [*]
-insert_final_newline = true
-trim_trailing_whitespace = true
+charset = utf-8
+end_of_line = lf
 indent_style = space
 indent_size = 4
+tab_width = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 180
+
+[*.md]
+max_line_length = off
+trim_trailing_whitespace = false
+
+[*.{json,jsonc,yml,yaml,toml}]
+indent_size = 2
+tab_width = 2
+
+[*.{xml,csproj,props,targets,resx,config}]
+indent_size = 2
+tab_width = 2
+
+[*.{sln,slnx}]
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+insert_final_newline = false
 
 [*.cs]
-csharp_new_line_before_open_brace = all
-csharp_new_line_before_else = true
-csharp_new_line_before_catch = true
-csharp_new_line_before_finally = true
-csharp_style_var_for_built_in_types = true:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = true:suggestion
-dotnet_sort_system_directives_first = true
-file_header_template = Copyright (c) Aerafal 2026.\nLicensed under the MIT license.\nSee the LICENSE file in the project root for more information.
+indent_size = 4
+tab_width = 4
 
-[*.{csproj,props,targets,nuspec,config}]
-indent_size = 2
+# Analyzer suppressions: rules that clash with this library's deliberate design
+dotnet_diagnostic.CA1711.severity = none
 
-[*.{json,yml,yaml}]
-indent_size = 2
-
-[*.sh]
-end_of_line = lf
-
-[*.{cmd,bat}]
-end_of_line = crlf
+[*.{g.cs,generated.cs}]
+generated_code = true

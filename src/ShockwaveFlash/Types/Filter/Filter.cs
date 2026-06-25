@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 namespace ShockwaveFlash.Types.Filter;
 
 public abstract record Filter
@@ -12,14 +8,14 @@ public abstract record Filter
 
         return (FilterType)type switch
         {
-            FilterType.DropShadowFilter => DropShadowFilter.Decode(reader),
-            FilterType.BlurFilter => BlurFilter.Decode(reader),
-            FilterType.GlowFilter => GlowFilter.Decode(reader),
-            FilterType.BevelFilter => BevelFilter.Decode(reader),
-            FilterType.GradientGlowFilter => GradientFilter.Decode(reader, FilterType.GradientGlowFilter),
-            FilterType.ConvolutionFilter => ConvolutionFilter.Decode(reader),
-            FilterType.ColorMatrixFilter => ColorMatrixFilter.Decode(reader),
-            FilterType.GradientBevelFilter => GradientFilter.Decode(reader, FilterType.GradientBevelFilter),
+            FilterType.DropShadowFilter => DropShadowFilter.DecodeBody(reader),
+            FilterType.BlurFilter => BlurFilter.DecodeBody(reader),
+            FilterType.GlowFilter => GlowFilter.DecodeBody(reader),
+            FilterType.BevelFilter => BevelFilter.DecodeBody(reader),
+            FilterType.GradientGlowFilter => GradientFilter.DecodeBody(reader, FilterType.GradientGlowFilter),
+            FilterType.ConvolutionFilter => ConvolutionFilter.DecodeBody(reader),
+            FilterType.ColorMatrixFilter => ColorMatrixFilter.DecodeBody(reader),
+            FilterType.GradientBevelFilter => GradientFilter.DecodeBody(reader, FilterType.GradientBevelFilter),
             _ => throw new NotSupportedException($"Filter type {type} is not supported.")
         };
     }
@@ -30,31 +26,31 @@ public abstract record Filter
         {
             case DropShadowFilter dropShadowFilter:
                 writer.WriteUInt8((byte)FilterType.DropShadowFilter);
-                dropShadowFilter.Encode(writer);
+                dropShadowFilter.EncodeBody(writer);
                 break;
             case BlurFilter blurFilter:
                 writer.WriteUInt8((byte)FilterType.BlurFilter);
-                blurFilter.Encode(writer);
+                blurFilter.EncodeBody(writer);
                 break;
             case GlowFilter glowFilter:
                 writer.WriteUInt8((byte)FilterType.GlowFilter);
-                glowFilter.Encode(writer);
+                glowFilter.EncodeBody(writer);
                 break;
             case BevelFilter bevelFilter:
                 writer.WriteUInt8((byte)FilterType.BevelFilter);
-                bevelFilter.Encode(writer);
+                bevelFilter.EncodeBody(writer);
                 break;
             case GradientFilter gradientFilter:
                 writer.WriteUInt8((byte)gradientFilter.Type);
-                gradientFilter.Encode(writer);
+                gradientFilter.EncodeBody(writer);
                 break;
             case ConvolutionFilter convolutionFilter:
                 writer.WriteUInt8((byte)FilterType.ConvolutionFilter);
-                convolutionFilter.Encode(writer);
+                convolutionFilter.EncodeBody(writer);
                 break;
             case ColorMatrixFilter colorMatrixFilter:
                 writer.WriteUInt8((byte)FilterType.ColorMatrixFilter);
-                colorMatrixFilter.Encode(writer);
+                colorMatrixFilter.EncodeBody(writer);
                 break;
             default:
                 throw new NotSupportedException($"Filter type {GetType()} is not supported.");

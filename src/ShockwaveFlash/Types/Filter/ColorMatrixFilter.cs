@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 namespace ShockwaveFlash.Types.Filter;
 
 public sealed record ColorMatrixFilter(float[] Matrix) : Filter
@@ -21,7 +17,7 @@ public sealed record ColorMatrixFilter(float[] Matrix) : Filter
     {
     }
 
-    public static new ColorMatrixFilter Decode(MemoryReader reader)
+    public static ColorMatrixFilter DecodeBody(MemoryReader reader)
     {
         var matrix = new float[20];
 
@@ -31,7 +27,7 @@ public sealed record ColorMatrixFilter(float[] Matrix) : Filter
         return new ColorMatrixFilter(matrix);
     }
 
-    public void Encode(MemoryWriter writer)
+    public void EncodeBody(MemoryWriter writer)
     {
         for (var i = 0; i < Matrix.Length; i++)
             writer.WriteFloat32(Matrix[i]);

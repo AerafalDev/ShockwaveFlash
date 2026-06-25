@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using ShockwaveFlash.Types.Shape.Gradients;
 
 namespace ShockwaveFlash.Types.Shape;
@@ -30,7 +26,7 @@ public abstract record FillStyle
             case FillStyleType.ClippedBitmap:
             case FillStyleType.NonSmoothedRepeatingBitmap:
             case FillStyleType.NonSmoothedClippedBitmap:
-                return new FillStyleBitmap(reader.ReadUInt16(), Matrix.Decode(reader), swfVersion >= 8 && (fillStyleType & 2) is 0, (fillStyleType & 1) is 0);
+                return new FillStyleBitmap(reader.ReadUInt16(), Matrix.Decode(reader), (fillStyleType & 2) is 0, (fillStyleType & 1) is 0);
 
             default:
                 throw new NotSupportedException($"FillStyle {fillStyleType} is not supported.");

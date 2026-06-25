@@ -1,7 +1,3 @@
-﻿// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System.Numerics;
 using ShockwaveFlash.Types.Shape.Gradients;
 
@@ -29,7 +25,7 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
         return new BlurFilter(Blur, BlurFilterFlags.FromPasses(Passes));
     }
 
-    public static new GradientFilter Decode(MemoryReader reader, FilterType type)
+    public static GradientFilter DecodeBody(MemoryReader reader, FilterType type)
     {
         var numColors = reader.ReadUInt8();
         var colors = new Color[numColors];
@@ -51,7 +47,7 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
         return new GradientFilter(records, blur, angle, distance, strength, flags, type);
     }
 
-    public void Encode(MemoryWriter writer)
+    public void EncodeBody(MemoryWriter writer)
     {
         writer.WriteUInt8((byte)Colors.Length);
 

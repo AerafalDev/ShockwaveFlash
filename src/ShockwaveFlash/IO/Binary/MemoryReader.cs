@@ -1,7 +1,3 @@
-// Copyright (c) Aerafal 2026.
-// Licensed under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -187,15 +183,18 @@ public sealed class MemoryReader
     public uint ReadEncodedU32()
     {
         uint result = 0;
-        byte b;
         var shift = 0;
 
-        do
+        for (var i = 0; i < 5; i++)
         {
-            b = ReadUInt8();
+            var b = ReadUInt8();
             result |= (uint)(b & Mask01111111) << shift;
+
+            if ((b & Mask10000000) is 0)
+                break;
+
             shift += ChunkBitSize;
-        } while ((b & Mask10000000) is not 0);
+        }
 
         return result;
     }
