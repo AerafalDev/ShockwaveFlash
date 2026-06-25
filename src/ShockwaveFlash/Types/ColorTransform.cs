@@ -1,53 +1,17 @@
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Numerics;
-using System.Runtime.InteropServices;
-
 namespace ShockwaveFlash.Types;
 
-[DebuggerDisplay("{ToString(),nq}")]
-[StructLayout(LayoutKind.Sequential)]
-public struct ColorTransform :
-    IFormattable,
-    IEquatable<ColorTransform>,
-    IEqualityOperators<ColorTransform, ColorTransform, bool>
+public readonly record struct ColorTransform(
+    int RMult,
+    int GMult,
+    int BMult,
+    int AMult,
+    int RAdd,
+    int GAdd,
+    int BAdd,
+    int AAdd)
 {
     public static ColorTransform Identity =>
         new(256, 256, 256, 256, 0, 0, 0, 0);
-
-    public int RMult;
-
-    public int GMult;
-
-    public int BMult;
-
-    public int AMult;
-
-    public int RAdd;
-
-    public int GAdd;
-
-    public int BAdd;
-
-    public int AAdd;
-
-    public ColorTransform()
-    {
-        this = Identity;
-    }
-
-    public ColorTransform(int rMult, int gMult, int bMult, int aMult, int rAdd, int gAdd, int bAdd, int aAdd)
-    {
-        RMult = rMult;
-        GMult = gMult;
-        BMult = bMult;
-        AMult = aMult;
-        RAdd = rAdd;
-        GAdd = gAdd;
-        BAdd = bAdd;
-        AAdd = aAdd;
-    }
 
     public Color Transform(Color other)
     {
@@ -60,72 +24,19 @@ public struct ColorTransform :
 
     public ColorTransform Merge(ColorTransform other)
     {
-        var colorTransform = new ColorTransform();
-
-        colorTransform.RMult = (RMult * other.RMult) >> 8;
-        colorTransform.GMult = (GMult * other.GMult) >> 8;
-        colorTransform.BMult = (BMult * other.BMult) >> 8;
-        colorTransform.AMult = (AMult * other.AMult) >> 8;
-
-        colorTransform.RAdd = ((RAdd * other.RMult) >> 8) + other.RAdd;
-        colorTransform.GAdd = ((GAdd * other.GMult) >> 8) + other.GAdd;
-        colorTransform.BAdd = ((BAdd * other.BMult) >> 8) + other.BAdd;
-        colorTransform.AAdd = ((AAdd * other.AMult) >> 8) + other.AAdd;
-
-        return colorTransform;
-    }
-
-    public bool Equals(ColorTransform other)
-    {
-        return RMult == other.RMult &&
-               GMult == other.GMult &&
-               BMult == other.BMult &&
-               AMult == other.AMult &&
-               RAdd == other.RAdd &&
-               GAdd == other.GAdd &&
-               BAdd == other.BAdd &&
-               AAdd == other.AAdd;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is ColorTransform other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(RMult, GMult, BMult, AMult, RAdd, GAdd, BAdd, AAdd);
-    }
-
-    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
-    {
-        return $"ColorTransform(RMult: {RMult.ToString(format, formatProvider)}, GMult: {GMult.ToString(format, formatProvider)}, BMult: {BMult.ToString(format, formatProvider)}, AMult: {AMult.ToString(format, formatProvider)}, RAdd: {RAdd.ToString(format, formatProvider)}, GAdd: {GAdd.ToString(format, formatProvider)}, BAdd: {BAdd.ToString(format, formatProvider)}, AAdd: {AAdd.ToString(format, formatProvider)})";
-    }
-
-    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)
-    {
-        return ToString(format, CultureInfo.CurrentCulture);
-    }
-
-    public override string ToString()
-    {
-        return ToString("G", CultureInfo.CurrentCulture);
-    }
-
-    public static bool operator ==(ColorTransform left, ColorTransform right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(ColorTransform left, ColorTransform right)
-    {
-        return !left.Equals(right);
+        return new ColorTransform(
+            (RMult * other.RMult) >> 8,
+            (GMult * other.GMult) >> 8,
+            (BMult * other.BMult) >> 8,
+            (AMult * other.AMult) >> 8,
+            ((RAdd * other.RMult) >> 8) + other.RAdd,
+            ((GAdd * other.GMult) >> 8) + other.GAdd,
+            ((BAdd * other.BMult) >> 8) + other.BAdd,
+            ((AAdd * other.AMult) >> 8) + other.AAdd);
     }
 
     public static ColorTransform DecodeRgba(MemoryReader reader)
     {
-        var colorTransform = new ColorTransform();
-
         var bits = new BitReader();
 
         var hasAddTerms = bits.ReadBit(reader);
@@ -133,29 +44,30 @@ public struct ColorTransform :
 
         var nBits = bits.ReadIBits(reader, 4);
 
+        int rMult = 256, gMult = 256, bMult = 256, aMult = 256;
+        int rAdd = 0, gAdd = 0, bAdd = 0, aAdd = 0;
+
         if (hasMultTerms)
         {
-            colorTransform.RMult = bits.ReadSBits(reader, nBits);
-            colorTransform.GMult = bits.ReadSBits(reader, nBits);
-            colorTransform.BMult = bits.ReadSBits(reader, nBits);
-            colorTransform.AMult = bits.ReadSBits(reader, nBits);
+            rMult = bits.ReadSBits(reader, nBits);
+            gMult = bits.ReadSBits(reader, nBits);
+            bMult = bits.ReadSBits(reader, nBits);
+            aMult = bits.ReadSBits(reader, nBits);
         }
 
         if (hasAddTerms)
         {
-            colorTransform.RAdd = bits.ReadSBits(reader, nBits);
-            colorTransform.GAdd = bits.ReadSBits(reader, nBits);
-            colorTransform.BAdd = bits.ReadSBits(reader, nBits);
-            colorTransform.AAdd = bits.ReadSBits(reader, nBits);
+            rAdd = bits.ReadSBits(reader, nBits);
+            gAdd = bits.ReadSBits(reader, nBits);
+            bAdd = bits.ReadSBits(reader, nBits);
+            aAdd = bits.ReadSBits(reader, nBits);
         }
 
-        return colorTransform;
+        return new ColorTransform(rMult, gMult, bMult, aMult, rAdd, gAdd, bAdd, aAdd);
     }
 
     public static ColorTransform DecodeRgb(MemoryReader reader)
     {
-        var colorTransform = new ColorTransform();
-
         var bits = new BitReader();
 
         var hasAddTerms = bits.ReadBit(reader);
@@ -163,24 +75,27 @@ public struct ColorTransform :
 
         var nBits = bits.ReadIBits(reader, 4);
 
+        int rMult = 256, gMult = 256, bMult = 256;
+        int rAdd = 0, gAdd = 0, bAdd = 0;
+
         if (hasMultTerms)
         {
-            colorTransform.RMult = bits.ReadSBits(reader, nBits);
-            colorTransform.GMult = bits.ReadSBits(reader, nBits);
-            colorTransform.BMult = bits.ReadSBits(reader, nBits);
+            rMult = bits.ReadSBits(reader, nBits);
+            gMult = bits.ReadSBits(reader, nBits);
+            bMult = bits.ReadSBits(reader, nBits);
         }
 
         if (hasAddTerms)
         {
-            colorTransform.RAdd = bits.ReadSBits(reader, nBits);
-            colorTransform.GAdd = bits.ReadSBits(reader, nBits);
-            colorTransform.BAdd = bits.ReadSBits(reader, nBits);
+            rAdd = bits.ReadSBits(reader, nBits);
+            gAdd = bits.ReadSBits(reader, nBits);
+            bAdd = bits.ReadSBits(reader, nBits);
         }
 
-        return colorTransform;
+        return new ColorTransform(rMult, gMult, bMult, 256, rAdd, gAdd, bAdd, 0);
     }
 
-    public readonly void EncodeRgba(MemoryWriter writer)
+    public void EncodeRgba(MemoryWriter writer)
     {
         var bits = new BitWriter();
 
@@ -222,7 +137,7 @@ public struct ColorTransform :
         bits.Flush(writer);
     }
 
-    public readonly void EncodeRgb(MemoryWriter writer)
+    public void EncodeRgb(MemoryWriter writer)
     {
         var bits = new BitWriter();
 

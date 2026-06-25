@@ -15,15 +15,11 @@ public abstract record ShapeRecord
             {
                 var isAxisAligned = !bits.ReadBit(reader);
                 var isVertical = isAxisAligned && bits.ReadBit(reader);
-                var delta = Point.Zero;
 
-                if (!isAxisAligned || !isVertical)
-                    delta.X = bits.ReadSBits(reader, nBits);
+                var deltaX = !isAxisAligned || !isVertical ? bits.ReadSBits(reader, nBits) : 0;
+                var deltaY = !isAxisAligned || isVertical ? bits.ReadSBits(reader, nBits) : 0;
 
-                if (!isAxisAligned || isVertical)
-                    delta.Y = bits.ReadSBits(reader, nBits);
-
-                return new StraightEdgeRecord(delta);
+                return new StraightEdgeRecord(new Point(deltaX, deltaY));
             }
 
             var controlDelta = new Point(bits.ReadSBits(reader, nBits), bits.ReadSBits(reader, nBits));
