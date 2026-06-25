@@ -1,3 +1,5 @@
+using ShockwaveFlash.Exceptions;
+
 namespace ShockwaveFlash.Types.Filter;
 
 public abstract record Filter
@@ -16,7 +18,7 @@ public abstract record Filter
             FilterType.ConvolutionFilter => ConvolutionFilter.DecodeBody(reader),
             FilterType.ColorMatrixFilter => ColorMatrixFilter.DecodeBody(reader),
             FilterType.GradientBevelFilter => GradientFilter.DecodeBody(reader, FilterType.GradientBevelFilter),
-            _ => throw new NotSupportedException($"Filter type {type} is not supported.")
+            _ => throw new SwfFormatException($"Unknown filter type {type}.")
         };
     }
 

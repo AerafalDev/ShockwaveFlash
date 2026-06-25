@@ -1,3 +1,4 @@
+using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Types.Button;
 
@@ -12,7 +13,7 @@ public sealed record ButtonAction(ButtonActionCondition Conditions, ReadOnlyMemo
         {
             >= 4 => reader.ReadMemory(length - 4),
             0 => reader.ReadMemoryToEnd(),
-            _ => throw new NotSupportedException("Button actions length is too short.")
+            _ => throw new SwfFormatException("Button action length is too short.")
         };
 
         return (new ButtonAction(conditions, data), length is not 0);

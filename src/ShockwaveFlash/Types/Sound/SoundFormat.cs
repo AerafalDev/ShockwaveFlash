@@ -1,3 +1,5 @@
+using ShockwaveFlash.Exceptions;
+
 namespace ShockwaveFlash.Types.Sound;
 
 public sealed record SoundFormat(AudioCompression Compression, ushort SampleRate, bool IsStereo, bool Is16Bit)
@@ -12,7 +14,7 @@ public sealed record SoundFormat(AudioCompression Compression, ushort SampleRate
             1 => 11025,
             2 => 22050,
             3 => 44100,
-            _ => throw new NotSupportedException("Not supported sample rate.")
+            _ => throw new SwfFormatException("Invalid sound sample-rate code.")
         };
         var is16Bit = (flags & 2) is not 0;
         var isStereo = (flags & 1) is not 0;

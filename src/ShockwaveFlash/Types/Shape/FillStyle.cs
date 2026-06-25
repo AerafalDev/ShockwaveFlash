@@ -1,3 +1,4 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Types.Shape.Gradients;
 
 namespace ShockwaveFlash.Types.Shape;
@@ -29,7 +30,7 @@ public abstract record FillStyle
                 return new FillStyleBitmap(reader.ReadUInt16(), Matrix.Decode(reader), (fillStyleType & 2) is 0, (fillStyleType & 1) is 0);
 
             default:
-                throw new NotSupportedException($"FillStyle {fillStyleType} is not supported.");
+                throw new SwfFormatException($"Unknown fill-style type {fillStyleType}.");
         }
     }
 
@@ -107,7 +108,7 @@ public abstract record FillStyle
                 return (new FillStyleBitmap(id, startMatrix, isSmoothed, isRepeating), new FillStyleBitmap(id, endMatrix, isSmoothed, isRepeating));
 
             default:
-                throw new NotSupportedException($"FillStyle {fillStyleType} is not supported.");
+                throw new SwfFormatException($"Unknown fill-style type {fillStyleType}.");
         }
     }
 

@@ -1,3 +1,4 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.IO.Compression;
 
 namespace ShockwaveFlash;
@@ -20,7 +21,7 @@ public static class ShockwaveFlashCompressionExtensions
                 ShockwaveFlashCompression.None => compressed,
                 ShockwaveFlashCompression.ZLib => ZLib.Decompress(compressed, uncompressedLength),
                 ShockwaveFlashCompression.Lzma => Lzma.Decompress(compressed, uncompressedLength),
-                _ => throw new NotSupportedException($"Unsupported compression format: {self}.")
+                _ => throw new SwfUnsupportedException($"Unsupported compression format: {self}.")
             };
         }
 
@@ -31,7 +32,7 @@ public static class ShockwaveFlashCompressionExtensions
                 ShockwaveFlashCompression.None => data,
                 ShockwaveFlashCompression.ZLib => ZLib.Compress(data),
                 ShockwaveFlashCompression.Lzma => Lzma.Compress(data),
-                _ => throw new NotSupportedException($"Unsupported compression format: {self}.")
+                _ => throw new SwfUnsupportedException($"Unsupported compression format: {self}.")
             };
         }
     }

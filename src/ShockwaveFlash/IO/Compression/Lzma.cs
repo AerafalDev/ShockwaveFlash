@@ -1,22 +1,22 @@
+using ShockwaveFlash.Exceptions;
+
 namespace ShockwaveFlash.IO.Compression;
 
 public static class Lzma
 {
     public static ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> compressed, int uncompressedLength)
     {
-        throw new NotSupportedException(
+        throw new SwfUnsupportedException(
             "ZWS (LZMA-compressed) SWF files require an LZMA decoder. " +
-            "SPEC GAP: .NET 10 BCL does not include a built-in LZMA implementation. " +
-            "Add a NuGet reference to a library providing LZMA support (e.g. SharpCompress) " +
-            "and replace this method body with the appropriate decompression call.");
+            "The .NET BCL does not include a built-in LZMA implementation. " +
+            "Add an LZMA library (e.g. SharpCompress) and replace this method body.");
     }
 
     public static ReadOnlyMemory<byte> Compress(ReadOnlyMemory<byte> data)
     {
-        throw new NotSupportedException(
+        throw new SwfUnsupportedException(
             "Writing ZWS (LZMA-compressed) SWF files requires an LZMA encoder. " +
-            "SPEC GAP: .NET 10 BCL does not include a built-in LZMA implementation. " +
-            "Add a NuGet reference to a library providing LZMA support (e.g. SharpCompress) " +
-            "and replace this method body with the appropriate compression call.");
+            "The .NET BCL does not include a built-in LZMA implementation. " +
+            "Add an LZMA library (e.g. SharpCompress) and replace this method body.");
     }
 }
