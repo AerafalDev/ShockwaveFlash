@@ -47,8 +47,11 @@ public sealed class BitReader
 
     public uint ReadUBits(MemoryReader reader, int nBits)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nBits);
+        ArgumentOutOfRangeException.ThrowIfNegative(nBits);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(nBits, 32);
+
+        if (nBits is 0)
+            return 0;
 
         while (_position < nBits)
         {

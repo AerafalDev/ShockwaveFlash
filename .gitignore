@@ -437,3 +437,6 @@ npm-debug.log
 yarn-error.log
 yarn-debug.log
 package-lock.json
+
+# Local-only real SWF samples (copyrighted, do not commit)
+/data/

@@ -2,10 +2,32 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.IO.Compression;
+
 namespace ShockwaveFlash.Tests;
 
 internal static class SwfTestData
 {
+    public static byte[] ToZlibCompressed(byte[] uncompressedFws)
+    {
+        var body = uncompressedFws[8..];
+
+        using var ms = new MemoryStream();
+
+        using (var zs = new ZLibStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+            zs.Write(body, 0, body.Length);
+
+        var compressedBody = ms.ToArray();
+
+        var result = new byte[8 + compressedBody.Length];
+        uncompressedFws.AsSpan(0, 8).CopyTo(result);
+        result[0] = (byte)'C';
+        compressedBody.CopyTo(result, 8);
+
+        return result;
+    }
+
+
     public static byte[] MinimalUncompressed()
     {
         byte[] body =

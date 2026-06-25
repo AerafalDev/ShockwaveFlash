@@ -8,6 +8,8 @@ namespace ShockwaveFlash;
 
 public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyList<Tag> Tags)
 {
+    private const int HeaderSize = 8;
+
     public static ShockwaveFlashFile Disassemble(ReadOnlyMemory<byte> data)
     {
         var reader = new MemoryReader(data);
@@ -18,8 +20,9 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 
         var version = reader.ReadUInt8();
         var fileLength = reader.ReadInt32();
+        var bodyLength = fileLength - HeaderSize;
 
-        reader = new MemoryReader(compression.Decompress(reader.ReadMemoryToEnd(), fileLength));
+        reader = new MemoryReader(compression.Decompress(reader.ReadMemoryToEnd(), bodyLength));
 
         var header = ShockwaveFlashHeader.Decode(reader, compression, version, fileLength);
 
