@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.IO.Compression;
+using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.IO.Compression;
 
@@ -12,8 +13,11 @@ public static class ZLib
 
     public static unsafe ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> compressed, int uncompressedLength)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uncompressedLength);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(uncompressedLength, MaxDecompressedSize);
+        if (uncompressedLength <= 0)
+            throw new SwfCompressionException($"Invalid uncompressed length {uncompressedLength}.");
+
+        if (uncompressedLength > MaxDecompressedSize)
+            throw new SwfCompressionException($"Uncompressed length {uncompressedLength} exceeds the {MaxDecompressedSize}-byte limit.");
 
         var decompressed = new byte[uncompressedLength];
         var decompressedSpan = decompressed.AsSpan();
@@ -24,18 +28,25 @@ public static class ZLib
 
         var reads = 0;
 
-        while (reads < uncompressedLength)
+        try
         {
-            var bytesRead = zs.Read(decompressedSpan[reads..]);
+            while (reads < uncompressedLength)
+            {
+                var bytesRead = zs.Read(decompressedSpan[reads..]);
 
-            if (bytesRead is 0)
-                break;
+                if (bytesRead is 0)
+                    break;
 
-            reads += bytesRead;
+                reads += bytesRead;
+            }
+        }
+        catch (InvalidDataException e)
+        {
+            throw new SwfCompressionException("The zlib stream is corrupt.", e);
         }
 
         if (reads != uncompressedLength)
-            throw new InvalidOperationException($"Expected {uncompressedLength} bytes but decompressed {reads} bytes.");
+            throw new SwfCompressionException($"Expected {uncompressedLength} bytes but decompressed {reads} bytes.");
 
         return decompressed.AsMemory(0, reads);
     }

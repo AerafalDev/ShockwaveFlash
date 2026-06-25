@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Tags.Abc;
 using ShockwaveFlash.Tags.Action;
 using ShockwaveFlash.Tags.Bitmap;
@@ -24,6 +25,10 @@ namespace ShockwaveFlash.Tags;
 public abstract record Tag(TagMetadata Metadata)
 {
     private const int MaxShortTagLength = 63;
+    private const int MaxNestingDepth = 256;
+
+    [ThreadStatic]
+    private static int s_depth;
 
     public virtual void Encode(MemoryWriter writer, byte swfVersion)
     {
@@ -56,33 +61,42 @@ public abstract record Tag(TagMetadata Metadata)
 
     public static IReadOnlyList<Tag> DecodeCollection(MemoryReader reader, byte swfVersion)
     {
-        var tags = new List<Tag>();
+        if (s_depth >= MaxNestingDepth)
+            throw new SwfFormatException($"Tag nesting exceeds the maximum depth of {MaxNestingDepth}.");
 
-        while (reader.Remaining > 0)
+        s_depth++;
+
+        try
         {
-            var codeAndLength = reader.ReadUInt16();
-            var code = (ushort)(codeAndLength >> 6);
-            var length = codeAndLength & 63;
+            var tags = new List<Tag>();
 
-            if (length is 63)
-                length = reader.ReadInt32();
+            while (reader.Remaining > 0)
+            {
+                var codeAndLength = reader.ReadUInt16();
+                var code = (ushort)(codeAndLength >> 6);
+                var length = codeAndLength & 63;
 
-            if (!Enum.IsDefined(typeof(TagCode), code))
-                throw new NotSupportedException($"Tag code {code} is not supported.");
+                if (length is 63)
+                    length = reader.ReadInt32();
 
-            var offset = reader.Position;
-            var metadata = new TagMetadata((TagCode)code, offset, length);
-            var tagReader = new MemoryReader(reader.ReadMemory(length));
+                var offset = reader.Position;
+                var metadata = new TagMetadata((TagCode)code, offset, length);
+                var tagReader = new MemoryReader(reader.ReadMemory(length));
 
-            var tag = Decode(tagReader, metadata, swfVersion);
+                var tag = Decode(tagReader, metadata, swfVersion);
 
-            if (tagReader.Remaining is not 0)
-                throw new Exception($"Tag length mismatch. Expected {length} bytes, got {tagReader.Position}.");
+                if (tagReader.Remaining is not 0)
+                    throw new SwfFormatException($"Tag length mismatch for {metadata.Code}. Expected {length} bytes, consumed {tagReader.Position}.");
 
-            tags.Add(tag);
+                tags.Add(tag);
+            }
+
+            return tags;
         }
-
-        return tags;
+        finally
+        {
+            s_depth--;
+        }
     }
 
     private static Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
@@ -158,7 +172,7 @@ public abstract record Tag(TagMetadata Metadata)
             TagCode.DefineBitsJpeg4 => DefineBitsJpeg4Tag.Decode(reader, metadata),
             TagCode.DefineFont4 => DefineFont4Tag.Decode(reader, metadata),
             TagCode.EnableTelemetry => EnableTelemetryTag.Decode(reader, metadata),
-            _ => throw new NotSupportedException($"Tag code {metadata.Code} is not supported.")
+            _ => UnknownTag.Decode(reader, metadata)
         };
     }
 }

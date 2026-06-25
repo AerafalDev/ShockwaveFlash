@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.IO.Extensions;
 
 namespace ShockwaveFlash.IO.Binary;
@@ -242,13 +243,17 @@ public sealed class MemoryReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureBuffer(int count)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(_position + count, _buffer.Length);
+        if (count < 0)
+            throw new SwfFormatException($"Negative read length {count} at position {_position}.");
+
+        if (count > _buffer.Length - _position)
+            throw new SwfTruncatedException($"Tried to read {count} bytes at position {_position} but only {_buffer.Length - _position} remain.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EnsureNullTerminatedStringIndex(int index)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        if (index < 0)
+            throw new SwfTruncatedException("Reached end of buffer before a null string terminator.");
     }
 }

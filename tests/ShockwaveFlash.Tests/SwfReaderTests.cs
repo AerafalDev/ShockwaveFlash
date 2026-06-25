@@ -53,12 +53,12 @@ public sealed class SwfReaderTests
     }
 
     [Fact]
-    public void Disassemble_rejects_an_unknown_tag_code()
+    public void Disassemble_preserves_an_unknown_tag_as_raw_bytes()
     {
         byte[] body =
         [
             0x08, 0x00, 0x00, 0x18, 0x01, 0x00,
-            0xC0, 0xFF,
+            0xC2, 0xFF, 0xAB, 0xCD,
             0x00, 0x00,
         ];
 
@@ -70,6 +70,12 @@ public sealed class SwfReaderTests
         file[4] = (byte)file.Length;
         body.CopyTo(file, 8);
 
-        Should.Throw<NotSupportedException>(() => ShockwaveFlashFile.Disassemble(file));
+        var swf = ShockwaveFlashFile.Disassemble(file);
+
+        var unknown = swf.Tags.OfType<Tags.UnknownTag>().ShouldHaveSingleItem();
+        ((ushort)unknown.Metadata.Code).ShouldBe((ushort)1023);
+        unknown.Data.ToArray().ShouldBe(new byte[] { 0xAB, 0xCD });
+
+        swf.Assemble().ToArray().ShouldBe(file);
     }
 }
