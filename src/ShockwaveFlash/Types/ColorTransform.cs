@@ -51,14 +51,11 @@ public struct ColorTransform :
 
     public Color Transform(Color other)
     {
-        var color = new Color();
-
-        color.R = (byte)Math.Clamp(other.R * RMult / 256 + RAdd, 0, 255);
-        color.G = (byte)Math.Clamp(other.G * GMult / 256 + GAdd, 0, 255);
-        color.B = (byte)Math.Clamp(other.B * BMult / 256 + BAdd, 0, 255);
-        color.A = (byte)Math.Clamp(other.A * AMult / 256 + AAdd, 0, 255);
-
-        return color;
+        return new Color(
+            (byte)Math.Clamp(other.R * RMult / 256 + RAdd, 0, 255),
+            (byte)Math.Clamp(other.G * GMult / 256 + GAdd, 0, 255),
+            (byte)Math.Clamp(other.B * BMult / 256 + BAdd, 0, 255),
+            (byte)Math.Clamp(other.A * AMult / 256 + AAdd, 0, 255));
     }
 
     public ColorTransform Merge(ColorTransform other)
