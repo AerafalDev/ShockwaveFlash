@@ -27,5 +27,6 @@ msbuild.wrn
 .vs/
 CLAUDE.md
 ROADMAP.md
+src/ShockwaveFlash/InternalsVisibleTo.cs
 data/
 tests/
