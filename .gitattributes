@@ -1,9 +1,7 @@
-# Auto detect text files and perform LF normalization
-*          text=auto
+# Check out every text file with CRLF on all platforms (Windows default);
+# the repository normalizes to LF on commit.
+* text=auto eol=crlf
 
-*.cs       text diff=csharp
-*.cshtml   text diff=html
-*.csx      text diff=csharp
-*.sln      text eol=crlf
-*.slnx     text eol=crlf
-*.csproj   text eol=crlf
+*.cs       diff=csharp
+*.cshtml   diff=html
+*.csx      diff=csharp

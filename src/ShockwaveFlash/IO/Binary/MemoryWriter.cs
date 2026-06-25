@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ShockwaveFlash.Exceptions;
+using ShockwaveFlash.IO.Extensions;
 
 namespace ShockwaveFlash.IO.Binary;
 
@@ -72,16 +73,13 @@ public sealed class MemoryWriter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteUInt24(uint value)
     {
-        var span = Reserve(3);
-        span[0] = (byte)value;
-        span[1] = (byte)(value >> 8);
-        span[2] = (byte)(value >> 16);
+        BinaryPrimitives.WriteUInt24LittleEndian(Reserve(3), value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteInt24(int value)
     {
-        WriteUInt24((uint)(value & 0xFFFFFF));
+        BinaryPrimitives.WriteInt24LittleEndian(Reserve(3), value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
