@@ -42,4 +42,15 @@ public static class ClipEventFlagsExtensions
             return (ClipEventFlags)flags;
         }
     }
+
+    extension(ClipEventFlags self)
+    {
+        public void Encode(MemoryWriter writer, byte swfVersion)
+        {
+            if (swfVersion >= 6)
+                writer.WriteUInt32((uint)self);
+            else
+                writer.WriteUInt16((ushort)self);
+        }
+    }
 }

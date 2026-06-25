@@ -16,7 +16,7 @@ public sealed record DefineBinaryDataTag(TagMetadata Metadata, ushort Id, ReadOn
         return new DefineBinaryDataTag(metadata, id, data);
     }
 
-    public override void Encode(MemoryWriter writer)
+    public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteUInt16(Id);
         writer.WriteUInt32(0);

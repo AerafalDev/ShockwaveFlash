@@ -36,7 +36,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
         var body = new MemoryWriter();
 
         Header.Encode(body);
-        Tag.EncodeCollection(body, Tags);
+        Tag.EncodeCollection(body, Tags, Header.Version);
 
         var compressedBody = Header.Compression.Compress(body.WrittenMemory);
         var fileLength = HeaderSize + body.Position;

@@ -19,7 +19,7 @@ public sealed record ExportAssetsTag(TagMetadata Metadata, AssetReference[] Asse
         return new ExportAssetsTag(metadata, assets);
     }
 
-    public override void Encode(MemoryWriter writer)
+    public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteUInt16((ushort)Assets.Length);
 

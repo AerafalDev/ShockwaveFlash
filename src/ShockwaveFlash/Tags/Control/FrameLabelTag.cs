@@ -17,7 +17,7 @@ public sealed record FrameLabelTag(TagMetadata Metadata, string Name, bool IsAnc
         return new FrameLabelTag(metadata, name, isAnchor);
     }
 
-    public override void Encode(MemoryWriter writer)
+    public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteNullTerminatedString(Name);
 

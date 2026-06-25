@@ -25,17 +25,17 @@ public abstract record Tag(TagMetadata Metadata)
 {
     private const int MaxShortTagLength = 63;
 
-    public virtual void Encode(MemoryWriter writer)
+    public virtual void Encode(MemoryWriter writer, byte swfVersion)
     {
         throw new NotSupportedException($"Encoding tag {Metadata.Code} is not supported yet.");
     }
 
-    public static void EncodeCollection(MemoryWriter writer, IReadOnlyList<Tag> tags)
+    public static void EncodeCollection(MemoryWriter writer, IReadOnlyList<Tag> tags, byte swfVersion)
     {
         foreach (var tag in tags)
         {
             var body = new MemoryWriter();
-            tag.Encode(body);
+            tag.Encode(body, swfVersion);
 
             var code = (ushort)tag.Metadata.Code;
             var length = body.Position;

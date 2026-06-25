@@ -17,7 +17,7 @@ public sealed record DoAbc2Tag(TagMetadata Metadata, DoAbc2Flags Flags, string N
         return new DoAbc2Tag(metadata, flags, name, data);
     }
 
-    public override void Encode(MemoryWriter writer)
+    public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteUInt32((uint)Flags);
         writer.WriteNullTerminatedString(Name);

@@ -109,4 +109,46 @@ public struct Matrix :
 
         return matrix;
     }
+
+    public readonly void Encode(MemoryWriter writer)
+    {
+        var bits = new BitWriter();
+
+        var hasScale = Scale.X != 1f || Scale.Y != 1f;
+
+        bits.WriteBit(writer, hasScale);
+
+        if (hasScale)
+        {
+            var nScaleBits = Math.Max(FixedBitsNeeded(Scale.X), FixedBitsNeeded(Scale.Y));
+            bits.WriteUBits(writer, (uint)nScaleBits, 5);
+            bits.WriteFBits(writer, Scale.X, nScaleBits);
+            bits.WriteFBits(writer, Scale.Y, nScaleBits);
+        }
+
+        var hasRotation = Rotation.X != 0f || Rotation.Y != 0f;
+
+        bits.WriteBit(writer, hasRotation);
+
+        if (hasRotation)
+        {
+            var nRotationBits = Math.Max(FixedBitsNeeded(Rotation.X), FixedBitsNeeded(Rotation.Y));
+            bits.WriteUBits(writer, (uint)nRotationBits, 5);
+            bits.WriteFBits(writer, Rotation.X, nRotationBits);
+            bits.WriteFBits(writer, Rotation.Y, nRotationBits);
+        }
+
+        var nTranslationBits = Math.Max(BitWriter.SignedBitsNeeded(Translation.X), BitWriter.SignedBitsNeeded(Translation.Y));
+
+        bits.WriteUBits(writer, (uint)nTranslationBits, 5);
+        bits.WriteSBits(writer, Translation.X, nTranslationBits);
+        bits.WriteSBits(writer, Translation.Y, nTranslationBits);
+
+        bits.Flush(writer);
+    }
+
+    private static int FixedBitsNeeded(float value)
+    {
+        return BitWriter.SignedBitsNeeded((int)Math.Round(value * 65536.0));
+    }
 }

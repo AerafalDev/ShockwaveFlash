@@ -186,4 +186,86 @@ public struct ColorTransform :
 
         return colorTransform;
     }
+
+    public readonly void EncodeRgba(MemoryWriter writer)
+    {
+        var bits = new BitWriter();
+
+        var hasMultTerms = RMult != 256 || GMult != 256 || BMult != 256 || AMult != 256;
+        var hasAddTerms = RAdd != 0 || GAdd != 0 || BAdd != 0 || AAdd != 0;
+
+        var nBits = 1;
+
+        if (hasMultTerms)
+            nBits = Math.Max(nBits, Math.Max(
+                Math.Max(BitWriter.SignedBitsNeeded(RMult), BitWriter.SignedBitsNeeded(GMult)),
+                Math.Max(BitWriter.SignedBitsNeeded(BMult), BitWriter.SignedBitsNeeded(AMult))));
+
+        if (hasAddTerms)
+            nBits = Math.Max(nBits, Math.Max(
+                Math.Max(BitWriter.SignedBitsNeeded(RAdd), BitWriter.SignedBitsNeeded(GAdd)),
+                Math.Max(BitWriter.SignedBitsNeeded(BAdd), BitWriter.SignedBitsNeeded(AAdd))));
+
+        bits.WriteBit(writer, hasAddTerms);
+        bits.WriteBit(writer, hasMultTerms);
+        bits.WriteUBits(writer, (uint)nBits, 4);
+
+        if (hasMultTerms)
+        {
+            bits.WriteSBits(writer, RMult, nBits);
+            bits.WriteSBits(writer, GMult, nBits);
+            bits.WriteSBits(writer, BMult, nBits);
+            bits.WriteSBits(writer, AMult, nBits);
+        }
+
+        if (hasAddTerms)
+        {
+            bits.WriteSBits(writer, RAdd, nBits);
+            bits.WriteSBits(writer, GAdd, nBits);
+            bits.WriteSBits(writer, BAdd, nBits);
+            bits.WriteSBits(writer, AAdd, nBits);
+        }
+
+        bits.Flush(writer);
+    }
+
+    public readonly void EncodeRgb(MemoryWriter writer)
+    {
+        var bits = new BitWriter();
+
+        var hasMultTerms = RMult != 256 || GMult != 256 || BMult != 256;
+        var hasAddTerms = RAdd != 0 || GAdd != 0 || BAdd != 0;
+
+        var nBits = 1;
+
+        if (hasMultTerms)
+            nBits = Math.Max(nBits, Math.Max(
+                BitWriter.SignedBitsNeeded(RMult),
+                Math.Max(BitWriter.SignedBitsNeeded(GMult), BitWriter.SignedBitsNeeded(BMult))));
+
+        if (hasAddTerms)
+            nBits = Math.Max(nBits, Math.Max(
+                BitWriter.SignedBitsNeeded(RAdd),
+                Math.Max(BitWriter.SignedBitsNeeded(GAdd), BitWriter.SignedBitsNeeded(BAdd))));
+
+        bits.WriteBit(writer, hasAddTerms);
+        bits.WriteBit(writer, hasMultTerms);
+        bits.WriteUBits(writer, (uint)nBits, 4);
+
+        if (hasMultTerms)
+        {
+            bits.WriteSBits(writer, RMult, nBits);
+            bits.WriteSBits(writer, GMult, nBits);
+            bits.WriteSBits(writer, BMult, nBits);
+        }
+
+        if (hasAddTerms)
+        {
+            bits.WriteSBits(writer, RAdd, nBits);
+            bits.WriteSBits(writer, GAdd, nBits);
+            bits.WriteSBits(writer, BAdd, nBits);
+        }
+
+        bits.Flush(writer);
+    }
 }

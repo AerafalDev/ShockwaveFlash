@@ -12,7 +12,7 @@ public sealed record JpegTablesTag(TagMetadata Metadata, ReadOnlyMemory<byte> Da
         return new JpegTablesTag(metadata, reader.ReadMemoryToEnd());
     }
 
-    public override void Encode(MemoryWriter writer)
+    public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteMemory(Data);
     }

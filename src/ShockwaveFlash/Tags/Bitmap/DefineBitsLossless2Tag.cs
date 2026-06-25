@@ -26,7 +26,7 @@ public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ush
         return new DefineBitsLossless2Tag(metadata, id, width, height, format, zlibBitmapData);
     }
 
-    public override void Encode(MemoryWriter writer)
+    public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteUInt16(Id);
 

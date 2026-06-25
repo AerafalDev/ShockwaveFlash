@@ -12,7 +12,7 @@ public sealed record DefineBitsTag(TagMetadata Metadata, ushort Id, ReadOnlyMemo
         return new DefineBitsTag(metadata, reader.ReadUInt16(), reader.ReadMemoryToEnd());
     }
 
-    public override void Encode(MemoryWriter writer)
+    public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteUInt16(Id);
         writer.WriteMemory(ImageData);

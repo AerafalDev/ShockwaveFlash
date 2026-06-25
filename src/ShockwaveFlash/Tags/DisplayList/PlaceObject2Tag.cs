@@ -85,4 +85,40 @@ public sealed record PlaceObject2Tag(
 
         return new PlaceObject2Tag(metadata, action, depth, matrix, colorTransform, flags, ratio, name, clipDepth, clipActions);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt8((byte)Flags);
+        writer.WriteUInt16(Depth);
+
+        if (HasCharacter)
+        {
+            var id = Action switch
+            {
+                PlaceObjectAction.PlaceObjectActionPlace place => place.Id,
+                PlaceObjectAction.PlaceObjectActionReplace replace => replace.Id,
+                _ => throw new NotSupportedException("Invalid PlaceObject2Tag action combination.")
+            };
+
+            writer.WriteUInt16(id);
+        }
+
+        if (HasMatrix && Matrix is { } matrix)
+            matrix.Encode(writer);
+
+        if (HasColorTransform && ColorTransform is { } colorTransform)
+            colorTransform.EncodeRgba(writer);
+
+        if (HasRatio && Ratio is { } ratio)
+            writer.WriteUInt16(ratio);
+
+        if (HasName && Name is { } name)
+            writer.WriteNullTerminatedString(name);
+
+        if (HasClipDepth && ClipDepth is { } clipDepth)
+            writer.WriteUInt16(clipDepth);
+
+        if (HasClipActions && ClipActions is { } clipActions)
+            ClipAction.EncodeCollection(writer, clipActions, swfVersion);
+    }
 }
