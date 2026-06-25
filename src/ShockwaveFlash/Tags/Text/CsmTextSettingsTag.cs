@@ -21,4 +21,19 @@ public sealed record CsmTextSettingsTag(TagMetadata Metadata, ushort Id, bool Us
 
         return new CsmTextSettingsTag(metadata, id, useAdvancedRendering, gridFit, thickness, sharpness);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+
+        var flags = (byte)(((byte)GridFit & 3) << 3);
+
+        if (UseAdvancedRendering)
+            flags |= 64;
+
+        writer.WriteUInt8(flags);
+        writer.WriteFloat32(Thickness);
+        writer.WriteFloat32(Sharpness);
+        writer.WriteUInt8(0);
+    }
 }

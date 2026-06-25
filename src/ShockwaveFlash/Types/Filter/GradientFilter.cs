@@ -50,4 +50,21 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
 
         return new GradientFilter(records, blur, angle, distance, strength, flags);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt8((byte)Colors.Length);
+
+        for (var i = 0; i < Colors.Length; i++)
+            Colors[i].Color.EncodeRgba(writer);
+
+        for (var i = 0; i < Colors.Length; i++)
+            writer.WriteUInt8(Colors[i].Ratio);
+
+        writer.WriteVector2(Blur);
+        writer.WriteFixed(Angle);
+        writer.WriteFixed(Distance);
+        writer.WriteFixed8(Strength);
+        writer.WriteUInt8((byte)Flags);
+    }
 }

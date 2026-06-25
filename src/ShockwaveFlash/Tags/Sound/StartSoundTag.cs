@@ -15,4 +15,10 @@ public sealed record StartSoundTag(TagMetadata Metadata, ushort Id, SoundInfo So
 
         return new StartSoundTag(metadata, id, soundInfo);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        SoundInfo.Encode(writer);
+    }
 }

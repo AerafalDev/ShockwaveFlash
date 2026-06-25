@@ -29,4 +29,17 @@ public sealed record DefineVideoStreamTag(
 
         return new DefineVideoStreamTag(metadata, id, numFrames, width, height, isSmoothed, deblocking, codec);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt16(NumFrames);
+        writer.WriteUInt16(Width);
+        writer.WriteUInt16(Height);
+
+        var flags = (byte)((((byte)Deblocking & 7) << 1) | (IsSmoothed ? 1 : 0));
+
+        writer.WriteUInt8(flags);
+        writer.WriteUInt8((byte)Codec);
+    }
 }

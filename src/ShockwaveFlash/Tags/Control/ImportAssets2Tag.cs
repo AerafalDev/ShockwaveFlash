@@ -22,4 +22,14 @@ public sealed record ImportAssets2Tag(TagMetadata Metadata, string Url, AssetRef
 
         return new ImportAssets2Tag(metadata, url, assets);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteNullTerminatedString(Url);
+        writer.WriteUInt16(0);
+        writer.WriteUInt16((ushort)Assets.Length);
+
+        foreach (var asset in Assets)
+            asset.Encode(writer);
+    }
 }

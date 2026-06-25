@@ -17,4 +17,13 @@ public sealed record DefineBitsJpeg4Tag(TagMetadata Metadata, ushort Id, float D
 
         return new DefineBitsJpeg4Tag(metadata, id, deblocking, data, alphaData);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteInt32(Data.Length);
+        writer.WriteFixed8(Deblocking);
+        writer.WriteMemory(Data);
+        writer.WriteMemory(AlphaData);
+    }
 }

@@ -18,4 +18,12 @@ public sealed record DefineButtonCxFormTag(TagMetadata Metadata, ushort Id, IRea
 
         return new DefineButtonCxFormTag(metadata, id, colorTransforms);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+
+        foreach (var colorTransform in ColorTransforms)
+            colorTransform.EncodeRgb(writer);
+    }
 }

@@ -17,4 +17,12 @@ public sealed record DefineSoundTag(TagMetadata Metadata, ushort Id, SoundFormat
 
         return new DefineSoundTag(metadata, id, format, numSamples, data);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        Format.Encode(writer);
+        writer.WriteUInt32(NumSamples);
+        writer.WriteMemory(Data);
+    }
 }

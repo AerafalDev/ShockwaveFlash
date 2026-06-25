@@ -19,4 +19,13 @@ public sealed record DefineFontAlignZonesTag(TagMetadata Metadata, ushort Id, Fo
 
         return new DefineFontAlignZonesTag(metadata, id, thickness, zones);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt8((byte)((byte)Thickness << 6));
+
+        foreach (var zone in Zones)
+            zone.Encode(writer);
+    }
 }

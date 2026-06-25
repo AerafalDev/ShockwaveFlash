@@ -23,4 +23,20 @@ public sealed record SoundFormat(AudioCompression Compression, ushort SampleRate
 
         return new SoundFormat(compression, sampleRate, isStereo, is16Bit);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        var sampleRateBits = SampleRate switch
+        {
+            5512 => 0,
+            11025 => 1,
+            22050 => 2,
+            44100 => 3,
+            _ => throw new NotSupportedException("Not supported sample rate.")
+        };
+
+        var flags = (byte)(((byte)Compression << 4) | (sampleRateBits << 2) | (Is16Bit ? 2 : 0) | (IsStereo ? 1 : 0));
+
+        writer.WriteUInt8(flags);
+    }
 }

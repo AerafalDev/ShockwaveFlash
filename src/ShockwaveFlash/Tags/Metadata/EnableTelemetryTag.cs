@@ -13,4 +13,12 @@ public sealed record EnableTelemetryTag(TagMetadata Metadata, ReadOnlyMemory<byt
 
         return new EnableTelemetryTag(metadata, metadata.Length > 2 ? reader.ReadMemory(32) : ReadOnlyMemory<byte>.Empty);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(0);
+
+        if (!PasswordHash.IsEmpty)
+            writer.WriteMemory(PasswordHash);
+    }
 }

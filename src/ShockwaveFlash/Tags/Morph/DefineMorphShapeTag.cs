@@ -81,4 +81,89 @@ public sealed record DefineMorphShapeTag(TagMetadata Metadata, ushort Id, Define
 
         return new DefineMorphShapeTag(metadata, id, DefineMorphShapeFlags.HasNonScalingStrokes, startShape, endShape);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        Start.ShapeBounds.Encode(writer);
+        End.ShapeBounds.Encode(writer);
+
+        var body = new MemoryWriter();
+
+        var numFillStyles = Start.FillStyles.Length;
+
+        if (numFillStyles >= 255)
+        {
+            body.WriteUInt8(255);
+            body.WriteUInt16((ushort)numFillStyles);
+        }
+        else
+        {
+            body.WriteUInt8((byte)numFillStyles);
+        }
+
+        for (var i = 0; i < numFillStyles; i++)
+            FillStyle.EncodeMorph(body, Start.FillStyles[i], End.FillStyles[i]);
+
+        var numLineStyles = Start.LineStyles.Length;
+
+        if (numLineStyles >= 255)
+        {
+            body.WriteUInt8(255);
+            body.WriteUInt16((ushort)numLineStyles);
+        }
+        else
+        {
+            body.WriteUInt8((byte)numLineStyles);
+        }
+
+        for (var i = 0; i < numLineStyles; i++)
+            LineStyle.EncodeMorph(body, Start.LineStyles[i], End.LineStyles[i], 1);
+
+        var numFillBits = 0;
+        var numLineBits = 0;
+
+        foreach (var shape in Start.Shapes)
+        {
+            if (shape is StyleChangeRecord styleChange)
+            {
+                if (styleChange.FillStyle0 is { } fillStyle0)
+                    numFillBits = Math.Max(numFillBits, BitWriter.UnsignedBitsNeeded(fillStyle0));
+
+                if (styleChange.FillStyle1 is { } fillStyle1)
+                    numFillBits = Math.Max(numFillBits, BitWriter.UnsignedBitsNeeded(fillStyle1));
+
+                if (styleChange.LineStyle is { } lineStyle)
+                    numLineBits = Math.Max(numLineBits, BitWriter.UnsignedBitsNeeded(lineStyle));
+            }
+        }
+
+        var bits = new BitWriter();
+        bits.WriteUBits(body, (uint)numFillBits, 4);
+        bits.WriteUBits(body, (uint)numLineBits, 4);
+
+        var startContext = new ShapeContext(swfVersion, 1, numFillBits, numLineBits);
+
+        foreach (var shape in Start.Shapes)
+            shape.Encode(body, bits, startContext);
+
+        bits.Flush(body);
+
+        body.WriteUInt8(0);
+
+        var endBody = new MemoryWriter();
+
+        bits = new BitWriter();
+
+        var endContext = new ShapeContext(swfVersion, 1, 0, 0);
+
+        foreach (var shape in End.Shapes)
+            shape.Encode(endBody, bits, endContext);
+
+        bits.Flush(endBody);
+
+        writer.WriteUInt32((uint)body.Position);
+        writer.WriteMemory(body.WrittenMemory);
+        writer.WriteMemory(endBody.WrittenMemory);
+    }
 }

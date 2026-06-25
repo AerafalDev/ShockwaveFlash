@@ -12,4 +12,9 @@ public sealed record MetadataTag(TagMetadata Metadata, [StringSyntax(StringSynta
     {
         return new MetadataTag(metadata, reader.ReadNullTerminatedString());
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteNullTerminatedString(XmlMetadata);
+    }
 }

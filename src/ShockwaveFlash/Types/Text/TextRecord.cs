@@ -48,4 +48,52 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
 
         return new TextRecord(id, color, offset, height, glyphs);
     }
+
+    public void Encode(MemoryWriter writer, byte tagVersion, byte numGlyphBits, byte numAdvanceBits)
+    {
+        byte flags = 0x80;
+
+        if (Id is not null && Height is not null)
+            flags |= 8;
+
+        if (Color is not null)
+            flags |= 4;
+
+        if (Offset is not null)
+            flags |= 1 | 2;
+
+        writer.WriteUInt8(flags);
+
+        if ((flags & 8) is not 0 && Id is { } id)
+            writer.WriteUInt16(id);
+
+        if ((flags & 4) is not 0 && Color is { } color)
+        {
+            if (tagVersion is 1)
+                color.EncodeRgb(writer);
+            else
+                color.EncodeRgba(writer);
+        }
+
+        if ((flags & 1) is not 0 && Offset is { } offsetX)
+            writer.WriteInt16((short)offsetX.X);
+
+        if ((flags & 2) is not 0 && Offset is { } offsetY)
+            writer.WriteInt16((short)offsetY.Y);
+
+        if ((flags & 8) is not 0 && Height is { } height)
+            writer.WriteUInt16(height);
+
+        writer.WriteUInt8((byte)Glyphs.Length);
+
+        var bits = new BitWriter();
+
+        foreach (var glyph in Glyphs)
+        {
+            bits.WriteUBits(writer, glyph.Index, numGlyphBits);
+            bits.WriteSBits(writer, glyph.Advance, numAdvanceBits);
+        }
+
+        bits.Flush(writer);
+    }
 }

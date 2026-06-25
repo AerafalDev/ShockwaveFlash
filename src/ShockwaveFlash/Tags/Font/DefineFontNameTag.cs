@@ -14,4 +14,11 @@ public sealed record DefineFontNameTag(TagMetadata Metadata, ushort Id, string F
 
         return new DefineFontNameTag(metadata, id, name, copyright);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteNullTerminatedString(FontName);
+        writer.WriteNullTerminatedString(Copyright);
+    }
 }

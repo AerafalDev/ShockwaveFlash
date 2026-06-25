@@ -21,4 +21,17 @@ public sealed record ButtonAction(ButtonActionCondition Conditions, ReadOnlyMemo
 
         return (new ButtonAction(conditions, data), length is not 0);
     }
+
+    public static void EncodeCollection(MemoryWriter writer, IReadOnlyList<ButtonAction> actions)
+    {
+        for (var i = 0; i < actions.Count; i++)
+            actions[i].Encode(writer, i == actions.Count - 1);
+    }
+
+    public void Encode(MemoryWriter writer, bool isLast)
+    {
+        writer.WriteUInt16(isLast ? (ushort)0 : (ushort)(Data.Length + 4));
+        writer.WriteUInt16((ushort)Conditions);
+        writer.WriteMemory(Data);
+    }
 }

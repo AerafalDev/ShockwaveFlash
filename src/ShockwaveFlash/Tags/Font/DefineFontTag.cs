@@ -44,4 +44,43 @@ public sealed record DefineFontTag(TagMetadata Metadata, ushort Id, ushort[] Off
 
         return new DefineFontTag(metadata, id, offsetTable, glyphs);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+
+        foreach (var offset in OffsetTable)
+            writer.WriteUInt16(offset);
+
+        foreach (var glyph in Glyphs)
+        {
+            var numFillBits = 0;
+            var numLineBits = 0;
+
+            foreach (var record in glyph)
+            {
+                if (record is StyleChangeRecord styleChange)
+                {
+                    if (styleChange.FillStyle0 is { } fillStyle0)
+                        numFillBits = Math.Max(numFillBits, BitWriter.UnsignedBitsNeeded(fillStyle0));
+
+                    if (styleChange.FillStyle1 is { } fillStyle1)
+                        numFillBits = Math.Max(numFillBits, BitWriter.UnsignedBitsNeeded(fillStyle1));
+
+                    if (styleChange.LineStyle is { } lineStyle)
+                        numLineBits = Math.Max(numLineBits, BitWriter.UnsignedBitsNeeded(lineStyle));
+                }
+            }
+
+            writer.WriteUInt8((byte)((numFillBits << 4) | numLineBits));
+
+            var context = new ShapeContext(swfVersion, 1, numFillBits, numLineBits);
+            var bits = new BitWriter();
+
+            foreach (var record in glyph)
+                record.Encode(writer, bits, context);
+
+            bits.Flush(writer);
+        }
+    }
 }

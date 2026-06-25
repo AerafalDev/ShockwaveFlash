@@ -11,4 +11,9 @@ public sealed record DoAbcTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data) :
     {
         return new DoAbcTag(metadata, reader.ReadMemoryToEnd());
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteMemory(Data);
+    }
 }

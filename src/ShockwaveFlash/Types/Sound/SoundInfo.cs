@@ -33,4 +33,41 @@ public sealed record SoundInfo(SoundEvent Event, uint? InSample, uint? OutSample
 
         return new SoundInfo(sEvent, inSample, outSample, numLoops, envelope);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        var hasInSample = InSample is not null;
+        var hasOutSample = OutSample is not null;
+        var hasLoops = NumLoops is not 1;
+        var hasEnvelope = Envelope is not null;
+
+        var flags = (byte)((((byte)Event & 3) << 4)
+            | (hasEnvelope ? 8 : 0)
+            | (hasLoops ? 4 : 0)
+            | (hasOutSample ? 2 : 0)
+            | (hasInSample ? 1 : 0));
+
+        writer.WriteUInt8(flags);
+
+        if (InSample is { } inSample)
+            writer.WriteUInt32(inSample);
+
+        if (OutSample is { } outSample)
+            writer.WriteUInt32(outSample);
+
+        if (hasLoops)
+            writer.WriteUInt16(NumLoops);
+
+        if (Envelope is { } envelope)
+        {
+            writer.WriteUInt8((byte)envelope.Points.Length);
+
+            foreach (var point in envelope.Points)
+            {
+                writer.WriteUInt32(point.Sample);
+                writer.WriteUInt16((ushort)(point.LeftVolume * 32768f));
+                writer.WriteUInt16((ushort)(point.RightVolume * 32768f));
+            }
+        }
+    }
 }

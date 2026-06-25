@@ -41,4 +41,27 @@ public sealed record DefineButton2Tag(TagMetadata Metadata, ushort Id, bool IsTr
 
         return new DefineButton2Tag(metadata, id, isTrackAsMenu, records, actions);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt8((byte)(IsTrackAsMenu ? 1 : 0));
+
+        var recordsWriter = new MemoryWriter();
+
+        foreach (var record in Records)
+            record.Encode(recordsWriter, 2);
+
+        recordsWriter.WriteUInt8(0);
+
+        var actionsOffset = Actions.Count is 0
+            ? (ushort)0
+            : (ushort)(2 + recordsWriter.Position);
+
+        writer.WriteUInt16(actionsOffset);
+        writer.WriteMemory(recordsWriter.WrittenMemory);
+
+        if (Actions.Count is not 0)
+            ButtonAction.EncodeCollection(writer, Actions);
+    }
 }

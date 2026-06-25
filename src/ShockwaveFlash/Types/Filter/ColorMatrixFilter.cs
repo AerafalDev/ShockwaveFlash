@@ -30,4 +30,10 @@ public sealed record ColorMatrixFilter(float[] Matrix) : Filter
 
         return new ColorMatrixFilter(matrix);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        for (var i = 0; i < Matrix.Length; i++)
+            writer.WriteFloat32(Matrix[i]);
+    }
 }

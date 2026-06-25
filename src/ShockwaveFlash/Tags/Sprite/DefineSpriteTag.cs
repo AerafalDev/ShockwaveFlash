@@ -14,4 +14,11 @@ public sealed record DefineSpriteTag(TagMetadata Metadata, ushort Id, ushort Num
 
         return new DefineSpriteTag(metadata, id, numFrames, tags);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt16(NumFrames);
+        EncodeCollection(writer, Tags, swfVersion);
+    }
 }

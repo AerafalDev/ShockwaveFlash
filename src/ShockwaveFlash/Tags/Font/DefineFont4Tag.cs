@@ -19,4 +19,27 @@ public sealed record DefineFont4Tag(TagMetadata Metadata, ushort Id, bool IsItal
 
         return new DefineFont4Tag(metadata, id, isItalic, isBold, name, data);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        var hasFontData = !Data.IsEmpty;
+
+        byte flags = 0;
+
+        if (hasFontData)
+            flags |= 4;
+
+        if (IsItalic)
+            flags |= 2;
+
+        if (IsBold)
+            flags |= 1;
+
+        writer.WriteUInt16(Id);
+        writer.WriteUInt8(flags);
+        writer.WriteNullTerminatedString(Name);
+
+        if (hasFontData)
+            writer.WriteMemory(Data);
+    }
 }

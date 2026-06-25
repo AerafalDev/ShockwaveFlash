@@ -37,4 +37,27 @@ public sealed record DefineButtonSoundTag(
 
         return new DefineButtonSoundTag(metadata, id, overToUpSound, upToOverSound, overToDownSound, downToOverSound);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+
+        EncodeSound(writer, OverToUpSound);
+        EncodeSound(writer, UpToOverSound);
+        EncodeSound(writer, OverToDownSound);
+        EncodeSound(writer, DownToOverSound);
+    }
+
+    private static void EncodeSound(MemoryWriter writer, ButtonSound? sound)
+    {
+        if (sound is null)
+        {
+            writer.WriteUInt16(0);
+
+            return;
+        }
+
+        writer.WriteUInt16(sound.Id);
+        sound.SoundInfo.Encode(writer);
+    }
 }

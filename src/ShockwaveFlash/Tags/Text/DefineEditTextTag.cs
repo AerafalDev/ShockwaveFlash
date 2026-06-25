@@ -99,4 +99,34 @@ public sealed record DefineEditTextTag(
 
         return new DefineEditTextTag(metadata, id, bounds, fontId, fontClass, height, color, maxLength, layout, variableName, initialText, flags);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        Bounds.Encode(writer);
+        writer.WriteUInt16((ushort)Flags);
+
+        if (HasFont && FontId is { } fontId)
+            writer.WriteUInt16(fontId);
+
+        if (HasFontClass && FontClass is { } fontClass)
+            writer.WriteNullTerminatedString(fontClass);
+
+        if (HasHeight && Height is { } height)
+            writer.WriteUInt16(height);
+
+        if (HasTextColor && Color is { } color)
+            color.EncodeRgba(writer);
+
+        if (HasMaxLength && MaxLength is { } maxLength)
+            writer.WriteUInt16(maxLength);
+
+        if (HasLayout && Layout is { } layout)
+            layout.Encode(writer);
+
+        writer.WriteNullTerminatedString(VariableName);
+
+        if (HasText && InitialText is { } initialText)
+            writer.WriteNullTerminatedString(initialText);
+    }
 }

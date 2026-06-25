@@ -42,4 +42,37 @@ public sealed record ButtonRecord(ButtonStates States, ushort Id, ushort Depth, 
 
         return new ButtonRecord(states, id, depth, matrix, colorTransform, filters, blendMode);
     }
+
+    public void Encode(MemoryWriter writer, byte buttonVersion)
+    {
+        var hasFilters = Filters.Length > 0;
+        var hasBlendMode = BlendMode != BlendMode.Normal;
+
+        var flags = (byte)States;
+
+        if (hasFilters)
+            flags |= 16;
+
+        if (hasBlendMode)
+            flags |= 32;
+
+        writer.WriteUInt8(flags);
+        writer.WriteUInt16(Id);
+        writer.WriteUInt16(Depth);
+        Matrix.Encode(writer);
+
+        if (buttonVersion >= 2)
+            ColorTransform.EncodeRgba(writer);
+
+        if (hasFilters)
+        {
+            writer.WriteUInt8((byte)Filters.Length);
+
+            foreach (var filter in Filters)
+                filter.Encode(writer);
+        }
+
+        if (hasBlendMode)
+            writer.WriteUInt8((byte)BlendMode);
+    }
 }

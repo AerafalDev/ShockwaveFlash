@@ -17,4 +17,14 @@ public sealed record SoundStreamHead2Tag(TagMetadata Metadata, SoundFormat Strea
 
         return new SoundStreamHead2Tag(metadata, streamFormat, playbackFormat, numSamplesPerBlock, latencySeek);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        StreamFormat.Encode(writer);
+        PlaybackFormat.Encode(writer);
+        writer.WriteUInt16(NumSamplesPerBlock);
+
+        if (StreamFormat.Compression is AudioCompression.Mp3)
+            writer.WriteInt16(LatencySeek);
+    }
 }

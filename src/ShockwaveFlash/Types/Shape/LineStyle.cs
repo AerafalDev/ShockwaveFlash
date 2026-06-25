@@ -184,6 +184,35 @@ public sealed class LineStyle
         return new LineStyle(width, fillStyle, flags, miterLimit);
     }
 
+    public void Encode(MemoryWriter writer, byte swfVersion, byte shapeVersion)
+    {
+        writer.WriteUInt16((ushort)Width);
+
+        if (shapeVersion < 4)
+        {
+            var color = FillStyle is FillStyleSolid solid ? solid.Color : Color.Black;
+
+            if (shapeVersion >= 3)
+                color.EncodeRgba(writer);
+            else
+                color.EncodeRgb(writer);
+
+            return;
+        }
+
+        writer.WriteUInt16((ushort)Flags);
+
+        if ((Flags & LineStyleFlags.JoinStyle) is LineStyleFlags.Miter)
+            writer.WriteFixed8(MiterLimit);
+
+        if (Flags.HasFlag(LineStyleFlags.HasFill))
+            FillStyle.Encode(writer, swfVersion, shapeVersion);
+        else if (FillStyle is FillStyleSolid solid)
+            solid.Color.EncodeRgba(writer);
+        else
+            Color.Black.EncodeRgba(writer);
+    }
+
     public static (LineStyle, LineStyle) DecodeMorph(MemoryReader reader, byte shapeVersion)
     {
         var startWidth = reader.ReadUInt16();
@@ -234,5 +263,40 @@ public sealed class LineStyle
             : (new FillStyleSolid(Color.DecodeRgba(reader)), new FillStyleSolid(Color.DecodeRgba(reader)));
 
         return (new LineStyle(startWidth, startFillStyle, flags, miterLimit), new LineStyle(endWidth, endFillStyle, flags, miterLimit));
+    }
+
+    public static void EncodeMorph(MemoryWriter writer, LineStyle start, LineStyle end, byte shapeVersion)
+    {
+        writer.WriteUInt16((ushort)start.Width);
+        writer.WriteUInt16((ushort)end.Width);
+
+        if (shapeVersion < 2)
+        {
+            var startColor = start.FillStyle is FillStyleSolid startSolid ? startSolid.Color : Color.Black;
+            var endColor = end.FillStyle is FillStyleSolid endSolid ? endSolid.Color : Color.Black;
+
+            startColor.EncodeRgba(writer);
+            endColor.EncodeRgba(writer);
+
+            return;
+        }
+
+        writer.WriteUInt16((ushort)start.Flags);
+
+        if ((start.Flags & LineStyleFlags.JoinStyle) is LineStyleFlags.Miter)
+            writer.WriteFixed8(start.MiterLimit);
+
+        if (start.Flags.HasFlag(LineStyleFlags.HasFill))
+        {
+            FillStyle.EncodeMorph(writer, start.FillStyle, end.FillStyle);
+        }
+        else
+        {
+            var startColor = start.FillStyle is FillStyleSolid startSolid ? startSolid.Color : Color.Black;
+            var endColor = end.FillStyle is FillStyleSolid endSolid ? endSolid.Color : Color.Black;
+
+            startColor.EncodeRgba(writer);
+            endColor.EncodeRgba(writer);
+        }
     }
 }

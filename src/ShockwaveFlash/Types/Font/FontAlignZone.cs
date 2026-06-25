@@ -13,4 +13,14 @@ public sealed record FontAlignZone(short Left, short Width, short Bottom, short 
         reader.Advance(sizeof(byte));
         return zone;
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt8(2);
+        writer.WriteInt16(Left);
+        writer.WriteInt16(Width);
+        writer.WriteInt16(Bottom);
+        writer.WriteInt16(Height);
+        writer.WriteUInt8(0);
+    }
 }

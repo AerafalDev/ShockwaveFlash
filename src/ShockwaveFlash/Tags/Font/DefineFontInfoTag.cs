@@ -38,4 +38,19 @@ public sealed record DefineFontInfoTag(TagMetadata Metadata, ushort Id, string N
 
         return new DefineFontInfoTag(metadata, id, name, flags, codeTable);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteLengthPrefixedString(Name);
+        writer.WriteUInt8((byte)Flags);
+
+        foreach (var code in CodeTable)
+        {
+            if (HasWideCodes)
+                writer.WriteUInt16(code);
+            else
+                writer.WriteUInt8((byte)code);
+        }
+    }
 }

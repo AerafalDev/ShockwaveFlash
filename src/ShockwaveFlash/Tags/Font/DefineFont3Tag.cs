@@ -124,4 +124,123 @@ public sealed record DefineFont3Tag(TagMetadata Metadata, ushort Id, string Name
 
         return new DefineFont3Tag(metadata, id, name, language, layout, glyphs, flags);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt8((byte)Flags);
+        writer.WriteUInt8((byte)Language);
+        writer.WriteLengthPrefixedString(Name);
+
+        var numGlyphs = (ushort)Glyphs.Length;
+
+        writer.WriteUInt16(numGlyphs);
+
+        if (numGlyphs is 0)
+        {
+            if (HasWideOffsets)
+                writer.WriteUInt32(0);
+            else
+                writer.WriteUInt16(0);
+
+            return;
+        }
+
+        var offsetSize = HasWideOffsets ? sizeof(uint) : sizeof(ushort);
+        var glyphData = new ReadOnlyMemory<byte>[numGlyphs];
+
+        for (var i = 0; i < numGlyphs; i++)
+            glyphData[i] = EncodeGlyphData(Glyphs[i], swfVersion);
+
+        var offsets = new uint[numGlyphs];
+        var current = (uint)(offsetSize * (numGlyphs + 1));
+
+        for (var i = 0; i < numGlyphs; i++)
+        {
+            offsets[i] = current;
+            current += (uint)glyphData[i].Length;
+        }
+
+        var codeTableOffset = current;
+
+        for (var i = 0; i < numGlyphs; i++)
+        {
+            if (HasWideOffsets)
+                writer.WriteUInt32(offsets[i]);
+            else
+                writer.WriteUInt16((ushort)offsets[i]);
+        }
+
+        if (HasWideOffsets)
+            writer.WriteUInt32(codeTableOffset);
+        else
+            writer.WriteUInt16((ushort)codeTableOffset);
+
+        for (var i = 0; i < numGlyphs; i++)
+            writer.WriteMemory(glyphData[i]);
+
+        for (var i = 0; i < numGlyphs; i++)
+        {
+            if (HasWideCodes)
+                writer.WriteUInt16(Glyphs[i].Code);
+            else
+                writer.WriteUInt8((byte)Glyphs[i].Code);
+        }
+
+        if (HasLayout && Layout is { } layout)
+        {
+            writer.WriteUInt16(layout.Ascent);
+            writer.WriteUInt16(layout.Descent);
+            writer.WriteInt16(layout.Leading);
+
+            for (var i = 0; i < numGlyphs; i++)
+                writer.WriteUInt16(Glyphs[i].Advance);
+
+            for (var i = 0; i < numGlyphs; i++)
+                (Glyphs[i].Bounds ?? new Rectangle()).Encode(writer);
+
+            writer.WriteUInt16((ushort)layout.Kerning.Length);
+
+            foreach (var kerning in layout.Kerning)
+                kerning.Encode(writer, HasWideCodes);
+        }
+    }
+
+    private static ReadOnlyMemory<byte> EncodeGlyphData(FontGlyph glyph, byte swfVersion)
+    {
+        if (glyph.Shapes.Count is 0)
+            return ReadOnlyMemory<byte>.Empty;
+
+        var numFillBits = 0;
+        var numLineBits = 0;
+
+        foreach (var record in glyph.Shapes)
+        {
+            if (record is StyleChangeRecord styleChange)
+            {
+                if (styleChange.FillStyle0 is { } fillStyle0)
+                    numFillBits = Math.Max(numFillBits, BitWriter.UnsignedBitsNeeded(fillStyle0));
+
+                if (styleChange.FillStyle1 is { } fillStyle1)
+                    numFillBits = Math.Max(numFillBits, BitWriter.UnsignedBitsNeeded(fillStyle1));
+
+                if (styleChange.LineStyle is { } lineStyle)
+                    numLineBits = Math.Max(numLineBits, BitWriter.UnsignedBitsNeeded(lineStyle));
+            }
+        }
+
+        var glyphWriter = new MemoryWriter();
+
+        glyphWriter.WriteUInt8((byte)((numFillBits << 4) | numLineBits));
+
+        var context = new ShapeContext(swfVersion, 1, numFillBits, numLineBits);
+        var bits = new BitWriter();
+
+        foreach (var record in glyph.Shapes)
+            record.Encode(glyphWriter, bits, context);
+
+        bits.Flush(glyphWriter);
+
+        return glyphWriter.WrittenMemory;
+    }
 }

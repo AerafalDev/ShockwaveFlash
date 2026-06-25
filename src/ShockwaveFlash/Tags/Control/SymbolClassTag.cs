@@ -18,4 +18,15 @@ public sealed record SymbolClassTag(TagMetadata Metadata, SymbolReference[] Symb
 
         return new SymbolClassTag(metadata, symbols);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16((ushort)Symbols.Length);
+
+        foreach (var symbol in Symbols)
+        {
+            writer.WriteUInt16(symbol.Id);
+            writer.WriteNullTerminatedString(symbol.Name);
+        }
+    }
 }

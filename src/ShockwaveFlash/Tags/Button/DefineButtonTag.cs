@@ -25,4 +25,17 @@ public sealed record DefineButtonTag(TagMetadata Metadata, ushort Id, IReadOnlyL
 
         return new DefineButtonTag(metadata, id, records, [new ButtonAction(ButtonActionCondition.OverDownToOverUp, actions)]);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+
+        foreach (var record in Records)
+            record.Encode(writer, 1);
+
+        writer.WriteUInt8(0);
+
+        foreach (var action in Actions)
+            writer.WriteMemory(action.Data);
+    }
 }

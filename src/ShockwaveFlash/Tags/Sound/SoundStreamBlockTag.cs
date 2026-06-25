@@ -11,4 +11,9 @@ public sealed record SoundStreamBlockTag(TagMetadata Metadata, ReadOnlyMemory<by
     {
         return new SoundStreamBlockTag(metadata, reader.ReadMemoryToEnd());
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteMemory(Data);
+    }
 }

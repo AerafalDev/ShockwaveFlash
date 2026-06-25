@@ -10,4 +10,10 @@ public sealed record ScriptLimitsTag(TagMetadata Metadata, ushort MaxRecursionDe
     {
         return new ScriptLimitsTag(metadata, reader.ReadUInt16(), TimeSpan.FromSeconds(reader.ReadUInt16()));
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(MaxRecursionDepth);
+        writer.WriteUInt16((ushort)Timeout.TotalSeconds);
+    }
 }

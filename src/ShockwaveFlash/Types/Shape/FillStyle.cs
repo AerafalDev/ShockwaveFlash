@@ -37,6 +37,45 @@ public abstract record FillStyle
         }
     }
 
+    public void Encode(MemoryWriter writer, byte swfVersion, byte shapeVersion)
+    {
+        switch (this)
+        {
+            case FillStyleSolid solid:
+                writer.WriteUInt8((byte)FillStyleType.Solid);
+                if (shapeVersion >= 3)
+                    solid.Color.EncodeRgba(writer);
+                else
+                    solid.Color.EncodeRgb(writer);
+                break;
+
+            case FillStyleLinearGradient linear:
+                writer.WriteUInt8((byte)FillStyleType.LinearGradient);
+                linear.Gradient.Encode(writer, shapeVersion);
+                break;
+
+            case FillStyleRadialGradient radial:
+                writer.WriteUInt8((byte)FillStyleType.RadialGradient);
+                radial.Gradient.Encode(writer, shapeVersion);
+                break;
+
+            case FillStyleFocalGradient focal:
+                writer.WriteUInt8((byte)FillStyleType.FocalGradient);
+                focal.Gradient.Encode(writer, shapeVersion);
+                writer.WriteFixed8(focal.FocalPoint);
+                break;
+
+            case FillStyleBitmap bitmap:
+                writer.WriteUInt8((byte)(0x40 | (bitmap.IsSmoothed ? 0 : 2) | (bitmap.IsRepeating ? 0 : 1)));
+                writer.WriteUInt16(bitmap.Id);
+                bitmap.Matrix.Encode(writer);
+                break;
+
+            default:
+                throw new NotSupportedException($"FillStyle {this} is not supported.");
+        }
+    }
+
     public static (FillStyle, FillStyle) DecodeMorph(MemoryReader reader)
     {
         var fillStyleType = reader.ReadUInt8();
@@ -73,6 +112,45 @@ public abstract record FillStyle
 
             default:
                 throw new NotSupportedException($"FillStyle {fillStyleType} is not supported.");
+        }
+    }
+
+    public static void EncodeMorph(MemoryWriter writer, FillStyle start, FillStyle end)
+    {
+        switch (start)
+        {
+            case FillStyleSolid startSolid when end is FillStyleSolid endSolid:
+                writer.WriteUInt8((byte)FillStyleType.Solid);
+                startSolid.Color.EncodeRgba(writer);
+                endSolid.Color.EncodeRgba(writer);
+                break;
+
+            case FillStyleLinearGradient startLinear when end is FillStyleLinearGradient endLinear:
+                writer.WriteUInt8((byte)FillStyleType.LinearGradient);
+                startLinear.Gradient.EncodeMorph(writer, endLinear.Gradient);
+                break;
+
+            case FillStyleRadialGradient startRadial when end is FillStyleRadialGradient endRadial:
+                writer.WriteUInt8((byte)FillStyleType.RadialGradient);
+                startRadial.Gradient.EncodeMorph(writer, endRadial.Gradient);
+                break;
+
+            case FillStyleFocalGradient startFocal when end is FillStyleFocalGradient endFocal:
+                writer.WriteUInt8((byte)FillStyleType.FocalGradient);
+                startFocal.Gradient.EncodeMorph(writer, endFocal.Gradient);
+                writer.WriteFixed8(startFocal.FocalPoint);
+                writer.WriteFixed8(endFocal.FocalPoint);
+                break;
+
+            case FillStyleBitmap startBitmap when end is FillStyleBitmap endBitmap:
+                writer.WriteUInt8((byte)(0x40 | (startBitmap.IsSmoothed ? 0 : 2) | (startBitmap.IsRepeating ? 0 : 1)));
+                writer.WriteUInt16(startBitmap.Id);
+                startBitmap.Matrix.Encode(writer);
+                endBitmap.Matrix.Encode(writer);
+                break;
+
+            default:
+                throw new NotSupportedException($"FillStyle {start} is not supported.");
         }
     }
 }

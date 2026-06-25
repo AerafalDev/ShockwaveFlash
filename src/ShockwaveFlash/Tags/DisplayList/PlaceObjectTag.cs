@@ -20,4 +20,14 @@ public sealed record PlaceObjectTag(TagMetadata Metadata, ushort Id, ushort Dept
 
         return new PlaceObjectTag(metadata, id, depth, matrix, colorTransform);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt16(Depth);
+        Matrix.Encode(writer);
+
+        if (ColorTransform is { } colorTransform)
+            colorTransform.EncodeRgb(writer);
+    }
 }

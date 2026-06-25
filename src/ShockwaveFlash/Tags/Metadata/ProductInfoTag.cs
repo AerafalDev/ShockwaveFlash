@@ -20,4 +20,15 @@ public sealed record ProductInfoTag(TagMetadata Metadata, FlashProduct ProductId
 
         return new ProductInfoTag(metadata, productId, edition, majorVersion, minorVersion, buildLow, buildHigh, compilationDate);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt32((uint)ProductId);
+        writer.WriteUInt32((uint)Edition);
+        writer.WriteUInt8(MajorVersion);
+        writer.WriteUInt8(MinorVersion);
+        writer.WriteUInt32(BuildLow);
+        writer.WriteUInt32(BuildHigh);
+        writer.WriteUInt64((ulong)(CompilationDate - DateTime.UnixEpoch).TotalMilliseconds);
+    }
 }

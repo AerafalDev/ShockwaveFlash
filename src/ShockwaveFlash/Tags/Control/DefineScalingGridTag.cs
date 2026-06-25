@@ -12,4 +12,10 @@ public sealed record DefineScalingGridTag(TagMetadata Metadata, ushort Id, Recta
     {
         return new DefineScalingGridTag(metadata, reader.ReadUInt16(), Rectangle.Decode(reader));
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        Splitter.Encode(writer);
+    }
 }

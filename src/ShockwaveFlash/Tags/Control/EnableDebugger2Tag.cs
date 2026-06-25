@@ -12,4 +12,10 @@ public sealed record EnableDebugger2Tag(TagMetadata Metadata, string Password) :
 
         return new EnableDebugger2Tag(metadata, reader.ReadNullTerminatedString());
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(0);
+        writer.WriteNullTerminatedString(Password);
+    }
 }

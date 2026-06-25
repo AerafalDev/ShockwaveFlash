@@ -30,4 +30,20 @@ public sealed record ConvolutionFilter(byte NumMatrixRows, byte NumMatrixColumns
 
         return new ConvolutionFilter(numMatrixRows, numMatrixColumns, matrix, divisor, bias, defaultColor, flags);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt8(NumMatrixRows);
+        writer.WriteUInt8(NumMatrixColumns);
+        writer.WriteFloat32(Divisor);
+        writer.WriteFloat32(Bias);
+
+        var numMatrix = NumMatrixRows * NumMatrixColumns;
+
+        for (var i = 0; i < numMatrix; i++)
+            writer.WriteFloat32(Matrix[i]);
+
+        DefaultColor.EncodeRgba(writer);
+        writer.WriteUInt8((byte)Flags);
+    }
 }

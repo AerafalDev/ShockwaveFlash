@@ -19,4 +19,13 @@ public sealed record ImportAssetsTag(TagMetadata Metadata, string Url, AssetRefe
 
         return new ImportAssetsTag(metadata, url, assets);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteNullTerminatedString(Url);
+        writer.WriteUInt16((ushort)Assets.Length);
+
+        foreach (var asset in Assets)
+            asset.Encode(writer);
+    }
 }

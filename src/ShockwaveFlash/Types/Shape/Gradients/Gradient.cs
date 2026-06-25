@@ -42,6 +42,32 @@ public sealed record Gradient(Matrix Matrix, GradientSpread Spread, GradientInte
         return (new Gradient(startMatrix, spread, interpolation, startRecords), new Gradient(endMatrix, spread, interpolation, endRecords));
     }
 
+    public void Encode(MemoryWriter writer, byte shapeVersion)
+    {
+        Matrix.Encode(writer);
+
+        EncodeFlags(writer, Records.Length);
+
+        foreach (var record in Records)
+            record.Encode(writer, shapeVersion);
+    }
+
+    public void EncodeMorph(MemoryWriter writer, Gradient end)
+    {
+        Matrix.Encode(writer);
+        end.Matrix.Encode(writer);
+
+        EncodeFlags(writer, Records.Length);
+
+        for (var i = 0; i < Records.Length; i++)
+        {
+            writer.WriteUInt8(Records[i].Ratio);
+            Records[i].Color.EncodeRgba(writer);
+            writer.WriteUInt8(end.Records[i].Ratio);
+            end.Records[i].Color.EncodeRgba(writer);
+        }
+    }
+
     private static (int, GradientSpread, GradientInterpolation) DecodeFlags(MemoryReader reader)
     {
         var flags = reader.ReadUInt8();
@@ -49,5 +75,11 @@ public sealed record Gradient(Matrix Matrix, GradientSpread Spread, GradientInte
         var interpolation = GradientInterpolation.Parse((byte)((flags >> 4) & 3));
         var numRecords = flags & 15;
         return (numRecords, spread, interpolation);
+    }
+
+    private void EncodeFlags(MemoryWriter writer, int numRecords)
+    {
+        var flags = (byte)((((byte)Spread & 3) << 6) | (((byte)Interpolation & 3) << 4) | (numRecords & 15));
+        writer.WriteUInt8(flags);
     }
 }

@@ -16,4 +16,13 @@ public sealed record TextLayout(TextAlignment Alignment, ushort LeftMargin, usho
 
         return new TextLayout(alignment, leftMargin, rightMargin, indent, leading);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt8((byte)Alignment);
+        writer.WriteUInt16(LeftMargin);
+        writer.WriteUInt16(RightMargin);
+        writer.WriteInt16(Indent);
+        writer.WriteInt16(Leading);
+    }
 }

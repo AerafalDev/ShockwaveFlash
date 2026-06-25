@@ -39,4 +39,20 @@ public sealed record DefineFontInfo2Tag(TagMetadata Metadata, ushort Id, string 
 
         return new DefineFontInfo2Tag(metadata, id, name, language, flags, codeTable);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteLengthPrefixedString(Name);
+        writer.WriteUInt8((byte)Flags);
+        writer.WriteUInt8((byte)Language);
+
+        foreach (var code in CodeTable)
+        {
+            if (HasWideCodes)
+                writer.WriteUInt16(code);
+            else
+                writer.WriteUInt8((byte)code);
+        }
+    }
 }

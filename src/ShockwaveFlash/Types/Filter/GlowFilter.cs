@@ -34,4 +34,12 @@ public sealed record GlowFilter(Color Color, Vector2 Blur, float Strength, GlowF
 
         return new GlowFilter(color, blur, strength, flags);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        Color.EncodeRgba(writer);
+        writer.WriteVector2(Blur);
+        writer.WriteFixed8(Strength);
+        writer.WriteUInt8((byte)Flags);
+    }
 }

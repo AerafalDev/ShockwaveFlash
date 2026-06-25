@@ -42,4 +42,27 @@ public record DefineShapeTag(TagMetadata Metadata, ushort ShapeId, Rectangle Sha
             _ => throw new NotSupportedException($"Shape version {shapeVersion} is not supported.")
         };
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        Encode(writer, swfVersion, 1);
+    }
+
+    protected void Encode(MemoryWriter writer, byte swfVersion, byte shapeVersion)
+    {
+        writer.WriteUInt16(ShapeId);
+        ShapeBounds.Encode(writer);
+
+        if (shapeVersion >= 4 && this is DefineShape4Tag shape4)
+        {
+            shape4.EdgeBounds.Encode(writer);
+            writer.WriteUInt8((byte)shape4.Flags);
+        }
+
+        var (numFillBits, numLineBits) = Styles.Encode(writer, swfVersion, shapeVersion);
+
+        var context = new ShapeContext(swfVersion, shapeVersion, numFillBits, numLineBits);
+
+        ShapeRecord.EncodeCollection(writer, Shapes, context);
+    }
 }

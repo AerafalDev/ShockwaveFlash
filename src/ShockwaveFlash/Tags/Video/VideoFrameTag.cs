@@ -15,4 +15,11 @@ public sealed record VideoFrameTag(TagMetadata Metadata, ushort Id, ushort Frame
 
         return new VideoFrameTag(metadata, id, frameNum, data);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt16(FrameNum);
+        writer.WriteMemory(Data);
+    }
 }

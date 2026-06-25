@@ -14,4 +14,19 @@ public sealed record FontKerning(ushort LeftCode, ushort RightCode, short Adjust
 
         return new FontKerning(leftCode, rightCode, adjustment);
     }
+
+    public void Encode(MemoryWriter writer, bool wideCodes)
+    {
+        if (wideCodes)
+            writer.WriteUInt16(LeftCode);
+        else
+            writer.WriteUInt8((byte)LeftCode);
+
+        if (wideCodes)
+            writer.WriteUInt16(RightCode);
+        else
+            writer.WriteUInt8((byte)RightCode);
+
+        writer.WriteInt16(Adjustment);
+    }
 }

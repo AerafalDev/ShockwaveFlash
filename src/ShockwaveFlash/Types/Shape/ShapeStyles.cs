@@ -32,4 +32,40 @@ public sealed record ShapeStyles(FillStyle[] FillStyles, LineStyle[] LineStyles)
 
         return (new ShapeStyles(fillStyles, lineStyles), (byte)(numBits >> 4), (byte)(numBits & 15));
     }
+
+    public (byte, byte) Encode(MemoryWriter writer, byte swfVersion, byte shapeVersion)
+    {
+        if (FillStyles.Length >= 255 && shapeVersion >= 2)
+        {
+            writer.WriteUInt8(255);
+            writer.WriteUInt16((ushort)FillStyles.Length);
+        }
+        else
+        {
+            writer.WriteUInt8((byte)FillStyles.Length);
+        }
+
+        foreach (var fillStyle in FillStyles)
+            fillStyle.Encode(writer, swfVersion, shapeVersion);
+
+        if (LineStyles.Length >= 255 && shapeVersion >= 2)
+        {
+            writer.WriteUInt8(255);
+            writer.WriteUInt16((ushort)LineStyles.Length);
+        }
+        else
+        {
+            writer.WriteUInt8((byte)LineStyles.Length);
+        }
+
+        foreach (var lineStyle in LineStyles)
+            lineStyle.Encode(writer, swfVersion, shapeVersion);
+
+        var numFillBits = (byte)BitWriter.UnsignedBitsNeeded((uint)FillStyles.Length);
+        var numLineBits = (byte)BitWriter.UnsignedBitsNeeded((uint)LineStyles.Length);
+
+        writer.WriteUInt8((byte)((numFillBits << 4) | (numLineBits & 15)));
+
+        return (numFillBits, numLineBits);
+    }
 }

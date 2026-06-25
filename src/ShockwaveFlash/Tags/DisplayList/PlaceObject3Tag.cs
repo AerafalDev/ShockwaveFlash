@@ -145,4 +145,65 @@ public sealed record PlaceObject3Tag(
 
         return new PlaceObject3Tag(metadata, action, depth, className, matrix, colorTransform, flags, ratio, name, clipDepth, filters, blendMode, isBitmapCached, isVisible, backgroundColor, clipActions);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16((ushort)Flags);
+        writer.WriteUInt16(Depth);
+
+        var hasClassName = HasClassName || (HasImage && !HasCharacter);
+
+        if (hasClassName && ClassName is { } className)
+            writer.WriteNullTerminatedString(className);
+
+        if (HasCharacter)
+        {
+            var id = Action switch
+            {
+                PlaceObjectAction.PlaceObjectActionPlace place => place.Id,
+                PlaceObjectAction.PlaceObjectActionReplace replace => replace.Id,
+                _ => throw new NotSupportedException("Invalid PlaceObject3Tag action combination.")
+            };
+
+            writer.WriteUInt16(id);
+        }
+
+        if (HasMatrix && Matrix is { } matrix)
+            matrix.Encode(writer);
+
+        if (HasColorTransform && ColorTransform is { } colorTransform)
+            colorTransform.EncodeRgba(writer);
+
+        if (HasRatio && Ratio is { } ratio)
+            writer.WriteUInt16(ratio);
+
+        if (HasName && Name is { } name)
+            writer.WriteNullTerminatedString(name);
+
+        if (HasClipDepth && ClipDepth is { } clipDepth)
+            writer.WriteUInt16(clipDepth);
+
+        if (HasFilterList && Filters is { } filters)
+        {
+            writer.WriteUInt8((byte)filters.Length);
+
+            for (var i = 0; i < filters.Length; i++)
+                filters[i].Encode(writer);
+        }
+
+        if (HasBlendMode && BlendMode is { } blendMode)
+            writer.WriteUInt8((byte)blendMode);
+
+        if (HasCacheAsBitmap && IsBitmapCached is { } isBitmapCached)
+            writer.WriteBoolean(isBitmapCached);
+
+        if (HasVisible && IsVisible is { } isVisible)
+            writer.WriteBoolean(isVisible);
+
+        if (OpaqueBackground && BackgroundColor is { } backgroundColor)
+            backgroundColor.EncodeRgba(writer);
+
+        if (HasClipActions && ClipActions is { } clipActions)
+            ClipAction.EncodeCollection(writer, clipActions, swfVersion);
+    }
 }

@@ -37,4 +37,15 @@ public sealed record BevelFilter(Color ShadowColor, Color HighlightColor, Vector
 
         return new BevelFilter(shadowColor, highlightColor, blur, angle, distance, strength, flags);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        HighlightColor.EncodeRgba(writer);
+        ShadowColor.EncodeRgba(writer);
+        writer.WriteVector2(Blur);
+        writer.WriteFixed(Angle);
+        writer.WriteFixed(Distance);
+        writer.WriteFixed8(Strength);
+        writer.WriteUInt8((byte)Flags);
+    }
 }

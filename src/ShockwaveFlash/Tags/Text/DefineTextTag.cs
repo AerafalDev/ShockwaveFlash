@@ -31,4 +31,31 @@ public sealed record DefineTextTag(TagMetadata Metadata, ushort Id, Rectangle Bo
 
         return new DefineTextTag(metadata, id, bounds, matrix, records);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        Bounds.Encode(writer);
+        Matrix.Encode(writer);
+
+        byte numGlyphBits = 0;
+        byte numAdvanceBits = 0;
+
+        foreach (var record in Records)
+        {
+            foreach (var glyph in record.Glyphs)
+            {
+                numGlyphBits = (byte)Math.Max(numGlyphBits, BitWriter.UnsignedBitsNeeded(glyph.Index));
+                numAdvanceBits = (byte)Math.Max(numAdvanceBits, BitWriter.SignedBitsNeeded(glyph.Advance));
+            }
+        }
+
+        writer.WriteUInt8(numGlyphBits);
+        writer.WriteUInt8(numAdvanceBits);
+
+        foreach (var record in Records)
+            record.Encode(writer, 1, numGlyphBits, numAdvanceBits);
+
+        writer.WriteUInt8(0);
+    }
 }

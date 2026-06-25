@@ -13,4 +13,10 @@ public sealed record NameCharacterTag(TagMetadata Metadata, ushort Id, string Na
 
         return new NameCharacterTag(metadata, id, name);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteNullTerminatedString(Name);
+    }
 }

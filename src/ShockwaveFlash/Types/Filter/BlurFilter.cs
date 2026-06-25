@@ -21,4 +21,10 @@ public sealed record BlurFilter(Vector2 Blur, BlurFilterFlags Flags) : Filter
 
         return new BlurFilter(blur, flags);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        writer.WriteVector2(Blur);
+        writer.WriteUInt8((byte)Flags);
+    }
 }

@@ -46,4 +46,14 @@ public sealed record DropShadowFilter(Color Color, Vector2 Blur, float Angle, fl
 
         return new DropShadowFilter(color, blur, angle, distance, strength, flags);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        Color.EncodeRgba(writer);
+        writer.WriteVector2(Blur);
+        writer.WriteFixed(Angle);
+        writer.WriteFixed(Distance);
+        writer.WriteFixed8(Strength);
+        writer.WriteUInt8((byte)Flags);
+    }
 }
