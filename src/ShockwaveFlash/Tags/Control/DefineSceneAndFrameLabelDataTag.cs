@@ -24,4 +24,23 @@ public sealed record DefineSceneAndFrameLabelDataTag(TagMetadata Metadata, Scene
 
         return new DefineSceneAndFrameLabelDataTag(metadata, scenes, frameLabels);
     }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteEncodedU32((uint)Scenes.Length);
+
+        foreach (var scene in Scenes)
+        {
+            writer.WriteEncodedU32(scene.Offset);
+            writer.WriteNullTerminatedString(scene.Name);
+        }
+
+        writer.WriteEncodedU32((uint)FrameLabels.Length);
+
+        foreach (var frameLabel in FrameLabels)
+        {
+            writer.WriteEncodedU32(frameLabel.FrameNum);
+            writer.WriteNullTerminatedString(frameLabel.Label);
+        }
+    }
 }
