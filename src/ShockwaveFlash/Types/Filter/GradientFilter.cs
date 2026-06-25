@@ -7,7 +7,7 @@ using ShockwaveFlash.Types.Shape.Gradients;
 
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float Angle, float Distance, float Strength, GradientFilterFlags Flags) : Filter
+public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float Angle, float Distance, float Strength, GradientFilterFlags Flags, FilterType Type) : Filter
 {
     public bool IsInner =>
         Flags.HasFlag(GradientFilterFlags.InnerShadow);
@@ -29,7 +29,7 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
         return new BlurFilter(Blur, BlurFilterFlags.FromPasses(Passes));
     }
 
-    public static new GradientFilter Decode(MemoryReader reader)
+    public static new GradientFilter Decode(MemoryReader reader, FilterType type)
     {
         var numColors = reader.ReadUInt8();
         var colors = new Color[numColors];
@@ -48,7 +48,7 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
         var strength = reader.ReadFixed8();
         var flags = (GradientFilterFlags)reader.ReadUInt8();
 
-        return new GradientFilter(records, blur, angle, distance, strength, flags);
+        return new GradientFilter(records, blur, angle, distance, strength, flags, type);
     }
 
     public void Encode(MemoryWriter writer)

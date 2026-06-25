@@ -16,10 +16,10 @@ public abstract record Filter
             FilterType.BlurFilter => BlurFilter.Decode(reader),
             FilterType.GlowFilter => GlowFilter.Decode(reader),
             FilterType.BevelFilter => BevelFilter.Decode(reader),
-            FilterType.GradientGlowFilter => GradientFilter.Decode(reader),
+            FilterType.GradientGlowFilter => GradientFilter.Decode(reader, FilterType.GradientGlowFilter),
             FilterType.ConvolutionFilter => ConvolutionFilter.Decode(reader),
             FilterType.ColorMatrixFilter => ColorMatrixFilter.Decode(reader),
-            FilterType.GradientBevelFilter => GradientFilter.Decode(reader),
+            FilterType.GradientBevelFilter => GradientFilter.Decode(reader, FilterType.GradientBevelFilter),
             _ => throw new NotSupportedException($"Filter type {type} is not supported.")
         };
     }
@@ -45,7 +45,7 @@ public abstract record Filter
                 bevelFilter.Encode(writer);
                 break;
             case GradientFilter gradientFilter:
-                writer.WriteUInt8((byte)FilterType.GradientGlowFilter);
+                writer.WriteUInt8((byte)gradientFilter.Type);
                 gradientFilter.Encode(writer);
                 break;
             case ConvolutionFilter convolutionFilter:
