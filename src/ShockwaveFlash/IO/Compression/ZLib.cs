@@ -49,11 +49,11 @@ public static class ZLib
 
     public static ReadOnlyMemory<byte> Compress(ReadOnlyMemory<byte> data)
     {
-        using var ms = new MemoryStream();
+        using var ms = new MemoryStream(data.Length < 2 ? 256 : data.Length / 2);
 
         using (var zs = new ZLibStream(ms, CompressionLevel.Optimal, leaveOpen: true))
             zs.Write(data.Span);
 
-        return ms.ToArray();
+        return ms.GetBuffer().AsMemory(0, (int)ms.Length);
     }
 }

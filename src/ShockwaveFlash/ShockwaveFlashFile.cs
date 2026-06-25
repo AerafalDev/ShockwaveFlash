@@ -34,7 +34,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 
     public ReadOnlyMemory<byte> Assemble()
     {
-        var body = new MemoryWriter();
+        var body = new MemoryWriter(EstimateBodyCapacity());
 
         Header.Encode(body);
         Tag.EncodeCollection(body, Tags, Header.Version);
@@ -52,5 +52,15 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
         file.WriteMemory(compressedBody);
 
         return file.WrittenMemory;
+    }
+
+    private int EstimateBodyCapacity()
+    {
+        long estimate = 64;
+
+        foreach (var tag in Tags)
+            estimate += tag.Metadata.Length + 6;
+
+        return estimate > Array.MaxLength ? Array.MaxLength : (int)estimate;
     }
 }

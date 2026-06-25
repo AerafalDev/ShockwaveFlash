@@ -30,9 +30,11 @@ public abstract record Tag(TagMetadata Metadata)
 
     public static void EncodeCollection(MemoryWriter writer, IReadOnlyList<Tag> tags, byte swfVersion)
     {
+        var body = new MemoryWriter();
+
         foreach (var tag in tags)
         {
-            var body = new MemoryWriter();
+            body.Reset();
             tag.Encode(body, swfVersion);
 
             var code = (ushort)tag.Metadata.Code;

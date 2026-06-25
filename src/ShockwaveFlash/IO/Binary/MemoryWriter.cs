@@ -204,6 +204,12 @@ public sealed class MemoryWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Reset()
+    {
+        _position = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ToArray()
     {
         return _buffer.AsSpan(0, _position).ToArray();
