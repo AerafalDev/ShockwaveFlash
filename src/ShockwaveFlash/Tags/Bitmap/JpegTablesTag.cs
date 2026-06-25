@@ -11,4 +11,9 @@ public sealed record JpegTablesTag(TagMetadata Metadata, ReadOnlyMemory<byte> Da
     {
         return new JpegTablesTag(metadata, reader.ReadMemoryToEnd());
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteMemory(Data);
+    }
 }

@@ -10,4 +10,9 @@ public sealed record RemoveObject2Tag(TagMetadata Metadata, ushort Depth) : Tag(
     {
         return new RemoveObject2Tag(metadata, reader.ReadUInt16());
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt16(Depth);
+    }
 }

@@ -10,4 +10,10 @@ public sealed record AssetReference(ushort Id, string Name)
     {
         return new AssetReference(reader.ReadUInt16(), reader.ReadNullTerminatedString());
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteNullTerminatedString(Name);
+    }
 }

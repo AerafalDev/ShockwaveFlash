@@ -11,4 +11,10 @@ public sealed record DefineBitsJpeg2Tag(TagMetadata Metadata, ushort Id, ReadOnl
     {
         return new DefineBitsJpeg2Tag(metadata, reader.ReadUInt16(), reader.ReadMemoryToEnd());
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteMemory(Data);
+    }
 }

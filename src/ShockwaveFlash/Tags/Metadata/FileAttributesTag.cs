@@ -27,4 +27,9 @@ public sealed record FileAttributesTag(TagMetadata Metadata, FileAttributesFlags
     {
         return new FileAttributesTag(metadata, (FileAttributesFlags)reader.ReadUInt32());
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt32((uint)Flags);
+    }
 }

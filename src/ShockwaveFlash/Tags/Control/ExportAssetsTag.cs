@@ -18,4 +18,12 @@ public sealed record ExportAssetsTag(TagMetadata Metadata, AssetReference[] Asse
 
         return new ExportAssetsTag(metadata, assets);
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt16((ushort)Assets.Length);
+
+        foreach (var asset in Assets)
+            asset.Encode(writer);
+    }
 }

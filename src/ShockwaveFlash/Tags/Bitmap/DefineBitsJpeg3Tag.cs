@@ -16,4 +16,12 @@ public sealed record DefineBitsJpeg3Tag(TagMetadata Metadata, ushort Id, ReadOnl
 
         return new DefineBitsJpeg3Tag(metadata, id, data, alphaData);
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteInt32(Data.Length);
+        writer.WriteMemory(Data);
+        writer.WriteMemory(AlphaData);
+    }
 }

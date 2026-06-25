@@ -16,4 +16,12 @@ public sealed record FrameLabelTag(TagMetadata Metadata, string Name, bool IsAnc
 
         return new FrameLabelTag(metadata, name, isAnchor);
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteNullTerminatedString(Name);
+
+        if (IsAnchor)
+            writer.WriteUInt8(1);
+    }
 }

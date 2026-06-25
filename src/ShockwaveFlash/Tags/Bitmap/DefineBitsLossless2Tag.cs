@@ -25,4 +25,26 @@ public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ush
 
         return new DefineBitsLossless2Tag(metadata, id, width, height, format, zlibBitmapData);
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteUInt16(Id);
+
+        var formatFlags = Format switch
+        {
+            BitmapFormat.BitmapFormatColorMap8 => (byte)3,
+            BitmapFormat.BitmapFormatRgb15 => (byte)4,
+            BitmapFormat.BitmapFormatRgb32 => (byte)5,
+            _ => throw new NotSupportedException("Invalid bitmap format.")
+        };
+
+        writer.WriteUInt8(formatFlags);
+        writer.WriteUInt16(Width);
+        writer.WriteUInt16(Height);
+
+        if (Format is BitmapFormat.BitmapFormatColorMap8 colorMap)
+            writer.WriteUInt8(colorMap.NumColors);
+
+        writer.WriteMemory(ZLibBitmapData);
+    }
 }
