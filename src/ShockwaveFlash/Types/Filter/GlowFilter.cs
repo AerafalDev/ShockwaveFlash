@@ -1,8 +1,6 @@
-using System.Numerics;
-
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record GlowFilter(Color Color, Vector2 Blur, float Strength, GlowFilterFlags Flags) : Filter
+public sealed record GlowFilter(Color Color, FixedPoint2 Blur, Fixed8 Strength, GlowFilterFlags Flags) : Filter
 {
     public bool IsInner =>
         Flags.HasFlag(GlowFilterFlags.InnerGlow);
@@ -24,7 +22,7 @@ public sealed record GlowFilter(Color Color, Vector2 Blur, float Strength, GlowF
     public static GlowFilter DecodeBody(MemoryReader reader)
     {
         var color = Color.DecodeRgba(reader);
-        var blur = reader.ReadVector2();
+        var blur = reader.ReadFixedPoint2();
         var strength = reader.ReadFixed8();
         var flags = (GlowFilterFlags)reader.ReadUInt8();
 
@@ -34,7 +32,7 @@ public sealed record GlowFilter(Color Color, Vector2 Blur, float Strength, GlowF
     public void EncodeBody(MemoryWriter writer)
     {
         Color.EncodeRgba(writer);
-        writer.WriteVector2(Blur);
+        writer.WriteFixedPoint2(Blur);
         writer.WriteFixed8(Strength);
         writer.WriteUInt8((byte)Flags);
     }

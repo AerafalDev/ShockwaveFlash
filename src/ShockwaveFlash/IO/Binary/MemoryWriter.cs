@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.IO.Extensions;
+using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.IO.Binary;
 
@@ -131,9 +131,9 @@ public sealed class MemoryWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteFixed8(float value)
+    public void WriteFixed8(Fixed8 value)
     {
-        WriteInt16((short)Math.Round(value * 256.0));
+        WriteInt16(value.Raw);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,9 +143,16 @@ public sealed class MemoryWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteFixed(float value)
+    public void WriteFixed(Fixed16 value)
     {
-        WriteInt32((int)Math.Round(value * 65536.0));
+        WriteInt32(value.Raw);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteFixedPoint2(FixedPoint2 value)
+    {
+        WriteFixed(value.X);
+        WriteFixed(value.Y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -167,13 +174,6 @@ public sealed class MemoryWriter
         var bytes = Encoding.UTF8.GetBytes(value);
         WriteUInt8((byte)bytes.Length);
         WriteBytes(bytes);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteVector2(Vector2 value)
-    {
-        WriteFixed(value.X);
-        WriteFixed(value.Y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,9 +1,8 @@
-using System.Numerics;
 using ShockwaveFlash.Types.Shape.Gradients;
 
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float Angle, float Distance, float Strength, GradientFilterFlags Flags, FilterType Type) : Filter
+public sealed record GradientFilter(GradientRecord[] Colors, FixedPoint2 Blur, Fixed16 Angle, Fixed16 Distance, Fixed8 Strength, GradientFilterFlags Flags, FilterType Type) : Filter
 {
     public bool IsInner =>
         Flags.HasFlag(GradientFilterFlags.InnerShadow);
@@ -38,7 +37,7 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
         for (var i = 0; i < numColors; i++)
             records[i] = new GradientRecord(reader.ReadUInt8(), colors[i]);
 
-        var blur = reader.ReadVector2();
+        var blur = reader.ReadFixedPoint2();
         var angle = reader.ReadFixed();
         var distance = reader.ReadFixed();
         var strength = reader.ReadFixed8();
@@ -57,7 +56,7 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
         for (var i = 0; i < Colors.Length; i++)
             writer.WriteUInt8(Colors[i].Ratio);
 
-        writer.WriteVector2(Blur);
+        writer.WriteFixedPoint2(Blur);
         writer.WriteFixed(Angle);
         writer.WriteFixed(Distance);
         writer.WriteFixed8(Strength);

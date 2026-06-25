@@ -10,7 +10,7 @@ public sealed class LineStyle
 
     public LineStyleFlags Flags { get; set; }
 
-    public float MiterLimit { get; set; }
+    public Fixed8 MiterLimit { get; set; }
 
     public bool AllowClose =>
         !Flags.HasFlag(LineStyleFlags.NoClose);
@@ -44,7 +44,7 @@ public sealed class LineStyle
         FillStyle = new FillStyleSolid(Color.Black);
     }
 
-    public LineStyle(int width, FillStyle fillStyle, LineStyleFlags flags, float miterLimit)
+    public LineStyle(int width, FillStyle fillStyle, LineStyleFlags flags, Fixed8 miterLimit)
     {
         Width = width;
         FillStyle = fillStyle;
@@ -171,7 +171,7 @@ public sealed class LineStyle
 
         var miterLimit = (flags & LineStyleFlags.JoinStyle) is LineStyleFlags.Miter
             ? reader.ReadFixed8()
-            : 0f;
+            : Fixed8.Zero;
 
         var fillStyle = flags.HasFlag(LineStyleFlags.HasFill)
             ? FillStyle.Decode(reader, swfVersion, shapeVersion)
@@ -252,7 +252,7 @@ public sealed class LineStyle
 
         var miterLimit = (flags & LineStyleFlags.JoinStyle) is LineStyleFlags.Miter
             ? reader.ReadFixed8()
-            : 0f;
+            : Fixed8.Zero;
 
         var (startFillStyle, endFillStyle) = flags.HasFlag(LineStyleFlags.HasFill)
             ? FillStyle.DecodeMorph(reader)

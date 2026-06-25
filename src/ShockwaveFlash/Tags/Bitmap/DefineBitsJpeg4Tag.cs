@@ -1,7 +1,9 @@
 
+using ShockwaveFlash.Types;
+
 namespace ShockwaveFlash.Tags.Bitmap;
 
-public sealed record DefineBitsJpeg4Tag(TagMetadata Metadata, ushort Id, float Deblocking, ReadOnlyMemory<byte> Data, ReadOnlyMemory<byte> AlphaData) : Tag(Metadata)
+public sealed record DefineBitsJpeg4Tag(TagMetadata Metadata, ushort Id, Fixed8 Deblocking, ReadOnlyMemory<byte> Data, ReadOnlyMemory<byte> AlphaData) : Tag(Metadata)
 {
     public static DefineBitsJpeg4Tag Decode(MemoryReader reader, TagMetadata metadata)
     {

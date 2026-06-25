@@ -19,11 +19,11 @@ public readonly struct ShockwaveFlashHeader :
 
     public readonly Rectangle FrameSize;
 
-    public readonly float FrameRate;
+    public readonly Fixed8 FrameRate;
 
     public readonly ushort FrameCount;
 
-    public ShockwaveFlashHeader(ShockwaveFlashCompression compression, byte version, int fileLength, Rectangle frameSize, float frameRate, ushort frameCount)
+    public ShockwaveFlashHeader(ShockwaveFlashCompression compression, byte version, int fileLength, Rectangle frameSize, Fixed8 frameRate, ushort frameCount)
     {
         Compression = compression;
         Version = version;

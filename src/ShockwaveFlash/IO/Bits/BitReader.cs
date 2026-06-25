@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.IO.Bits;
 
@@ -30,9 +31,9 @@ public sealed class BitReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float ReadFBits(MemoryReader reader, int nBits)
+    public Fixed16 ReadFBits(MemoryReader reader, int nBits)
     {
-        return ReadSBits(reader, nBits) / 65536f;
+        return new Fixed16(ReadSBits(reader, nBits));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

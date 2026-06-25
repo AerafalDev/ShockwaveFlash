@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.IO.Extensions;
+using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.IO.Binary;
 
@@ -133,9 +133,9 @@ public sealed class MemoryReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float ReadFixed8()
+    public Fixed8 ReadFixed8()
     {
-        return ReadInt16() / 256f;
+        return new Fixed8(ReadInt16());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -145,9 +145,15 @@ public sealed class MemoryReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float ReadFixed()
+    public Fixed16 ReadFixed()
     {
-        return ReadInt32() / 65536f;
+        return new Fixed16(ReadInt32());
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FixedPoint2 ReadFixedPoint2()
+    {
+        return new FixedPoint2(ReadFixed(), ReadFixed());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -171,12 +177,6 @@ public sealed class MemoryReader
     public string ReadLengthPrefixedString()
     {
         return Encoding.UTF8.GetString(ReadSpan(ReadUInt8()));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector2 ReadVector2()
-    {
-        return new Vector2(ReadFixed(), ReadFixed());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

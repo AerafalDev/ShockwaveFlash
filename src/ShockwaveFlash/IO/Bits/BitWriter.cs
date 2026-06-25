@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.IO.Bits;
 
@@ -35,9 +36,9 @@ public sealed class BitWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteFBits(MemoryWriter writer, float value, int nBits)
+    public void WriteFBits(MemoryWriter writer, Fixed16 value, int nBits)
     {
-        WriteSBits(writer, (int)Math.Round(value * 65536.0), nBits);
+        WriteSBits(writer, value.Raw, nBits);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

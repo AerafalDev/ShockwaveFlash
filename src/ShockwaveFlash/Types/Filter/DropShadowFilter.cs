@@ -1,8 +1,6 @@
-using System.Numerics;
-
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record DropShadowFilter(Color Color, Vector2 Blur, float Angle, float Distance, float Strength, DropShadowFilterFlags Flags) : Filter
+public sealed record DropShadowFilter(Color Color, FixedPoint2 Blur, Fixed16 Angle, Fixed16 Distance, Fixed8 Strength, DropShadowFilterFlags Flags) : Filter
 {
     public bool IsInner =>
         Flags.HasFlag(DropShadowFilterFlags.InnerShadow);
@@ -34,7 +32,7 @@ public sealed record DropShadowFilter(Color Color, Vector2 Blur, float Angle, fl
     public static DropShadowFilter DecodeBody(MemoryReader reader)
     {
         var color = Color.DecodeRgba(reader);
-        var blur = reader.ReadVector2();
+        var blur = reader.ReadFixedPoint2();
         var angle = reader.ReadFixed();
         var distance = reader.ReadFixed();
         var strength = reader.ReadFixed8();
@@ -46,7 +44,7 @@ public sealed record DropShadowFilter(Color Color, Vector2 Blur, float Angle, fl
     public void EncodeBody(MemoryWriter writer)
     {
         Color.EncodeRgba(writer);
-        writer.WriteVector2(Blur);
+        writer.WriteFixedPoint2(Blur);
         writer.WriteFixed(Angle);
         writer.WriteFixed(Distance);
         writer.WriteFixed8(Strength);

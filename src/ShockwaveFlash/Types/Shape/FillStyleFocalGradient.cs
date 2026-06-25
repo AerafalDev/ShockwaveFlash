@@ -2,4 +2,4 @@ using ShockwaveFlash.Types.Shape.Gradients;
 
 namespace ShockwaveFlash.Types.Shape;
 
-public sealed record FillStyleFocalGradient(Gradient Gradient, float FocalPoint) : FillStyle;
+public sealed record FillStyleFocalGradient(Gradient Gradient, Fixed8 FocalPoint) : FillStyle;

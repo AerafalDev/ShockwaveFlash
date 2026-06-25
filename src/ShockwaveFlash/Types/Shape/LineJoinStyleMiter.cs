@@ -1,3 +1,3 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public sealed record LineJoinStyleMiter(float MiterLimit) : LineJoinStyle;
+public sealed record LineJoinStyleMiter(Fixed8 MiterLimit) : LineJoinStyle;
