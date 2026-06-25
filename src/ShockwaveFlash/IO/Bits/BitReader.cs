@@ -6,17 +6,11 @@ using System.Runtime.CompilerServices;
 
 namespace ShockwaveFlash.IO.Bits;
 
-/// <summary>
-/// MSB-first bit reader that drives a <see cref="MemoryReader"/>.
-/// Reference type so its accumulator state is shared without <c>ref</c>; call
-/// <see cref="Reset"/> to discard buffered bits at a byte boundary.
-/// </summary>
 public sealed class BitReader
 {
     private uint _bits;
     private int _position;
 
-    /// <summary>Discards any buffered bits, realigning to the next whole byte.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Reset()
     {

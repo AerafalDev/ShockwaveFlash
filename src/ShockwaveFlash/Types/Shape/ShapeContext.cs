@@ -4,10 +4,6 @@
 
 namespace ShockwaveFlash.Types.Shape;
 
-/// <summary>
-/// Mutable shape-parsing context threaded through <see cref="ShapeRecord"/> decoding.
-/// Reference type so style-change updates to the fill/line bit counts propagate without <c>ref</c>.
-/// </summary>
 public sealed class ShapeContext
 {
     public byte SwfVersion { get; }

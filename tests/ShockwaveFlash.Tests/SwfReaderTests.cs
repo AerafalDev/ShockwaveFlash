@@ -11,10 +11,6 @@ using Shouldly;
 
 namespace ShockwaveFlash.Tests;
 
-/// <summary>
-/// Characterization tests pinning reader behaviour after the
-/// <c>SpanReader</c> -> <c>MemoryReader</c> (ReadOnlyMemory, no-ref) migration.
-/// </summary>
 public sealed class SwfReaderTests
 {
     [Fact]
@@ -44,8 +40,6 @@ public sealed class SwfReaderTests
     [Fact]
     public void DoAction_payload_decodes_without_resupplying_the_buffer()
     {
-        // The deferred ReadOnlyMemory payload is self-contained: DecodeActions
-        // takes only the SWF version, no reader/buffer (the migration's goal).
         var swf = ShockwaveFlashFile.Disassemble(SwfTestData.WithDoAction());
 
         var doAction = swf.Tags.OfType<DoActionTag>().ShouldHaveSingleItem();
@@ -61,12 +55,11 @@ public sealed class SwfReaderTests
     [Fact]
     public void Disassemble_rejects_an_unknown_tag_code()
     {
-        // RECORDHEADER for tag code 1023 (undefined), length 0.
         byte[] body =
         [
-            0x08, 0x00, 0x00, 0x18, 0x01, 0x00, // header fields
-            0xC0, 0xFF,                         // code 1023, length 0
-            0x00, 0x00,                         // End
+            0x08, 0x00, 0x00, 0x18, 0x01, 0x00,
+            0xC0, 0xFF,
+            0x00, 0x00,
         ];
 
         var file = new byte[8 + body.Length];

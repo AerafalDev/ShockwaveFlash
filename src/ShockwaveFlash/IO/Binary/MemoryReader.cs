@@ -10,12 +10,6 @@ using ShockwaveFlash.IO.Extensions;
 
 namespace ShockwaveFlash.IO.Binary;
 
-/// <summary>
-/// Forward-only reader over a <see cref="ReadOnlyMemory{T}"/> buffer.
-/// Reference type: passed by value (no <c>ref</c>) while still sharing position,
-/// and it can outlive the stack frame so deferred payloads stay self-contained.
-/// <see cref="ReadOnlySpan{T}"/> is materialized internally only where reading bytes requires it.
-/// </summary>
 public sealed class MemoryReader
 {
     private const int Mask10000000 = 128;
@@ -214,7 +208,6 @@ public sealed class MemoryReader
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> bytes as a self-contained memory slice and advances.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<byte> ReadMemory(int count)
     {
@@ -224,7 +217,6 @@ public sealed class MemoryReader
         return memory;
     }
 
-    /// <summary>Reads the remaining bytes as a self-contained memory slice and advances to the end.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<byte> ReadMemoryToEnd()
     {
@@ -250,8 +242,6 @@ public sealed class MemoryReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureBuffer(int count)
     {
-        // Zero-length reads are valid: empty tag bodies (End, ShowFrame, ...) and
-        // empty length-prefixed strings are legal per swf-spec-19 §2.
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(_position + count, _buffer.Length);
     }
