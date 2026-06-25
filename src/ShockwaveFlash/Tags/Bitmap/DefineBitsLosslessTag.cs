@@ -1,3 +1,4 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Types.Bitmap;
 
 namespace ShockwaveFlash.Tags.Bitmap;
@@ -12,10 +13,10 @@ public sealed record DefineBitsLosslessTag(TagMetadata Metadata, ushort Id, usho
         var height = reader.ReadUInt16();
         var format = formatFlags switch
         {
-            3 => BitmapFormat.ColorMap8(reader.ReadUInt8()),
+            3 => BitmapFormat.ColorMap8(reader.ReadUInt8() + 1),
             4 => BitmapFormat.Rgb15(),
             5 => BitmapFormat.Rgb32(),
-            _ => throw new NotSupportedException("Invalid bitmap format.")
+            _ => throw new SwfFormatException($"Invalid bitmap format {formatFlags}.")
         };
         var zlibBitmapData = reader.ReadMemoryToEnd();
 
@@ -39,7 +40,7 @@ public sealed record DefineBitsLosslessTag(TagMetadata Metadata, ushort Id, usho
         writer.WriteUInt16(Height);
 
         if (Format is BitmapFormat.BitmapFormatColorMap8 colorMap)
-            writer.WriteUInt8(colorMap.NumColors);
+            writer.WriteUInt8((byte)(colorMap.NumColors - 1));
 
         writer.WriteMemory(ZLibBitmapData);
     }

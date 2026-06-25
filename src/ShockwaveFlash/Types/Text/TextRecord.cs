@@ -1,6 +1,6 @@
 namespace ShockwaveFlash.Types.Text;
 
-public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort? Height, Glyph[] Glyphs)
+public sealed record TextRecord(ushort? Id, Color? Color, short? OffsetX, short? OffsetY, ushort? Height, Glyph[] Glyphs)
 {
     public static TextRecord? Decode(MemoryReader reader, byte tagVersion, byte numGlyphBits, byte numAdvanceBits)
     {
@@ -27,10 +27,6 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
             ? reader.ReadInt16()
             : null;
 
-        Point? offset = offsetX is null && offsetY is null
-            ? null
-            : new Point(offsetX ?? 0, offsetY ?? 0);
-
         ushort? height = (flags & 8) is not 0
             ? reader.ReadUInt16()
             : null;
@@ -42,7 +38,7 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
         for (var i = 0; i < numGlyphs; i++)
             glyphs[i] = new Glyph(bits.ReadUBits(reader, numGlyphBits), bits.ReadSBits(reader, numAdvanceBits));
 
-        return new TextRecord(id, color, offset, height, glyphs);
+        return new TextRecord(id, color, offsetX, offsetY, height, glyphs);
     }
 
     public void Encode(MemoryWriter writer, byte tagVersion, byte numGlyphBits, byte numAdvanceBits)
@@ -55,8 +51,11 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
         if (Color is not null)
             flags |= 4;
 
-        if (Offset is not null)
-            flags |= 1 | 2;
+        if (OffsetX is not null)
+            flags |= 1;
+
+        if (OffsetY is not null)
+            flags |= 2;
 
         writer.WriteUInt8(flags);
 
@@ -71,11 +70,11 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
                 color.EncodeRgba(writer);
         }
 
-        if ((flags & 1) is not 0 && Offset is { } offsetX)
-            writer.WriteInt16((short)offsetX.X);
+        if (OffsetX is { } offsetX)
+            writer.WriteInt16(offsetX);
 
-        if ((flags & 2) is not 0 && Offset is { } offsetY)
-            writer.WriteInt16((short)offsetY.Y);
+        if (OffsetY is { } offsetY)
+            writer.WriteInt16(offsetY);
 
         if ((flags & 8) is not 0 && Height is { } height)
             writer.WriteUInt16(height);
