@@ -1,5 +1,10 @@
 # ShockwaveFlash
 
+[![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.svg)](https://www.nuget.org/packages/ShockwaveFlash)
+[![Downloads](https://img.shields.io/nuget/dt/ShockwaveFlash.svg)](https://www.nuget.org/packages/ShockwaveFlash)
+[![Build](https://github.com/AerafalDev/ShockwaveFlash/actions/workflows/ci.yml/badge.svg)](https://github.com/AerafalDev/ShockwaveFlash/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/AerafalDev/ShockwaveFlash/blob/main/LICENSE)
+
 A fast, allocation-light reader and writer for the **SWF** (Shockwave Flash) binary format, written for .NET 10.
 
 Disassemble a `.swf` file into a strongly-typed tag tree, inspect or edit it in code, then assemble it back. Re-assembly is **byte-identical** to the input it was parsed from — validated by round-tripping a real corpus of production files.
