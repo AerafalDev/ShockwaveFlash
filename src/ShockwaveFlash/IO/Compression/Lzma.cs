@@ -14,4 +14,13 @@ public static class Lzma
             "Add a NuGet reference to a library providing LZMA support (e.g. SharpCompress) " +
             "and replace this method body with the appropriate decompression call.");
     }
+
+    public static ReadOnlyMemory<byte> Compress(ReadOnlyMemory<byte> data)
+    {
+        throw new NotSupportedException(
+            "Writing ZWS (LZMA-compressed) SWF files requires an LZMA encoder. " +
+            "SPEC GAP: .NET 10 BCL does not include a built-in LZMA implementation. " +
+            "Add a NuGet reference to a library providing LZMA support (e.g. SharpCompress) " +
+            "and replace this method body with the appropriate compression call.");
+    }
 }

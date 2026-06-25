@@ -27,5 +27,16 @@ public static class ShockwaveFlashCompressionExtensions
                 _ => throw new NotSupportedException($"Unsupported compression format: {self}.")
             };
         }
+
+        public ReadOnlyMemory<byte> Compress(ReadOnlyMemory<byte> data)
+        {
+            return self switch
+            {
+                ShockwaveFlashCompression.None => data,
+                ShockwaveFlashCompression.ZLib => ZLib.Compress(data),
+                ShockwaveFlashCompression.Lzma => Lzma.Compress(data),
+                _ => throw new NotSupportedException($"Unsupported compression format: {self}.")
+            };
+        }
     }
 }

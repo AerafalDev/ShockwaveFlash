@@ -39,4 +39,14 @@ public static class ZLib
 
         return decompressed.AsMemory(0, reads);
     }
+
+    public static ReadOnlyMemory<byte> Compress(ReadOnlyMemory<byte> data)
+    {
+        using var ms = new MemoryStream();
+
+        using (var zs = new ZLibStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+            zs.Write(data.Span);
+
+        return ms.ToArray();
+    }
 }

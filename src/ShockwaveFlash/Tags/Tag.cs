@@ -23,6 +23,37 @@ namespace ShockwaveFlash.Tags;
 [DebuggerDisplay("{Metadata.Code,nq}")]
 public abstract record Tag(TagMetadata Metadata)
 {
+    private const int MaxShortTagLength = 63;
+
+    public virtual void Encode(MemoryWriter writer)
+    {
+        throw new NotSupportedException($"Encoding tag {Metadata.Code} is not supported yet.");
+    }
+
+    public static void EncodeCollection(MemoryWriter writer, IReadOnlyList<Tag> tags)
+    {
+        foreach (var tag in tags)
+        {
+            var body = new MemoryWriter();
+            tag.Encode(body);
+
+            var code = (ushort)tag.Metadata.Code;
+            var length = body.Position;
+
+            if (length < MaxShortTagLength)
+            {
+                writer.WriteUInt16((ushort)((code << 6) | length));
+            }
+            else
+            {
+                writer.WriteUInt16((ushort)((code << 6) | MaxShortTagLength));
+                writer.WriteInt32(length);
+            }
+
+            writer.WriteMemory(body.WrittenMemory);
+        }
+    }
+
     public static IReadOnlyList<Tag> DecodeCollection(MemoryReader reader, byte swfVersion)
     {
         var tags = new List<Tag>();

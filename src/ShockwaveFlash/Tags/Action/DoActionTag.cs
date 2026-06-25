@@ -15,4 +15,9 @@ public sealed record DoActionTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data
     {
         return new DoActionTag(metadata, reader.ReadMemoryToEnd());
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        writer.WriteMemory(Data);
+    }
 }

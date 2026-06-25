@@ -80,4 +80,11 @@ public readonly struct ShockwaveFlashHeader :
 
         return new ShockwaveFlashHeader(compression, version, fileLength, frameSize, frameRate, frameCount);
     }
+
+    public void Encode(MemoryWriter writer)
+    {
+        FrameSize.Encode(writer);
+        writer.WriteFixed8(FrameRate);
+        writer.WriteUInt16(FrameCount);
+    }
 }

@@ -12,4 +12,9 @@ public sealed record SetBackgroundColorTag(TagMetadata Metadata, Color Backgroun
     {
         return new SetBackgroundColorTag(metadata, Color.DecodeRgb(reader));
     }
+
+    public override void Encode(MemoryWriter writer)
+    {
+        BackgroundColor.EncodeRgb(writer);
+    }
 }

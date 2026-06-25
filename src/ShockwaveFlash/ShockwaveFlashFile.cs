@@ -30,4 +30,26 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 
         return new ShockwaveFlashFile(header, tags);
     }
+
+    public ReadOnlyMemory<byte> Assemble()
+    {
+        var body = new MemoryWriter();
+
+        Header.Encode(body);
+        Tag.EncodeCollection(body, Tags);
+
+        var compressedBody = Header.Compression.Compress(body.WrittenMemory);
+        var fileLength = HeaderSize + body.Position;
+
+        var file = new MemoryWriter(HeaderSize + compressedBody.Length);
+
+        file.WriteUInt8((byte)Header.Compression);
+        file.WriteUInt8((byte)'W');
+        file.WriteUInt8((byte)'S');
+        file.WriteUInt8(Header.Version);
+        file.WriteInt32(fileLength);
+        file.WriteMemory(compressedBody);
+
+        return file.WrittenMemory;
+    }
 }

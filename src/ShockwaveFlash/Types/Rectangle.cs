@@ -109,4 +109,20 @@ public struct Rectangle :
 
         return rectangle;
     }
+
+    internal readonly void Encode(MemoryWriter writer)
+    {
+        var bits = new BitWriter();
+
+        var nBits = Math.Max(
+            Math.Max(BitWriter.SignedBitsNeeded(XMin), BitWriter.SignedBitsNeeded(XMax)),
+            Math.Max(BitWriter.SignedBitsNeeded(YMin), BitWriter.SignedBitsNeeded(YMax)));
+
+        bits.WriteUBits(writer, (uint)nBits, 5);
+        bits.WriteSBits(writer, XMin, nBits);
+        bits.WriteSBits(writer, XMax, nBits);
+        bits.WriteSBits(writer, YMin, nBits);
+        bits.WriteSBits(writer, YMax, nBits);
+        bits.Flush(writer);
+    }
 }

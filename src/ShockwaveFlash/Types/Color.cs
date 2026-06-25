@@ -151,4 +151,27 @@ public struct Color :
 
         return new Color(r, g, b, 255);
     }
+
+    internal readonly void EncodeArgb(MemoryWriter writer)
+    {
+        writer.WriteUInt8(A);
+        writer.WriteUInt8(R);
+        writer.WriteUInt8(G);
+        writer.WriteUInt8(B);
+    }
+
+    internal readonly void EncodeRgba(MemoryWriter writer)
+    {
+        writer.WriteUInt8(R);
+        writer.WriteUInt8(G);
+        writer.WriteUInt8(B);
+        writer.WriteUInt8(A);
+    }
+
+    internal readonly void EncodeRgb(MemoryWriter writer)
+    {
+        writer.WriteUInt8(R);
+        writer.WriteUInt8(G);
+        writer.WriteUInt8(B);
+    }
 }
