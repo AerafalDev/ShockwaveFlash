@@ -440,3 +440,6 @@ package-lock.json
 
 # Local-only real SWF samples (copyrighted, do not commit)
 /data/
+
+# Tests are kept local-only (not on GitHub)
+/tests/
