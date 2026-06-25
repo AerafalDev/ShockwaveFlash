@@ -2,11 +2,14 @@
 
   <PropertyGroup>
     <PackageId>ShockwaveFlash</PackageId>
-    <VersionPrefix>0.1.0</VersionPrefix>
     <Description>A fast, allocation-light reader and writer for the SWF (Shockwave Flash) binary format. Disassemble a .swf into a strongly-typed tag tree and assemble it back byte-for-byte.</Description>
     <Authors>Aerafal</Authors>
     <Copyright>Copyright (c) 2026 Aerafal</Copyright>
     <PackageTags>swf;shockwave;flash;adobe;flash-player;binary;parser;serialization</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -30,6 +33,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
