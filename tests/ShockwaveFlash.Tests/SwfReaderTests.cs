@@ -44,12 +44,7 @@ public sealed class SwfReaderTests
 
         var doAction = swf.Tags.OfType<DoActionTag>().ShouldHaveSingleItem();
 
-        var actions = doAction.DecodeActions(swf.Header.Version);
-
-        actions.Count.ShouldBe(3);
-        actions[0].Opcode.ShouldBe(Actions.Avm1.ActionOpcode.Play);
-        actions[1].Opcode.ShouldBe(Actions.Avm1.ActionOpcode.Stop);
-        actions[2].Opcode.ShouldBe(Actions.Avm1.ActionOpcode.End);
+        doAction.Data.ToArray().ShouldBe(new byte[] { 0x06, 0x07, 0x00 });
     }
 
     [Fact]

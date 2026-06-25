@@ -131,15 +131,6 @@ public sealed class MemoryReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double ReadFloat64Avm1()
-    {
-        var span = ReadSpan(sizeof(double));
-        var high = BinaryPrimitives.ReadUInt32LittleEndian(span[..4]);
-        var low = BinaryPrimitives.ReadUInt32LittleEndian(span[4..8]);
-        return BitConverter.Int64BitsToDouble((long)((ulong)high << 32) | low);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float ReadUFixed8()
     {
         return ReadUInt16() / 256f;

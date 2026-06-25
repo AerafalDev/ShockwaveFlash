@@ -1,14 +1,10 @@
-﻿using ShockwaveFlash;
-using ShockwaveFlash.Tags.Action;
+using ShockwaveFlash;
 
 var buffer = File.ReadAllBytes(args[0]);
 
 var swf = ShockwaveFlashFile.Disassemble(buffer);
 
-foreach (var doActionTag in swf.Tags.OfType<DoActionTag>())
-{
-    var actions = doActionTag.DecodeActions(swf.Header.Version);
+Console.WriteLine(swf.Header);
 
-    foreach (var action in actions)
-        Console.WriteLine(action);
-}
+foreach (var tag in swf.Tags)
+    Console.WriteLine(tag.Metadata.Code);

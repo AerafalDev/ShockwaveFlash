@@ -130,14 +130,6 @@ public sealed class MemoryWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteFloat64Avm1(double value)
-    {
-        var bits = (ulong)BitConverter.DoubleToInt64Bits(value);
-        WriteUInt32((uint)(bits >> 32));
-        WriteUInt32((uint)bits);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteUFixed8(float value)
     {
         WriteUInt16((ushort)Math.Round(value * 256.0));
