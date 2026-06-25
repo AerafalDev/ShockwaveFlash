@@ -28,7 +28,7 @@ public readonly struct TagMetadata :
 
     public bool Equals(TagMetadata other)
     {
-        return Code == other.Code && Offset == other.Offset && Length == other.Length;
+        return Code == other.Code;
     }
 
     public override bool Equals(object? obj)
@@ -38,7 +38,7 @@ public readonly struct TagMetadata :
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Code, Offset, Length);
+        return Code.GetHashCode();
     }
 
     public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)

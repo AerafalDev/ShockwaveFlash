@@ -26,10 +26,7 @@ public abstract record Tag(TagMetadata Metadata)
     [ThreadStatic]
     private static int s_depth;
 
-    public virtual void Encode(MemoryWriter writer, byte swfVersion)
-    {
-        throw new NotSupportedException($"Encoding tag {Metadata.Code} is not supported yet.");
-    }
+    public abstract void Encode(MemoryWriter writer, byte swfVersion);
 
     public static void EncodeCollection(MemoryWriter writer, IReadOnlyList<Tag> tags, byte swfVersion)
     {
