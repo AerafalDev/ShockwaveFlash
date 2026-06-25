@@ -2,14 +2,13 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ShockwaveFlash.IO.Buffers;
 using ShockwaveFlash.Types.Bitmap;
 
 namespace ShockwaveFlash.Tags.Bitmap;
 
-public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ushort Width, ushort Height, BitmapFormat Format, SpanSlice ZLibBitmapData) : Tag(Metadata)
+public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ushort Width, ushort Height, BitmapFormat Format, ReadOnlyMemory<byte> ZLibBitmapData) : Tag(Metadata)
 {
-    public static DefineBitsLossless2Tag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineBitsLossless2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var formatFlags = reader.ReadUInt8();
@@ -22,7 +21,7 @@ public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ush
             5 => BitmapFormat.Rgb32(),
             _ => throw new NotSupportedException("Invalid bitmap format.")
         };
-        var zlibBitmapData = reader.SliceToEnd();
+        var zlibBitmapData = reader.ReadMemoryToEnd();
 
         return new DefineBitsLossless2Tag(metadata, id, width, height, format, zlibBitmapData);
     }

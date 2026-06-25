@@ -2,21 +2,20 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ShockwaveFlash.IO.Buffers;
 
 namespace ShockwaveFlash.Types.Button;
 
-public sealed record ButtonAction(ButtonActionCondition Conditions, SpanSlice Data)
+public sealed record ButtonAction(ButtonActionCondition Conditions, ReadOnlyMemory<byte> Data)
 {
-    public static (ButtonAction, bool) Decode(ref SpanReader reader)
+    public static (ButtonAction, bool) Decode(MemoryReader reader)
     {
         var length = reader.ReadUInt16();
         var conditions = (ButtonActionCondition)reader.ReadUInt16();
 
         var data = length switch
         {
-            >= 4 => reader.Slice(length - 4),
-            0 => reader.SliceToEnd(),
+            >= 4 => reader.ReadMemory(length - 4),
+            0 => reader.ReadMemoryToEnd(),
             _ => throw new NotSupportedException("Button actions length is too short.")
         };
 

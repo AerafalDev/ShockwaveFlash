@@ -16,11 +16,11 @@ public sealed record DefineMorphShapeTag(TagMetadata Metadata, ushort Id, Define
     public bool HasNonScalingStrokes =>
         Flags.HasFlag(DefineMorphShapeFlags.HasNonScalingStrokes);
 
-    public static DefineMorphShapeTag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
+    public static DefineMorphShapeTag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         var id = reader.ReadUInt16();
-        var startShapeBounds = Rectangle.Decode(ref reader);
-        var endShapeBounds = Rectangle.Decode(ref reader);
+        var startShapeBounds = Rectangle.Decode(reader);
+        var endShapeBounds = Rectangle.Decode(reader);
 
         reader.Advance(sizeof(int));
 
@@ -31,7 +31,7 @@ public sealed record DefineMorphShapeTag(TagMetadata Metadata, ushort Id, Define
 
         for (var i = 0; i < numFillStyles; i++)
         {
-            var (startFillStyle, endFillStyle) = FillStyle.DecodeMorph(ref reader);
+            var (startFillStyle, endFillStyle) = FillStyle.DecodeMorph(reader);
             startFillStyles[i] = startFillStyle;
             endFillStyles[i] = endFillStyle;
         }
@@ -43,21 +43,21 @@ public sealed record DefineMorphShapeTag(TagMetadata Metadata, ushort Id, Define
 
         for (var i = 0; i < numLineStyles; i++)
         {
-            var (startLineStyle, endLineStyle) = LineStyle.DecodeMorph(ref reader, 1);
+            var (startLineStyle, endLineStyle) = LineStyle.DecodeMorph(reader, 1);
             startLineStyles[i] = startLineStyle;
             endLineStyles[i] = endLineStyle;
         }
 
         var bits = new BitReader();
-        var context = new ShapeContext(swfVersion, 1, (byte)bits.ReadUBits(ref reader, 4), (byte)bits.ReadUBits(ref reader, 4));
+        var context = new ShapeContext(swfVersion, 1, (byte)bits.ReadUBits(reader, 4), (byte)bits.ReadUBits(reader, 4));
 
         var startShapes = new List<ShapeRecord>();
-        var shape = ShapeRecord.Decode(ref reader, ref bits, ref context);
+        var shape = ShapeRecord.Decode(reader, bits, context);
 
         while (shape is not EndShapeRecord)
         {
             startShapes.Add(shape);
-            shape = ShapeRecord.Decode(ref reader, ref bits, ref context);
+            shape = ShapeRecord.Decode(reader, bits, context);
         }
         startShapes.Add(shape);
 
@@ -67,12 +67,12 @@ public sealed record DefineMorphShapeTag(TagMetadata Metadata, ushort Id, Define
         context = new ShapeContext(swfVersion, 1, 0, 0);
 
         var endShapes = new List<ShapeRecord>();
-        shape = ShapeRecord.Decode(ref reader, ref bits, ref context);
+        shape = ShapeRecord.Decode(reader, bits, context);
 
         while (shape is not EndShapeRecord)
         {
             endShapes.Add(shape);
-            shape = ShapeRecord.Decode(ref reader, ref bits, ref context);
+            shape = ShapeRecord.Decode(reader, bits, context);
         }
         endShapes.Add(shape);
 

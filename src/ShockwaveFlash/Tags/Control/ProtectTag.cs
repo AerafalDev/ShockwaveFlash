@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record ProtectTag(TagMetadata Metadata, string? PasswordHash) : Tag(Metadata)
 {
-    public static ProtectTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static ProtectTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new ProtectTag(metadata, metadata.Length > 0 ? reader.ReadNullTerminatedString() : null);
     }

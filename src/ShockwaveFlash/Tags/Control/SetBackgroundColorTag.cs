@@ -8,8 +8,8 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record SetBackgroundColorTag(TagMetadata Metadata, Color BackgroundColor) : Tag(Metadata)
 {
-    public static SetBackgroundColorTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static SetBackgroundColorTag Decode(MemoryReader reader, TagMetadata metadata)
     {
-        return new SetBackgroundColorTag(metadata, Color.DecodeRgb(ref reader));
+        return new SetBackgroundColorTag(metadata, Color.DecodeRgb(reader));
     }
 }

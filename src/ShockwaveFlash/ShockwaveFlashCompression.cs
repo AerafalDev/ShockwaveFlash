@@ -17,7 +17,7 @@ public static class ShockwaveFlashCompressionExtensions
 {
     extension(ShockwaveFlashCompression self)
     {
-        public ReadOnlySpan<byte> Decompress(ReadOnlySpan<byte> compressed, int uncompressedLength)
+        public ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> compressed, int uncompressedLength)
         {
             return self switch
             {

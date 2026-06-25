@@ -34,7 +34,7 @@ public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name
     public bool HasLayout =>
         Flags.HasFlag(FontFlags.HasLayout);
 
-    public static DefineFont2Tag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
+    public static DefineFont2Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         var id = reader.ReadUInt16();
         var flags = (FontFlags)reader.ReadUInt8();
@@ -75,12 +75,12 @@ public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name
                 var context = new ShapeContext(swfVersion, 1, numBits >> 4, numBits & 15);
 
                 var shapes = new List<ShapeRecord>();
-                var shape = ShapeRecord.Decode(ref reader, ref bits, ref context);
+                var shape = ShapeRecord.Decode(reader, bits, context);
 
                 while (shape is not EndShapeRecord)
                 {
                     shapes.Add(shape);
-                    shape = ShapeRecord.Decode(ref reader, ref bits, ref context);
+                    shape = ShapeRecord.Decode(reader, bits, context);
                 }
                 shapes.Add(shape);
 
@@ -105,7 +105,7 @@ public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name
             if (reader.Remaining > 0)
             {
                 for (var i = 0; i < numGlyphs; i++)
-                    glyphs[i].Bounds = Rectangle.Decode(ref reader);
+                    glyphs[i].Bounds = Rectangle.Decode(reader);
             }
 
             FontKerning[] kerning = [];
@@ -116,7 +116,7 @@ public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name
                 kerning = new FontKerning[numKerning];
 
                 for (var i = 0; i < numKerning; i++)
-                    kerning[i] = FontKerning.Decode(ref reader, flags.HasFlag(FontFlags.HasWideCodes));
+                    kerning[i] = FontKerning.Decode(reader, flags.HasFlag(FontFlags.HasWideCodes));
             }
 
             layout = new FontLayout(ascent, descent, leading, kerning);

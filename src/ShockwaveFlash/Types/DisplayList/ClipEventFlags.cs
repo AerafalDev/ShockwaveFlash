@@ -33,7 +33,7 @@ public static class ClipEventFlagsExtensions
 {
     extension(ClipEventFlags)
     {
-        public static ClipEventFlags Decode(ref SpanReader reader, byte swfVersion)
+        public static ClipEventFlags Decode(MemoryReader reader, byte swfVersion)
         {
             var flags = swfVersion >= 6
                 ? reader.ReadUInt32()

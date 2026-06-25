@@ -35,9 +35,9 @@ public sealed record DropShadowFilter(Color Color, Vector2 Blur, float Angle, fl
         return new GlowFilter(Color, Blur, Strength, flags);
     }
 
-    public static new DropShadowFilter Decode(ref SpanReader reader)
+    public static new DropShadowFilter Decode(MemoryReader reader)
     {
-        var color = Color.DecodeRgba(ref reader);
+        var color = Color.DecodeRgba(reader);
         var blur = reader.ReadVector2();
         var angle = reader.ReadFixed();
         var distance = reader.ReadFixed();

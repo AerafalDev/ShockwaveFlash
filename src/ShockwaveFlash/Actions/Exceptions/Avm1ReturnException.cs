@@ -6,5 +6,5 @@ namespace ShockwaveFlash.Actions.Exceptions;
 
 public class Avm1ReturnException
 {
-    
+
 }

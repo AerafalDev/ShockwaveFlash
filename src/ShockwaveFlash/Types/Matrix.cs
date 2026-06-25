@@ -78,34 +78,34 @@ public struct Matrix :
         return !left.Equals(right);
     }
 
-    public static Matrix Decode(ref SpanReader reader)
+    public static Matrix Decode(MemoryReader reader)
     {
         var matrix = new Matrix();
 
         var bits = new BitReader();
 
-        var hasScale = bits.ReadBit(ref reader);
+        var hasScale = bits.ReadBit(reader);
 
         if (hasScale)
         {
-            var nScaleBits = bits.ReadIBits(ref reader, 5);
-            matrix.Scale.X = bits.ReadFBits(ref reader, nScaleBits);
-            matrix.Scale.Y = bits.ReadFBits(ref reader, nScaleBits);
+            var nScaleBits = bits.ReadIBits(reader, 5);
+            matrix.Scale.X = bits.ReadFBits(reader, nScaleBits);
+            matrix.Scale.Y = bits.ReadFBits(reader, nScaleBits);
         }
 
-        var hasRotation = bits.ReadBit(ref reader);
+        var hasRotation = bits.ReadBit(reader);
 
         if (hasRotation)
         {
-            var nRotationBits = bits.ReadIBits(ref reader, 5);
-            matrix.Rotation.X = bits.ReadFBits(ref reader, nRotationBits);
-            matrix.Rotation.Y = bits.ReadFBits(ref reader, nRotationBits);
+            var nRotationBits = bits.ReadIBits(reader, 5);
+            matrix.Rotation.X = bits.ReadFBits(reader, nRotationBits);
+            matrix.Rotation.Y = bits.ReadFBits(reader, nRotationBits);
         }
 
-        var nTranslationBits = bits.ReadIBits(ref reader, 5);
+        var nTranslationBits = bits.ReadIBits(reader, 5);
 
-        matrix.Translation.X = bits.ReadSBits(ref reader, nTranslationBits);
-        matrix.Translation.Y = bits.ReadSBits(ref reader, nTranslationBits);
+        matrix.Translation.X = bits.ReadSBits(reader, nTranslationBits);
+        matrix.Translation.Y = bits.ReadSBits(reader, nTranslationBits);
 
         return matrix;
     }

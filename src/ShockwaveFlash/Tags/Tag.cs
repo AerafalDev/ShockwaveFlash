@@ -23,7 +23,7 @@ namespace ShockwaveFlash.Tags;
 [DebuggerDisplay("{Metadata.Code,nq}")]
 public abstract record Tag(TagMetadata Metadata)
 {
-    public static IReadOnlyList<Tag> DecodeCollection(ref SpanReader reader, byte swfVersion)
+    public static IReadOnlyList<Tag> DecodeCollection(MemoryReader reader, byte swfVersion)
     {
         var tags = new List<Tag>();
 
@@ -41,9 +41,9 @@ public abstract record Tag(TagMetadata Metadata)
 
             var offset = reader.Position;
             var metadata = new TagMetadata((TagCode)code, offset, length);
-            var tagReader = new SpanReader(reader.ReadSpan(length));
+            var tagReader = new MemoryReader(reader.ReadMemory(length));
 
-            var tag = Decode(ref tagReader, metadata, swfVersion);
+            var tag = Decode(tagReader, metadata, swfVersion);
 
             if (tagReader.Remaining is not 0)
                 throw new Exception($"Tag length mismatch. Expected {length} bytes, got {tagReader.Position}.");
@@ -54,79 +54,79 @@ public abstract record Tag(TagMetadata Metadata)
         return tags;
     }
 
-    private static Tag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
+    private static Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         return metadata.Code switch
         {
             TagCode.End => new EndTag(metadata),
             TagCode.ShowFrame => new ShowFrameTag(metadata),
-            TagCode.DefineShape => DefineShapeTag.Decode(ref reader, metadata, swfVersion, 1),
-            TagCode.PlaceObject => PlaceObjectTag.Decode(ref reader, metadata),
-            TagCode.RemoveObject => RemoveObjectTag.Decode(ref reader, metadata),
-            TagCode.DefineBits => DefineBitsTag.Decode(ref reader, metadata),
-            TagCode.DefineButton => DefineButtonTag.Decode(ref reader, metadata),
-            TagCode.JpegTables => JpegTablesTag.Decode(ref reader, metadata),
-            TagCode.SetBackgroundColor => SetBackgroundColorTag.Decode(ref reader, metadata),
-            TagCode.DefineFont => DefineFontTag.Decode(ref reader, metadata, swfVersion),
-            TagCode.DefineText => DefineTextTag.Decode(ref reader, metadata),
-            TagCode.DoAction => DoActionTag.Decode(ref reader, metadata),
-            TagCode.DefineFontInfo => DefineFontInfoTag.Decode(ref reader, metadata),
-            TagCode.DefineSound => DefineSoundTag.Decode(ref reader, metadata),
-            TagCode.StartSound => StartSoundTag.Decode(ref reader, metadata),
-            TagCode.DefineButtonSound => DefineButtonSoundTag.Decode(ref reader, metadata),
-            TagCode.SoundStreamHead => SoundStreamHeadTag.Decode(ref reader, metadata),
-            TagCode.SoundStreamBlock => SoundStreamBlockTag.Decode(ref reader, metadata),
-            TagCode.DefineBitsLossless => DefineBitsLosslessTag.Decode(ref reader, metadata),
-            TagCode.DefineBitsJpeg2 => DefineBitsJpeg2Tag.Decode(ref reader, metadata),
-            TagCode.DefineShape2 => DefineShapeTag.Decode(ref reader, metadata, swfVersion, 2),
-            TagCode.DefineButtonCxForm => DefineButtonCxFormTag.Decode(ref reader, metadata),
-            TagCode.Protect => ProtectTag.Decode(ref reader, metadata),
-            TagCode.PlaceObject2 => PlaceObject2Tag.Decode(ref reader, metadata, swfVersion),
-            TagCode.RemoveObject2 => RemoveObject2Tag.Decode(ref reader, metadata),
-            TagCode.DefineShape3 => DefineShapeTag.Decode(ref reader, metadata, swfVersion, 3),
-            TagCode.DefineText2 => DefineText2Tag.Decode(ref reader, metadata),
-            TagCode.DefineButton2 => DefineButton2Tag.Decode(ref reader, metadata),
-            TagCode.DefineBitsJpeg3 => DefineBitsJpeg3Tag.Decode(ref reader, metadata),
-            TagCode.DefineBitsLossless2 => DefineBitsLossless2Tag.Decode(ref reader, metadata),
-            TagCode.DefineEditText => DefineEditTextTag.Decode(ref reader, metadata),
-            TagCode.DefineSprite => DefineSpriteTag.Decode(ref reader, metadata, swfVersion),
-            TagCode.NameCharacter => NameCharacterTag.Decode(ref reader, metadata),
-            TagCode.ProductInfo => ProductInfoTag.Decode(ref reader, metadata),
-            TagCode.FrameLabel => FrameLabelTag.Decode(ref reader, metadata, swfVersion),
-            TagCode.SoundStreamHead2 => SoundStreamHead2Tag.Decode(ref reader, metadata),
-            TagCode.DefineMorphShape => DefineMorphShapeTag.Decode(ref reader, metadata, swfVersion),
-            TagCode.DefineFont2 => DefineFont2Tag.Decode(ref reader, metadata, swfVersion),
-            TagCode.ExportAssets => ExportAssetsTag.Decode(ref reader, metadata),
-            TagCode.ImportAssets => ImportAssetsTag.Decode(ref reader, metadata),
-            TagCode.EnableDebugger => EnableDebuggerTag.Decode(ref reader, metadata),
-            TagCode.DoInitAction => DoInitActionTag.Decode(ref reader, metadata),
-            TagCode.DefineVideoStream => DefineVideoStreamTag.Decode(ref reader, metadata),
-            TagCode.VideoFrame => VideoFrameTag.Decode(ref reader, metadata),
-            TagCode.DefineFontInfo2 => DefineFontInfo2Tag.Decode(ref reader, metadata),
-            TagCode.DebugId => DebugIdTag.Decode(ref reader, metadata),
-            TagCode.EnableDebugger2 => EnableDebugger2Tag.Decode(ref reader, metadata),
-            TagCode.ScriptLimits => ScriptLimitsTag.Decode(ref reader, metadata),
-            TagCode.SetTabIndex => SetTabIndexTag.Decode(ref reader, metadata),
-            TagCode.FileAttributes => FileAttributesTag.Decode(ref reader, metadata),
-            TagCode.PlaceObject3 => PlaceObject3Tag.Decode(ref reader, metadata, swfVersion),
-            TagCode.ImportAssets2 => ImportAssets2Tag.Decode(ref reader, metadata),
-            TagCode.DoAbc => DoAbcTag.Decode(ref reader, metadata),
-            TagCode.DefineFontAlignZones => DefineFontAlignZonesTag.Decode(ref reader, metadata),
-            TagCode.CsmTextSettings => CsmTextSettingsTag.Decode(ref reader, metadata),
-            TagCode.DefineFont3 => DefineFont3Tag.Decode(ref reader, metadata, swfVersion),
-            TagCode.SymbolClass => SymbolClassTag.Decode(ref reader, metadata),
-            TagCode.Metadata => MetadataTag.Decode(ref reader, metadata),
-            TagCode.DefineScalingGrid => DefineScalingGridTag.Decode(ref reader, metadata),
-            TagCode.DoAbc2 => DoAbc2Tag.Decode(ref reader, metadata),
-            TagCode.DefineShape4 => DefineShapeTag.Decode(ref reader, metadata, swfVersion, 4),
-            TagCode.DefineMorphShape2 => DefineMorphShape2Tag.Decode(ref reader, metadata, swfVersion),
-            TagCode.DefineSceneAndFrameLabelData => DefineSceneAndFrameLabelDataTag.Decode(ref reader, metadata),
-            TagCode.DefineBinaryData => DefineBinaryDataTag.Decode(ref reader, metadata),
-            TagCode.DefineFontName => DefineFontNameTag.Decode(ref reader, metadata),
-            TagCode.StartSound2 => StartSound2Tag.Decode(ref reader, metadata),
-            TagCode.DefineBitsJpeg4 => DefineBitsJpeg4Tag.Decode(ref reader, metadata),
-            TagCode.DefineFont4 => DefineFont4Tag.Decode(ref reader, metadata),
-            TagCode.EnableTelemetry => EnableTelemetryTag.Decode(ref reader, metadata),
+            TagCode.DefineShape => DefineShapeTag.Decode(reader, metadata, swfVersion, 1),
+            TagCode.PlaceObject => PlaceObjectTag.Decode(reader, metadata),
+            TagCode.RemoveObject => RemoveObjectTag.Decode(reader, metadata),
+            TagCode.DefineBits => DefineBitsTag.Decode(reader, metadata),
+            TagCode.DefineButton => DefineButtonTag.Decode(reader, metadata),
+            TagCode.JpegTables => JpegTablesTag.Decode(reader, metadata),
+            TagCode.SetBackgroundColor => SetBackgroundColorTag.Decode(reader, metadata),
+            TagCode.DefineFont => DefineFontTag.Decode(reader, metadata, swfVersion),
+            TagCode.DefineText => DefineTextTag.Decode(reader, metadata),
+            TagCode.DoAction => DoActionTag.Decode(reader, metadata),
+            TagCode.DefineFontInfo => DefineFontInfoTag.Decode(reader, metadata),
+            TagCode.DefineSound => DefineSoundTag.Decode(reader, metadata),
+            TagCode.StartSound => StartSoundTag.Decode(reader, metadata),
+            TagCode.DefineButtonSound => DefineButtonSoundTag.Decode(reader, metadata),
+            TagCode.SoundStreamHead => SoundStreamHeadTag.Decode(reader, metadata),
+            TagCode.SoundStreamBlock => SoundStreamBlockTag.Decode(reader, metadata),
+            TagCode.DefineBitsLossless => DefineBitsLosslessTag.Decode(reader, metadata),
+            TagCode.DefineBitsJpeg2 => DefineBitsJpeg2Tag.Decode(reader, metadata),
+            TagCode.DefineShape2 => DefineShapeTag.Decode(reader, metadata, swfVersion, 2),
+            TagCode.DefineButtonCxForm => DefineButtonCxFormTag.Decode(reader, metadata),
+            TagCode.Protect => ProtectTag.Decode(reader, metadata),
+            TagCode.PlaceObject2 => PlaceObject2Tag.Decode(reader, metadata, swfVersion),
+            TagCode.RemoveObject2 => RemoveObject2Tag.Decode(reader, metadata),
+            TagCode.DefineShape3 => DefineShapeTag.Decode(reader, metadata, swfVersion, 3),
+            TagCode.DefineText2 => DefineText2Tag.Decode(reader, metadata),
+            TagCode.DefineButton2 => DefineButton2Tag.Decode(reader, metadata),
+            TagCode.DefineBitsJpeg3 => DefineBitsJpeg3Tag.Decode(reader, metadata),
+            TagCode.DefineBitsLossless2 => DefineBitsLossless2Tag.Decode(reader, metadata),
+            TagCode.DefineEditText => DefineEditTextTag.Decode(reader, metadata),
+            TagCode.DefineSprite => DefineSpriteTag.Decode(reader, metadata, swfVersion),
+            TagCode.NameCharacter => NameCharacterTag.Decode(reader, metadata),
+            TagCode.ProductInfo => ProductInfoTag.Decode(reader, metadata),
+            TagCode.FrameLabel => FrameLabelTag.Decode(reader, metadata, swfVersion),
+            TagCode.SoundStreamHead2 => SoundStreamHead2Tag.Decode(reader, metadata),
+            TagCode.DefineMorphShape => DefineMorphShapeTag.Decode(reader, metadata, swfVersion),
+            TagCode.DefineFont2 => DefineFont2Tag.Decode(reader, metadata, swfVersion),
+            TagCode.ExportAssets => ExportAssetsTag.Decode(reader, metadata),
+            TagCode.ImportAssets => ImportAssetsTag.Decode(reader, metadata),
+            TagCode.EnableDebugger => EnableDebuggerTag.Decode(reader, metadata),
+            TagCode.DoInitAction => DoInitActionTag.Decode(reader, metadata),
+            TagCode.DefineVideoStream => DefineVideoStreamTag.Decode(reader, metadata),
+            TagCode.VideoFrame => VideoFrameTag.Decode(reader, metadata),
+            TagCode.DefineFontInfo2 => DefineFontInfo2Tag.Decode(reader, metadata),
+            TagCode.DebugId => DebugIdTag.Decode(reader, metadata),
+            TagCode.EnableDebugger2 => EnableDebugger2Tag.Decode(reader, metadata),
+            TagCode.ScriptLimits => ScriptLimitsTag.Decode(reader, metadata),
+            TagCode.SetTabIndex => SetTabIndexTag.Decode(reader, metadata),
+            TagCode.FileAttributes => FileAttributesTag.Decode(reader, metadata),
+            TagCode.PlaceObject3 => PlaceObject3Tag.Decode(reader, metadata, swfVersion),
+            TagCode.ImportAssets2 => ImportAssets2Tag.Decode(reader, metadata),
+            TagCode.DoAbc => DoAbcTag.Decode(reader, metadata),
+            TagCode.DefineFontAlignZones => DefineFontAlignZonesTag.Decode(reader, metadata),
+            TagCode.CsmTextSettings => CsmTextSettingsTag.Decode(reader, metadata),
+            TagCode.DefineFont3 => DefineFont3Tag.Decode(reader, metadata, swfVersion),
+            TagCode.SymbolClass => SymbolClassTag.Decode(reader, metadata),
+            TagCode.Metadata => MetadataTag.Decode(reader, metadata),
+            TagCode.DefineScalingGrid => DefineScalingGridTag.Decode(reader, metadata),
+            TagCode.DoAbc2 => DoAbc2Tag.Decode(reader, metadata),
+            TagCode.DefineShape4 => DefineShapeTag.Decode(reader, metadata, swfVersion, 4),
+            TagCode.DefineMorphShape2 => DefineMorphShape2Tag.Decode(reader, metadata, swfVersion),
+            TagCode.DefineSceneAndFrameLabelData => DefineSceneAndFrameLabelDataTag.Decode(reader, metadata),
+            TagCode.DefineBinaryData => DefineBinaryDataTag.Decode(reader, metadata),
+            TagCode.DefineFontName => DefineFontNameTag.Decode(reader, metadata),
+            TagCode.StartSound2 => StartSound2Tag.Decode(reader, metadata),
+            TagCode.DefineBitsJpeg4 => DefineBitsJpeg4Tag.Decode(reader, metadata),
+            TagCode.DefineFont4 => DefineFont4Tag.Decode(reader, metadata),
+            TagCode.EnableTelemetry => EnableTelemetryTag.Decode(reader, metadata),
             _ => throw new NotSupportedException($"Tag code {metadata.Code} is not supported.")
         };
     }

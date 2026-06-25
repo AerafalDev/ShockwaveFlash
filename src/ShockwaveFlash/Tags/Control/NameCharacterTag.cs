@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record NameCharacterTag(TagMetadata Metadata, ushort Id, string Name) : Tag(Metadata)
 {
-    public static NameCharacterTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static NameCharacterTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var name = reader.ReadNullTerminatedString();

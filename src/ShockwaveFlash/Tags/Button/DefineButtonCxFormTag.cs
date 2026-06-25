@@ -8,13 +8,13 @@ namespace ShockwaveFlash.Tags.Button;
 
 public sealed record DefineButtonCxFormTag(TagMetadata Metadata, ushort Id, IReadOnlyList<ColorTransform> ColorTransforms) : Tag(Metadata)
 {
-    public static DefineButtonCxFormTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineButtonCxFormTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var colorTransforms = new List<ColorTransform>();
 
         while (reader.Remaining > 0)
-            colorTransforms.Add(ColorTransform.DecodeRgb(ref reader));
+            colorTransforms.Add(ColorTransform.DecodeRgb(reader));
 
         return new DefineButtonCxFormTag(metadata, id, colorTransforms);
     }

@@ -6,39 +6,52 @@ using System.Runtime.CompilerServices;
 
 namespace ShockwaveFlash.IO.Bits;
 
-public struct BitReader
+/// <summary>
+/// MSB-first bit reader that drives a <see cref="MemoryReader"/>.
+/// Reference type so its accumulator state is shared without <c>ref</c>; call
+/// <see cref="Reset"/> to discard buffered bits at a byte boundary.
+/// </summary>
+public sealed class BitReader
 {
     private uint _bits;
     private int _position;
 
+    /// <summary>Discards any buffered bits, realigning to the next whole byte.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int ReadIBits(ref SpanReader reader, int nBits)
+    public void Reset()
     {
-        return (int)ReadUBits(ref reader, nBits);
+        _bits = 0;
+        _position = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int ReadSBits(ref SpanReader reader, int nBits)
+    public int ReadIBits(MemoryReader reader, int nBits)
     {
-        var raw = (int)ReadUBits(ref reader, nBits);
+        return (int)ReadUBits(reader, nBits);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int ReadSBits(MemoryReader reader, int nBits)
+    {
+        var raw = (int)ReadUBits(reader, nBits);
         var shift = 32 - nBits;
 
         return (raw << shift) >> shift;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float ReadFBits(ref SpanReader reader, int nBits)
+    public float ReadFBits(MemoryReader reader, int nBits)
     {
-        return ReadSBits(ref reader, nBits) / 65536f;
+        return ReadSBits(reader, nBits) / 65536f;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool ReadBit(ref SpanReader reader)
+    public bool ReadBit(MemoryReader reader)
     {
-        return ReadUBits(ref reader, 1) is 1;
+        return ReadUBits(reader, 1) is 1;
     }
 
-    public uint ReadUBits(ref SpanReader reader, int nBits)
+    public uint ReadUBits(MemoryReader reader, int nBits)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nBits);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(nBits, 32);

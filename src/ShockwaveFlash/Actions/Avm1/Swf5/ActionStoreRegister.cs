@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Actions.Avm1.Swf5;
 
 public sealed record ActionStoreRegister(byte RegisterNumber) : Action(ActionOpcode.StoreRegister)
 {
-    public static ActionStoreRegister Decode(ref SpanReader reader)
+    public static ActionStoreRegister Decode(MemoryReader reader)
     {
         return new ActionStoreRegister(reader.ReadUInt8());
     }

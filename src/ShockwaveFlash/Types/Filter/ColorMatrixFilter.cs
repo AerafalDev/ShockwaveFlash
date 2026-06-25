@@ -21,7 +21,7 @@ public sealed record ColorMatrixFilter(float[] Matrix) : Filter
     {
     }
 
-    public static new ColorMatrixFilter Decode(ref SpanReader reader)
+    public static new ColorMatrixFilter Decode(MemoryReader reader)
     {
         var matrix = new float[20];
 

@@ -26,7 +26,7 @@ public sealed record DefineFontInfo2Tag(TagMetadata Metadata, ushort Id, string 
     public bool IsSmallText =>
         Flags.HasFlag(FontInfoFlags.IsSmallText);
 
-    public static DefineFontInfo2Tag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineFontInfo2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var name = reader.ReadLengthPrefixedString();

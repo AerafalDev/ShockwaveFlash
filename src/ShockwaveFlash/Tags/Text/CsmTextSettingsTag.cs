@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Text;
 
 public sealed record CsmTextSettingsTag(TagMetadata Metadata, ushort Id, bool UseAdvancedRendering, TextGridFit GridFit, float Thickness, float Sharpness) : Tag(Metadata)
 {
-    public static CsmTextSettingsTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static CsmTextSettingsTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var flags = reader.ReadUInt8();

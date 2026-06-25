@@ -9,11 +9,11 @@ namespace ShockwaveFlash.Tags.Text;
 
 public sealed record DefineTextTag(TagMetadata Metadata, ushort Id, Rectangle Bounds, Matrix Matrix, IReadOnlyList<TextRecord> Records) : Tag(Metadata)
 {
-    public static DefineTextTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineTextTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
-        var bounds = Rectangle.Decode(ref reader);
-        var matrix = Matrix.Decode(ref reader);
+        var bounds = Rectangle.Decode(reader);
+        var matrix = Matrix.Decode(reader);
         var numGlyphBits = reader.ReadUInt8();
         var numAdvanceBits = reader.ReadUInt8();
 
@@ -21,7 +21,7 @@ public sealed record DefineTextTag(TagMetadata Metadata, ushort Id, Rectangle Bo
 
         while (true)
         {
-            var record = TextRecord.Decode(ref reader, 1, numGlyphBits, numAdvanceBits);
+            var record = TextRecord.Decode(reader, 1, numGlyphBits, numAdvanceBits);
 
             if (record is null)
                 break;

@@ -6,5 +6,5 @@ namespace ShockwaveFlash.Actions;
 
 public class Avm1ExecutionContext
 {
-    
+
 }

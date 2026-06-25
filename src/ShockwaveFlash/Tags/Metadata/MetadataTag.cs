@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Metadata;
 
 public sealed record MetadataTag(TagMetadata Metadata, [StringSyntax(StringSyntaxAttribute.Xml)] string XmlMetadata) : Tag(Metadata)
 {
-    public static MetadataTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static MetadataTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new MetadataTag(metadata, reader.ReadNullTerminatedString());
     }

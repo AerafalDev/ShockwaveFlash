@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Font;
 
 public sealed record DefineFontTag(TagMetadata Metadata, ushort Id, ushort[] OffsetTable, IReadOnlyList<IReadOnlyList<ShapeRecord>> Glyphs) : Tag(Metadata)
 {
-    public static DefineFontTag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
+    public static DefineFontTag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         var id = reader.ReadUInt16();
         var firstOffset = reader.ReadUInt16();
@@ -30,12 +30,12 @@ public sealed record DefineFontTag(TagMetadata Metadata, ushort Id, ushort[] Off
             var shapeContext = new ShapeContext(swfVersion, 1, numBits >> 4, numBits & 15);
             var bits = new BitReader();
 
-            var record = ShapeRecord.Decode(ref reader, ref bits, ref shapeContext);
+            var record = ShapeRecord.Decode(reader, bits, shapeContext);
             glyph.Add(record);
 
             while (record is not EndShapeRecord)
             {
-                record = ShapeRecord.Decode(ref reader, ref bits, ref shapeContext);
+                record = ShapeRecord.Decode(reader, bits, shapeContext);
                 glyph.Add(record);
             }
 

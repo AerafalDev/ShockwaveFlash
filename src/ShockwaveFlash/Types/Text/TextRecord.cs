@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Types.Text;
 
 public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort? Height, Glyph[] Glyphs)
 {
-    public static TextRecord? Decode(ref SpanReader reader, byte tagVersion, byte numGlyphBits, byte numAdvanceBits)
+    public static TextRecord? Decode(MemoryReader reader, byte tagVersion, byte numGlyphBits, byte numAdvanceBits)
     {
         var flags = reader.ReadUInt8();
 
@@ -19,8 +19,8 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
 
         Color? color = (flags & 4) is not 0
             ? tagVersion is 1
-                ? Types.Color.DecodeRgb(ref reader)
-                : Types.Color.DecodeRgba(ref reader)
+                ? Types.Color.DecodeRgb(reader)
+                : Types.Color.DecodeRgba(reader)
             : null;
 
         short? offsetX = (flags & 1) is not 0
@@ -44,7 +44,7 @@ public sealed record TextRecord(ushort? Id, Color? Color, Point? Offset, ushort?
         var bits = new BitReader();
 
         for (var i = 0; i < numGlyphs; i++)
-            glyphs[i] = new Glyph(bits.ReadUBits(ref reader, numGlyphBits), bits.ReadSBits(ref reader, numAdvanceBits));
+            glyphs[i] = new Glyph(bits.ReadUBits(reader, numGlyphBits), bits.ReadSBits(reader, numAdvanceBits));
 
         return new TextRecord(id, color, offset, height, glyphs);
     }

@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Metadata;
 
 public sealed record ProductInfoTag(TagMetadata Metadata, FlashProduct ProductId, FlashEdition Edition, byte MajorVersion, byte MinorVersion, uint BuildLow, uint BuildHigh, DateTime CompilationDate) : Tag(Metadata)
 {
-    public static ProductInfoTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static ProductInfoTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var productId = (FlashProduct)reader.ReadUInt32();
         var edition = (FlashEdition)reader.ReadUInt32();

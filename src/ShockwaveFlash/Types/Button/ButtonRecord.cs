@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Types.Button;
 
 public sealed record ButtonRecord(ButtonStates States, ushort Id, ushort Depth, Matrix Matrix, ColorTransform ColorTransform, Filter.Filter[] Filters, BlendMode BlendMode)
 {
-    public static ButtonRecord? Decode(ref SpanReader reader, byte buttonVersion)
+    public static ButtonRecord? Decode(MemoryReader reader, byte buttonVersion)
     {
         var flags = reader.ReadUInt8();
 
@@ -18,10 +18,10 @@ public sealed record ButtonRecord(ButtonStates States, ushort Id, ushort Depth, 
         var states = (ButtonStates)flags;
         var id = reader.ReadUInt16();
         var depth = reader.ReadUInt16();
-        var matrix = Matrix.Decode(ref reader);
+        var matrix = Matrix.Decode(reader);
 
         var colorTransform = buttonVersion >= 2
-            ? ColorTransform.DecodeRgba(ref reader)
+            ? ColorTransform.DecodeRgba(reader)
             : ColorTransform.Identity;
 
         var filters = Array.Empty<Filter.Filter>();
@@ -33,7 +33,7 @@ public sealed record ButtonRecord(ButtonStates States, ushort Id, ushort Depth, 
             filters = new Filter.Filter[numFilters];
 
             for (var i = 0; i < numFilters; i++)
-                filters[i] = Filter.Filter.Decode(ref reader);
+                filters[i] = Filter.Filter.Decode(reader);
         }
 
         var blendMode = (flags & 32) is not 0

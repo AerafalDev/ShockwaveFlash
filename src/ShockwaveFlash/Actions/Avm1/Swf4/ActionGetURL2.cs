@@ -26,7 +26,7 @@ public sealed record ActionGetURL2(GetUrlFlags Flags) : Action(ActionOpcode.GetU
     public SendVarsMethod SendVarsMethod =>
         (SendVarsMethod)(byte)(Flags & GetUrlFlags.MethodMask);
 
-    public static ActionGetURL2 Decode(ref SpanReader reader)
+    public static ActionGetURL2 Decode(MemoryReader reader)
     {
         return new ActionGetURL2((GetUrlFlags)reader.ReadUInt8());
     }

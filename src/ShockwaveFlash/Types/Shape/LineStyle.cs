@@ -140,13 +140,13 @@ public sealed class LineStyle
         return this;
     }
 
-    public static LineStyle Decode(ref SpanReader reader, byte swfVersion, byte shapeVersion)
+    public static LineStyle Decode(MemoryReader reader, byte swfVersion, byte shapeVersion)
     {
         var width = reader.ReadUInt16();
 
         if (shapeVersion < 4)
         {
-            var color = shapeVersion >= 3 ? Color.DecodeRgba(ref reader) : Color.DecodeRgb(ref reader);
+            var color = shapeVersion >= 3 ? Color.DecodeRgba(reader) : Color.DecodeRgb(reader);
 
             return new LineStyle()
                 .WithWidth(width)
@@ -178,21 +178,21 @@ public sealed class LineStyle
             : 0f;
 
         var fillStyle = flags.HasFlag(LineStyleFlags.HasFill)
-            ? FillStyle.Decode(ref reader, swfVersion, shapeVersion)
-            : new FillStyleSolid(Color.DecodeRgba(ref reader));
+            ? FillStyle.Decode(reader, swfVersion, shapeVersion)
+            : new FillStyleSolid(Color.DecodeRgba(reader));
 
         return new LineStyle(width, fillStyle, flags, miterLimit);
     }
 
-    public static (LineStyle, LineStyle) DecodeMorph(ref SpanReader reader, byte shapeVersion)
+    public static (LineStyle, LineStyle) DecodeMorph(MemoryReader reader, byte shapeVersion)
     {
         var startWidth = reader.ReadUInt16();
         var endWidth = reader.ReadUInt16();
 
         if (shapeVersion < 2)
         {
-            var startColor = Color.DecodeRgba(ref reader);
-            var endColor = Color.DecodeRgba(ref reader);
+            var startColor = Color.DecodeRgba(reader);
+            var endColor = Color.DecodeRgba(reader);
 
             var startLineStyle = new LineStyle()
                 .WithWidth(startWidth)
@@ -230,8 +230,8 @@ public sealed class LineStyle
             : 0f;
 
         var (startFillStyle, endFillStyle) = flags.HasFlag(LineStyleFlags.HasFill)
-            ? FillStyle.DecodeMorph(ref reader)
-            : (new FillStyleSolid(Color.DecodeRgba(ref reader)), new FillStyleSolid(Color.DecodeRgba(ref reader)));
+            ? FillStyle.DecodeMorph(reader)
+            : (new FillStyleSolid(Color.DecodeRgba(reader)), new FillStyleSolid(Color.DecodeRgba(reader)));
 
         return (new LineStyle(startWidth, startFillStyle, flags, miterLimit), new LineStyle(endWidth, endFillStyle, flags, miterLimit));
     }

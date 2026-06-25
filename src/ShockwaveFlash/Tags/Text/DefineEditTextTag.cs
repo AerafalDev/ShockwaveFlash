@@ -83,17 +83,17 @@ public sealed record DefineEditTextTag(
     public bool HasFontClass =>
         Flags.HasFlag(EditTextFlags.HasFontClass);
 
-    public static DefineEditTextTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineEditTextTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
-        var bounds = Rectangle.Decode(ref reader);
+        var bounds = Rectangle.Decode(reader);
         var flags = (EditTextFlags)reader.ReadUInt16();
         ushort? fontId = flags.HasFlag(EditTextFlags.HasFont) ? reader.ReadUInt16() : null;
         var fontClass = flags.HasFlag(EditTextFlags.HasFontClass) ? reader.ReadNullTerminatedString() : null;
         ushort? height = (flags & (EditTextFlags.HasFont | EditTextFlags.HasFontClass)) is not 0 ? reader.ReadUInt16() : null;
-        Color? color = flags.HasFlag(EditTextFlags.HasTextColor) ? Types.Color.DecodeRgba(ref reader) : null;
+        Color? color = flags.HasFlag(EditTextFlags.HasTextColor) ? Types.Color.DecodeRgba(reader) : null;
         ushort? maxLength = flags.HasFlag(EditTextFlags.HasMaxLength) ? reader.ReadUInt16() : null;
-        var layout = flags.HasFlag(EditTextFlags.HasLayout) ? TextLayout.Decode(ref reader) : null;
+        var layout = flags.HasFlag(EditTextFlags.HasLayout) ? TextLayout.Decode(reader) : null;
         var variableName = reader.ReadNullTerminatedString();
         var initialText = flags.HasFlag(EditTextFlags.HasText) ? reader.ReadNullTerminatedString() : null;
 

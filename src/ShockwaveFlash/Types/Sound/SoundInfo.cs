@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Types.Sound;
 
 public sealed record SoundInfo(SoundEvent Event, uint? InSample, uint? OutSample, ushort NumLoops, SoundEnvelope? Envelope)
 {
-    public static SoundInfo Decode(ref SpanReader reader)
+    public static SoundInfo Decode(MemoryReader reader)
     {
         var flags = reader.ReadUInt8();
         var sEvent = SoundEvent.Parse((byte)((flags >> 4) & 3));

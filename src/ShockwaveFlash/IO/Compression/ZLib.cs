@@ -10,7 +10,7 @@ public static class ZLib
 {
     private const int MaxDecompressedSize = 512 * 1024 * 1024;
 
-    public static unsafe ReadOnlySpan<byte> Decompress(ReadOnlySpan<byte> compressed, int uncompressedLength)
+    public static unsafe ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> compressed, int uncompressedLength)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(uncompressedLength);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(uncompressedLength, MaxDecompressedSize);
@@ -18,27 +18,25 @@ public static class ZLib
         var decompressed = new byte[uncompressedLength];
         var decompressedSpan = decompressed.AsSpan();
 
-        fixed (byte* ptr = &compressed.GetPinnableReference())
+        using var handle = compressed.Pin();
+        using var ms = new UnmanagedMemoryStream((byte*)handle.Pointer, compressed.Length);
+        using var zs = new ZLibStream(ms, CompressionMode.Decompress, false);
+
+        var reads = 0;
+
+        while (reads < uncompressedLength)
         {
-            using var ms = new UnmanagedMemoryStream(ptr, compressed.Length);
-            using var zs = new ZLibStream(ms, CompressionMode.Decompress, false);
+            var bytesRead = zs.Read(decompressedSpan[reads..]);
 
-            var reads = 0;
+            if (bytesRead is 0)
+                break;
 
-            while (reads < uncompressedLength)
-            {
-                var bytesRead = zs.Read(decompressedSpan[reads..]);
-
-                if (bytesRead is 0)
-                    break;
-
-                reads += bytesRead;
-            }
-
-            if (reads != uncompressedLength)
-                throw new InvalidOperationException($"Expected {uncompressedLength} bytes but decompressed {reads} bytes.");
-
-            return decompressedSpan[..reads];
+            reads += bytesRead;
         }
+
+        if (reads != uncompressedLength)
+            throw new InvalidOperationException($"Expected {uncompressedLength} bytes but decompressed {reads} bytes.");
+
+        return decompressed.AsMemory(0, reads);
     }
 }

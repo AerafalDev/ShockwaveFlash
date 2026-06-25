@@ -8,8 +8,8 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record DefineScalingGridTag(TagMetadata Metadata, ushort Id, Rectangle Splitter) : Tag(Metadata)
 {
-    public static DefineScalingGridTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineScalingGridTag Decode(MemoryReader reader, TagMetadata metadata)
     {
-        return new DefineScalingGridTag(metadata, reader.ReadUInt16(), Rectangle.Decode(ref reader));
+        return new DefineScalingGridTag(metadata, reader.ReadUInt16(), Rectangle.Decode(reader));
     }
 }

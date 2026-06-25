@@ -6,20 +6,20 @@ namespace ShockwaveFlash.Types.Filter;
 
 public abstract record Filter
 {
-    public static Filter Decode(ref SpanReader reader)
+    public static Filter Decode(MemoryReader reader)
     {
         var type = reader.ReadUInt8();
 
         return (FilterType)type switch
         {
-            FilterType.DropShadowFilter => DropShadowFilter.Decode(ref reader),
-            FilterType.BlurFilter => BlurFilter.Decode(ref reader),
-            FilterType.GlowFilter => GlowFilter.Decode(ref reader),
-            FilterType.BevelFilter => BevelFilter.Decode(ref reader),
-            FilterType.GradientGlowFilter => GradientFilter.Decode(ref reader),
-            FilterType.ConvolutionFilter => ConvolutionFilter.Decode(ref reader),
-            FilterType.ColorMatrixFilter => ColorMatrixFilter.Decode(ref reader),
-            FilterType.GradientBevelFilter => GradientFilter.Decode(ref reader),
+            FilterType.DropShadowFilter => DropShadowFilter.Decode(reader),
+            FilterType.BlurFilter => BlurFilter.Decode(reader),
+            FilterType.GlowFilter => GlowFilter.Decode(reader),
+            FilterType.BevelFilter => BevelFilter.Decode(reader),
+            FilterType.GradientGlowFilter => GradientFilter.Decode(reader),
+            FilterType.ConvolutionFilter => ConvolutionFilter.Decode(reader),
+            FilterType.ColorMatrixFilter => ColorMatrixFilter.Decode(reader),
+            FilterType.GradientBevelFilter => GradientFilter.Decode(reader),
             _ => throw new NotSupportedException($"Filter type {type} is not supported.")
         };
     }

@@ -2,14 +2,13 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ShockwaveFlash.IO.Buffers;
 
 namespace ShockwaveFlash.Tags.Bitmap;
 
-public sealed record JpegTablesTag(TagMetadata Metadata, SpanSlice Data) : Tag(Metadata)
+public sealed record JpegTablesTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data) : Tag(Metadata)
 {
-    public static JpegTablesTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static JpegTablesTag Decode(MemoryReader reader, TagMetadata metadata)
     {
-        return new JpegTablesTag(metadata, reader.SliceToEnd());
+        return new JpegTablesTag(metadata, reader.ReadMemoryToEnd());
     }
 }

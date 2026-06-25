@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record SymbolClassTag(TagMetadata Metadata, SymbolReference[] Symbols) : Tag(Metadata)
 {
-    public static SymbolClassTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static SymbolClassTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var numSymbols = reader.ReadUInt16();
         var symbols = new SymbolReference[numSymbols];

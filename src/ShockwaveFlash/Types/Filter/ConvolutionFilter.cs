@@ -12,7 +12,7 @@ public sealed record ConvolutionFilter(byte NumMatrixRows, byte NumMatrixColumns
     public bool IsPreserveAlpha =>
         Flags.HasFlag(ConvolutionFilterFlags.PreserveAlpha);
 
-    public static new ConvolutionFilter Decode(ref SpanReader reader)
+    public static new ConvolutionFilter Decode(MemoryReader reader)
     {
         var numMatrixRows = reader.ReadUInt8();
         var numMatrixColumns = reader.ReadUInt8();
@@ -25,7 +25,7 @@ public sealed record ConvolutionFilter(byte NumMatrixRows, byte NumMatrixColumns
         for (var i = 0; i < numMatrix; i++)
             matrix[i] = reader.ReadFloat32();
 
-        var defaultColor = Color.DecodeRgba(ref reader);
+        var defaultColor = Color.DecodeRgba(reader);
         var flags = (ConvolutionFilterFlags)reader.ReadUInt8();
 
         return new ConvolutionFilter(numMatrixRows, numMatrixColumns, matrix, divisor, bias, defaultColor, flags);

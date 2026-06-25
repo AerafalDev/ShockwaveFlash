@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record ScriptLimitsTag(TagMetadata Metadata, ushort MaxRecursionDepth, TimeSpan Timeout) : Tag(Metadata)
 {
-    public static ScriptLimitsTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static ScriptLimitsTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new ScriptLimitsTag(metadata, reader.ReadUInt16(), TimeSpan.FromSeconds(reader.ReadUInt16()));
     }

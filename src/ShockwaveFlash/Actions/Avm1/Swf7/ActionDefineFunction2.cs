@@ -37,7 +37,7 @@ public sealed record ActionDefineFunction2(string Name, byte RegisterCount, Func
     public bool PreloadGlobal =>
         Flags.HasFlag(FunctionFlags.PreloadGlobal);
 
-    public static ActionDefineFunction2 Decode(ref SpanReader reader, Encoding encoding)
+    public static ActionDefineFunction2 Decode(MemoryReader reader, Encoding encoding)
     {
         var name = reader.ReadNullTerminatedString(encoding);
         var numParams = reader.ReadUInt16();

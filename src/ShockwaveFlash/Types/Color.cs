@@ -123,7 +123,7 @@ public struct Color :
         return !left.Equals(right);
     }
 
-    internal static Color DecodeArgb(ref SpanReader reader)
+    internal static Color DecodeArgb(MemoryReader reader)
     {
         var a = reader.ReadUInt8();
         var r = reader.ReadUInt8();
@@ -133,7 +133,7 @@ public struct Color :
         return new Color(r, g, b, a);
     }
 
-    internal static Color DecodeRgba(ref SpanReader reader)
+    internal static Color DecodeRgba(MemoryReader reader)
     {
         var r = reader.ReadUInt8();
         var g = reader.ReadUInt8();
@@ -143,7 +143,7 @@ public struct Color :
         return new Color(r, g, b, a);
     }
 
-    internal static Color DecodeRgb(ref SpanReader reader)
+    internal static Color DecodeRgb(MemoryReader reader)
     {
         var r = reader.ReadUInt8();
         var g = reader.ReadUInt8();

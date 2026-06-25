@@ -72,9 +72,9 @@ public readonly struct ShockwaveFlashHeader :
         return !left.Equals(right);
     }
 
-    public static ShockwaveFlashHeader Decode(ref SpanReader reader, ShockwaveFlashCompression compression, byte version, int fileLength)
+    public static ShockwaveFlashHeader Decode(MemoryReader reader, ShockwaveFlashCompression compression, byte version, int fileLength)
     {
-        var frameSize = Rectangle.Decode(ref reader);
+        var frameSize = Rectangle.Decode(reader);
         var frameRate = reader.ReadFixed8();
         var frameCount = reader.ReadUInt16();
 

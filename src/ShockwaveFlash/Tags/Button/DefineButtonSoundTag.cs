@@ -15,24 +15,24 @@ public sealed record DefineButtonSoundTag(
     ButtonSound? OverToDownSound,
     ButtonSound? DownToOverSound) : Tag(Metadata)
 {
-    public static DefineButtonSoundTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineButtonSoundTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
 
         var overToUpSound = reader.ReadUInt16() is var overToUpSoundId and not 0
-            ? new ButtonSound(overToUpSoundId, SoundInfo.Decode(ref reader))
+            ? new ButtonSound(overToUpSoundId, SoundInfo.Decode(reader))
             : null;
 
         var upToOverSound = reader.ReadUInt16() is var upToOverSoundId and not 0
-            ? new ButtonSound(upToOverSoundId, SoundInfo.Decode(ref reader))
+            ? new ButtonSound(upToOverSoundId, SoundInfo.Decode(reader))
             : null;
 
         var overToDownSound = reader.ReadUInt16() is var overToDownSoundId and not 0
-            ? new ButtonSound(overToDownSoundId, SoundInfo.Decode(ref reader))
+            ? new ButtonSound(overToDownSoundId, SoundInfo.Decode(reader))
             : null;
 
         var downToOverSound = reader.ReadUInt16() is var downToOverSoundId and not 0
-            ? new ButtonSound(downToOverSoundId, SoundInfo.Decode(ref reader))
+            ? new ButtonSound(downToOverSoundId, SoundInfo.Decode(reader))
             : null;
 
         return new DefineButtonSoundTag(metadata, id, overToUpSound, upToOverSound, overToDownSound, downToOverSound);

@@ -94,18 +94,18 @@ public struct Rectangle :
         return !left.Equals(right);
     }
 
-    internal static Rectangle Decode(ref SpanReader reader)
+    internal static Rectangle Decode(MemoryReader reader)
     {
         var rectangle = new Rectangle();
 
         var bits = new BitReader();
 
-        var nBits = bits.ReadIBits(ref reader, 5);
+        var nBits = bits.ReadIBits(reader, 5);
 
-        rectangle.XMin = bits.ReadSBits(ref reader, nBits);
-        rectangle.XMax = bits.ReadSBits(ref reader, nBits);
-        rectangle.YMin = bits.ReadSBits(ref reader, nBits);
-        rectangle.YMax = bits.ReadSBits(ref reader, nBits);
+        rectangle.XMin = bits.ReadSBits(reader, nBits);
+        rectangle.XMax = bits.ReadSBits(reader, nBits);
+        rectangle.YMin = bits.ReadSBits(reader, nBits);
+        rectangle.YMax = bits.ReadSBits(reader, nBits);
 
         return rectangle;
     }

@@ -25,10 +25,10 @@ public sealed record BevelFilter(Color ShadowColor, Color HighlightColor, Vector
         return new BlurFilter(Blur, BlurFilterFlags.FromPasses(Passes));
     }
 
-    public static new BevelFilter Decode(ref SpanReader reader)
+    public static new BevelFilter Decode(MemoryReader reader)
     {
-        var highlightColor = Color.DecodeRgba(ref reader);
-        var shadowColor = Color.DecodeRgba(ref reader);
+        var highlightColor = Color.DecodeRgba(reader);
+        var shadowColor = Color.DecodeRgba(reader);
         var blur = reader.ReadVector2();
         var angle = reader.ReadFixed();
         var distance = reader.ReadFixed();

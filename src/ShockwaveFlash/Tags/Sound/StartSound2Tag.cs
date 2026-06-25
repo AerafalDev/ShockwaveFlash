@@ -8,10 +8,10 @@ namespace ShockwaveFlash.Tags.Sound;
 
 public sealed record StartSound2Tag(TagMetadata Metadata, string ClassName, SoundInfo SoundInfo) : Tag(Metadata)
 {
-    public static StartSound2Tag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static StartSound2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var className = reader.ReadNullTerminatedString();
-        var soundInfo = SoundInfo.Decode(ref reader);
+        var soundInfo = SoundInfo.Decode(reader);
 
         return new StartSound2Tag(metadata, className, soundInfo);
     }

@@ -8,14 +8,14 @@ namespace ShockwaveFlash.Tags.DisplayList;
 
 public sealed record PlaceObjectTag(TagMetadata Metadata, ushort Id, ushort Depth, Matrix Matrix, ColorTransform? ColorTransform) : Tag(Metadata)
 {
-    public static PlaceObjectTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static PlaceObjectTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var depth = reader.ReadUInt16();
-        var matrix = Matrix.Decode(ref reader);
+        var matrix = Matrix.Decode(reader);
 
         ColorTransform? colorTransform = reader.Remaining > 0
-            ? Types.ColorTransform.DecodeRgb(ref reader)
+            ? Types.ColorTransform.DecodeRgb(reader)
             : null;
 
         return new PlaceObjectTag(metadata, id, depth, matrix, colorTransform);

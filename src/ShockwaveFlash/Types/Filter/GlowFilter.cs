@@ -25,9 +25,9 @@ public sealed record GlowFilter(Color Color, Vector2 Blur, float Strength, GlowF
         return new BlurFilter(Blur, BlurFilterFlags.FromPasses(Passes));
     }
 
-    public static new GlowFilter Decode(ref SpanReader reader)
+    public static new GlowFilter Decode(MemoryReader reader)
     {
-        var color = Color.DecodeRgba(ref reader);
+        var color = Color.DecodeRgba(reader);
         var blur = reader.ReadVector2();
         var strength = reader.ReadFixed8();
         var flags = (GlowFilterFlags)reader.ReadUInt8();

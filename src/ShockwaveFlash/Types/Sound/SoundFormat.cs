@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Types.Sound;
 
 public sealed record SoundFormat(AudioCompression Compression, ushort SampleRate, bool IsStereo, bool Is16Bit)
 {
-    public static SoundFormat Decode(ref SpanReader reader)
+    public static SoundFormat Decode(MemoryReader reader)
     {
         var flags = reader.ReadUInt8();
         var compression = (AudioCompression)(flags >> 4);

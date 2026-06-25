@@ -2,13 +2,12 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ShockwaveFlash.IO.Buffers;
 
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed record DefineFont4Tag(TagMetadata Metadata, ushort Id, bool IsItalic, bool IsBold, string Name, SpanSlice Data) : Tag(Metadata)
+public sealed record DefineFont4Tag(TagMetadata Metadata, ushort Id, bool IsItalic, bool IsBold, string Name, ReadOnlyMemory<byte> Data) : Tag(Metadata)
 {
-    public static DefineFont4Tag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineFont4Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var flags = reader.ReadUInt8();
@@ -16,7 +15,7 @@ public sealed record DefineFont4Tag(TagMetadata Metadata, ushort Id, bool IsItal
         var isItalic = (flags & 2) is not 0;
         var isBold = (flags & 1) is not 0;
         var name = reader.ReadNullTerminatedString();
-        var data = hasFontData ? reader.SliceToEnd() : SpanSlice.Empty;
+        var data = hasFontData ? reader.ReadMemoryToEnd() : ReadOnlyMemory<byte>.Empty;
 
         return new DefineFont4Tag(metadata, id, isItalic, isBold, name, data);
     }

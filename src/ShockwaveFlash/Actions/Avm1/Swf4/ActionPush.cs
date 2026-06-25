@@ -9,7 +9,7 @@ namespace ShockwaveFlash.Actions.Avm1.Swf4;
 
 public sealed record ActionPush(IReadOnlyList<PushValue> PushValues) : Action(ActionOpcode.Push)
 {
-    public static ActionPush Decode(ref SpanReader reader, Encoding encoding)
+    public static ActionPush Decode(MemoryReader reader, Encoding encoding)
     {
         var pushValues = new List<PushValue>();
 

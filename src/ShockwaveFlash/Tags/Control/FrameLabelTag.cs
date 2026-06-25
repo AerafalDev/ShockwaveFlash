@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record FrameLabelTag(TagMetadata Metadata, string Name, bool IsAnchor) : Tag(Metadata)
 {
-    public static FrameLabelTag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
+    public static FrameLabelTag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         var name = reader.ReadNullTerminatedString();
         var isAnchor = false;

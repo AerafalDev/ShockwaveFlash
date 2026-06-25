@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record DefineSceneAndFrameLabelDataTag(TagMetadata Metadata, SceneOffset[] Scenes, FrameLabel[] FrameLabels) : Tag(Metadata)
 {
-    public static DefineSceneAndFrameLabelDataTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineSceneAndFrameLabelDataTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var numScenes = reader.ReadEncodedU32();
         var scenes = new SceneOffset[numScenes];

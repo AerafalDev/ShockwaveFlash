@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Actions.Avm1.Swf5;
 
 public sealed record ActionConstantPool(IReadOnlyList<string> Constants) : Action(ActionOpcode.ConstantPool)
 {
-    public static ActionConstantPool Decode(ref SpanReader reader, Encoding encoding)
+    public static ActionConstantPool Decode(MemoryReader reader, Encoding encoding)
     {
         var count = reader.ReadUInt16();
         var constants = new string[count];

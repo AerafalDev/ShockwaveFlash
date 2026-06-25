@@ -9,7 +9,7 @@ namespace ShockwaveFlash.Actions.Avm1.Swf7;
 
 public sealed record ActionTry(TryFlags Flags, byte CatchRegister, string CatchVariable, ushort TrySize, ushort CatchSize, ushort FinallySize) : Action(ActionOpcode.Try)
 {
-    public static ActionTry Decode(ref SpanReader reader, Encoding encoding)
+    public static ActionTry Decode(MemoryReader reader, Encoding encoding)
     {
         var flags = (TryFlags)reader.ReadUInt8();
         var trySize = reader.ReadUInt16();

@@ -129,59 +129,59 @@ public struct ColorTransform :
         return !left.Equals(right);
     }
 
-    public static ColorTransform DecodeRgba(ref SpanReader reader)
+    public static ColorTransform DecodeRgba(MemoryReader reader)
     {
         var colorTransform = new ColorTransform();
 
         var bits = new BitReader();
 
-        var hasAddTerms = bits.ReadBit(ref reader);
-        var hasMultTerms = bits.ReadBit(ref reader);
+        var hasAddTerms = bits.ReadBit(reader);
+        var hasMultTerms = bits.ReadBit(reader);
 
-        var nBits = bits.ReadIBits(ref reader, 4);
+        var nBits = bits.ReadIBits(reader, 4);
 
         if (hasMultTerms)
         {
-            colorTransform.RMult = bits.ReadSBits(ref reader, nBits);
-            colorTransform.GMult = bits.ReadSBits(ref reader, nBits);
-            colorTransform.BMult = bits.ReadSBits(ref reader, nBits);
-            colorTransform.AMult = bits.ReadSBits(ref reader, nBits);
+            colorTransform.RMult = bits.ReadSBits(reader, nBits);
+            colorTransform.GMult = bits.ReadSBits(reader, nBits);
+            colorTransform.BMult = bits.ReadSBits(reader, nBits);
+            colorTransform.AMult = bits.ReadSBits(reader, nBits);
         }
 
         if (hasAddTerms)
         {
-            colorTransform.RAdd = bits.ReadSBits(ref reader, nBits);
-            colorTransform.GAdd = bits.ReadSBits(ref reader, nBits);
-            colorTransform.BAdd = bits.ReadSBits(ref reader, nBits);
-            colorTransform.AAdd = bits.ReadSBits(ref reader, nBits);
+            colorTransform.RAdd = bits.ReadSBits(reader, nBits);
+            colorTransform.GAdd = bits.ReadSBits(reader, nBits);
+            colorTransform.BAdd = bits.ReadSBits(reader, nBits);
+            colorTransform.AAdd = bits.ReadSBits(reader, nBits);
         }
 
         return colorTransform;
     }
 
-    public static ColorTransform DecodeRgb(ref SpanReader reader)
+    public static ColorTransform DecodeRgb(MemoryReader reader)
     {
         var colorTransform = new ColorTransform();
 
         var bits = new BitReader();
 
-        var hasAddTerms = bits.ReadBit(ref reader);
-        var hasMultTerms = bits.ReadBit(ref reader);
+        var hasAddTerms = bits.ReadBit(reader);
+        var hasMultTerms = bits.ReadBit(reader);
 
-        var nBits = bits.ReadIBits(ref reader, 4);
+        var nBits = bits.ReadIBits(reader, 4);
 
         if (hasMultTerms)
         {
-            colorTransform.RMult = bits.ReadSBits(ref reader, nBits);
-            colorTransform.GMult = bits.ReadSBits(ref reader, nBits);
-            colorTransform.BMult = bits.ReadSBits(ref reader, nBits);
+            colorTransform.RMult = bits.ReadSBits(reader, nBits);
+            colorTransform.GMult = bits.ReadSBits(reader, nBits);
+            colorTransform.BMult = bits.ReadSBits(reader, nBits);
         }
 
         if (hasAddTerms)
         {
-            colorTransform.RAdd = bits.ReadSBits(ref reader, nBits);
-            colorTransform.GAdd = bits.ReadSBits(ref reader, nBits);
-            colorTransform.BAdd = bits.ReadSBits(ref reader, nBits);
+            colorTransform.RAdd = bits.ReadSBits(reader, nBits);
+            colorTransform.GAdd = bits.ReadSBits(reader, nBits);
+            colorTransform.BAdd = bits.ReadSBits(reader, nBits);
         }
 
         return colorTransform;

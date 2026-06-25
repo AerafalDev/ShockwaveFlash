@@ -43,7 +43,7 @@ public sealed record PlaceObject2Tag(
     public bool HasClipActions =>
         Flags.HasFlag(PlaceObjectFlags.HasClipActions);
 
-    public static PlaceObject2Tag Decode(ref SpanReader reader, TagMetadata metadata, byte swfVersion)
+    public static PlaceObject2Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         var flags = (PlaceObjectFlags)reader.ReadUInt8();
         var depth = reader.ReadUInt16();
@@ -60,11 +60,11 @@ public sealed record PlaceObject2Tag(
         };
 
         Matrix? matrix = flags.HasFlag(PlaceObjectFlags.HasMatrix)
-            ? Types.Matrix.Decode(ref reader)
+            ? Types.Matrix.Decode(reader)
             : null;
 
         ColorTransform? colorTransform = flags.HasFlag(PlaceObjectFlags.HasColorTransform)
-            ? Types.ColorTransform.DecodeRgba(ref reader)
+            ? Types.ColorTransform.DecodeRgba(reader)
             : null;
 
         ushort? ratio = flags.HasFlag(PlaceObjectFlags.HasRatio)
@@ -80,7 +80,7 @@ public sealed record PlaceObject2Tag(
             : null;
 
         var clipActions = flags.HasFlag(PlaceObjectFlags.HasClipActions)
-            ? ClipAction.DecodeCollection(ref reader, swfVersion)
+            ? ClipAction.DecodeCollection(reader, swfVersion)
             : null;
 
         return new PlaceObject2Tag(metadata, action, depth, matrix, colorTransform, flags, ratio, name, clipDepth, clipActions);

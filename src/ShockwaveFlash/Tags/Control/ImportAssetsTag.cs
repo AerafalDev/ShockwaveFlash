@@ -8,14 +8,14 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record ImportAssetsTag(TagMetadata Metadata, string Url, AssetReference[] Assets) : Tag(Metadata)
 {
-    public static ImportAssetsTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static ImportAssetsTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var url = reader.ReadNullTerminatedString();
         var numAssets = reader.ReadUInt16();
         var assets = new AssetReference[numAssets];
 
         for (var i = 0; i < numAssets; i++)
-            assets[i] = AssetReference.Decode(ref reader);
+            assets[i] = AssetReference.Decode(reader);
 
         return new ImportAssetsTag(metadata, url, assets);
     }

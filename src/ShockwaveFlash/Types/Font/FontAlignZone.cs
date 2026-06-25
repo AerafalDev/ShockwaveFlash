@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Types.Font;
 
 public sealed record FontAlignZone(short Left, short Width, short Bottom, short Height)
 {
-    public static FontAlignZone Decode(ref SpanReader reader)
+    public static FontAlignZone Decode(MemoryReader reader)
     {
         reader.Advance(sizeof(byte));
         var zone = new FontAlignZone(reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16());

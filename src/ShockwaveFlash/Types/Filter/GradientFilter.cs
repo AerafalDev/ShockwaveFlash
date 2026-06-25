@@ -29,13 +29,13 @@ public sealed record GradientFilter(GradientRecord[] Colors, Vector2 Blur, float
         return new BlurFilter(Blur, BlurFilterFlags.FromPasses(Passes));
     }
 
-    public static new GradientFilter Decode(ref SpanReader reader)
+    public static new GradientFilter Decode(MemoryReader reader)
     {
         var numColors = reader.ReadUInt8();
         var colors = new Color[numColors];
 
         for (var i = 0; i < numColors; i++)
-            colors[i] = Color.DecodeRgba(ref reader);
+            colors[i] = Color.DecodeRgba(reader);
 
         var records = new GradientRecord[numColors];
 

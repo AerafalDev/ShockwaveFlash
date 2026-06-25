@@ -2,19 +2,17 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ShockwaveFlash.IO.Buffers;
-
 namespace ShockwaveFlash.Tags.Action;
 
-public sealed record DoActionTag(TagMetadata Metadata, SpanSlice Data) : Tag(Metadata)
+public sealed record DoActionTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data) : Tag(Metadata)
 {
-    public IReadOnlyList<Actions.Avm1.Action> DecodeActions(ref SpanReader reader, byte swfVersion)
+    public IReadOnlyList<Actions.Avm1.Action> DecodeActions(byte swfVersion)
     {
-        return Actions.Avm1.Action.DecodeCollection(reader.ReadSlice(Data), swfVersion);
+        return Actions.Avm1.Action.DecodeCollection(Data, swfVersion);
     }
 
-    public static DoActionTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DoActionTag Decode(MemoryReader reader, TagMetadata metadata)
     {
-        return new DoActionTag(metadata, reader.SliceToEnd());
+        return new DoActionTag(metadata, reader.ReadMemoryToEnd());
     }
 }

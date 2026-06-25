@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Tags.Font;
 
 public sealed record DefineFontNameTag(TagMetadata Metadata, ushort Id, string FontName, string Copyright) : Tag(Metadata)
 {
-    public static DefineFontNameTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineFontNameTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var name = reader.ReadNullTerminatedString();

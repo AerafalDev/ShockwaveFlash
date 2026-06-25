@@ -23,7 +23,7 @@ public sealed record FileAttributesTag(TagMetadata Metadata, FileAttributesFlags
     public bool UseNetworkSandbox =>
         Flags.HasFlag(FileAttributesFlags.UseNetworkSandbox);
 
-    public static FileAttributesTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static FileAttributesTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new FileAttributesTag(metadata, (FileAttributesFlags)reader.ReadUInt32());
     }

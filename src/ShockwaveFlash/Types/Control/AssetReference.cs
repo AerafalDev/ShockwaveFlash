@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Types.Control;
 
 public sealed record AssetReference(ushort Id, string Name)
 {
-    public static AssetReference Decode(ref SpanReader reader)
+    public static AssetReference Decode(MemoryReader reader)
     {
         return new AssetReference(reader.ReadUInt16(), reader.ReadNullTerminatedString());
     }

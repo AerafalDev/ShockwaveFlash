@@ -8,13 +8,13 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record ExportAssetsTag(TagMetadata Metadata, AssetReference[] Assets) : Tag(Metadata)
 {
-    public static ExportAssetsTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static ExportAssetsTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var assetsCount = reader.ReadUInt16();
         var assets = new AssetReference[assetsCount];
 
         for (var i = 0; i < assets.Length; i++)
-            assets[i] = AssetReference.Decode(ref reader);
+            assets[i] = AssetReference.Decode(reader);
 
         return new ExportAssetsTag(metadata, assets);
     }

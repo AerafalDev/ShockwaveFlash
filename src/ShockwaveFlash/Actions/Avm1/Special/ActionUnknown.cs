@@ -2,14 +2,13 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ShockwaveFlash.IO.Buffers;
 
 namespace ShockwaveFlash.Actions.Avm1.Special;
 
-public sealed record ActionUnknown(ActionOpcode Opcode, SpanSlice Data) : Action(Opcode)
+public sealed record ActionUnknown(ActionOpcode Opcode, ReadOnlyMemory<byte> Data) : Action(Opcode)
 {
-    public static ActionUnknown Decode(ref SpanReader reader, ActionOpcode opcode)
+    public static ActionUnknown Decode(MemoryReader reader, ActionOpcode opcode)
     {
-        return new ActionUnknown(opcode, reader.SliceToEnd());
+        return new ActionUnknown(opcode, reader.ReadMemoryToEnd());
     }
 }

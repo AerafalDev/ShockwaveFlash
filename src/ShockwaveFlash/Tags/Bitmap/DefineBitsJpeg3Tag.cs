@@ -2,18 +2,17 @@
 // Licensed under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ShockwaveFlash.IO.Buffers;
 
 namespace ShockwaveFlash.Tags.Bitmap;
 
-public sealed record DefineBitsJpeg3Tag(TagMetadata Metadata, ushort Id, SpanSlice Data, SpanSlice AlphaData) : Tag(Metadata)
+public sealed record DefineBitsJpeg3Tag(TagMetadata Metadata, ushort Id, ReadOnlyMemory<byte> Data, ReadOnlyMemory<byte> AlphaData) : Tag(Metadata)
 {
-    public static DefineBitsJpeg3Tag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineBitsJpeg3Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var dataLength = reader.ReadInt32();
-        var data = reader.Slice(dataLength);
-        var alphaData = reader.SliceToEnd();
+        var data = reader.ReadMemory(dataLength);
+        var alphaData = reader.ReadMemoryToEnd();
 
         return new DefineBitsJpeg3Tag(metadata, id, data, alphaData);
     }

@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Actions.Avm1.Swf5;
 
 public sealed record ActionDefineFunction(string Name, IReadOnlyList<string> Parameters, int CodeSize) : Action(ActionOpcode.DefineFunction)
 {
-    public static ActionDefineFunction Decode(ref SpanReader reader, Encoding encoding)
+    public static ActionDefineFunction Decode(MemoryReader reader, Encoding encoding)
     {
         var name = reader.ReadNullTerminatedString(encoding);
         var numParams = reader.ReadUInt16();

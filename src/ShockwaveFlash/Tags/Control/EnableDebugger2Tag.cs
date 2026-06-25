@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Tags.Control;
 
 public sealed record EnableDebugger2Tag(TagMetadata Metadata, string Password) : Tag(Metadata)
 {
-    public static EnableDebugger2Tag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static EnableDebugger2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         reader.Advance(sizeof(ushort));
 

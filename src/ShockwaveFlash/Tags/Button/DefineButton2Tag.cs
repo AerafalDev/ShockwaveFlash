@@ -8,7 +8,7 @@ namespace ShockwaveFlash.Tags.Button;
 
 public sealed record DefineButton2Tag(TagMetadata Metadata, ushort Id, bool IsTrackAsMenu, IReadOnlyList<ButtonRecord> Records, IReadOnlyList<ButtonAction> Actions) : Tag(Metadata)
 {
-    public static DefineButton2Tag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineButton2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var flags = reader.ReadUInt8();
@@ -16,12 +16,12 @@ public sealed record DefineButton2Tag(TagMetadata Metadata, ushort Id, bool IsTr
         var actionsOffset = reader.ReadUInt16();
         var records = new List<ButtonRecord>();
 
-        var record = ButtonRecord.Decode(ref reader, 2);
+        var record = ButtonRecord.Decode(reader, 2);
 
         while (record is not null)
         {
             records.Add(record);
-            record = ButtonRecord.Decode(ref reader, 2);
+            record = ButtonRecord.Decode(reader, 2);
         }
 
         var actions = new List<ButtonAction>();
@@ -30,7 +30,7 @@ public sealed record DefineButton2Tag(TagMetadata Metadata, ushort Id, bool IsTr
         {
             while (true)
             {
-                var (action, hasMoreActions) = ButtonAction.Decode(ref reader);
+                var (action, hasMoreActions) = ButtonAction.Decode(reader);
 
                 actions.Add(action);
 

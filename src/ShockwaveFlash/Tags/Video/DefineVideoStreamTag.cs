@@ -16,7 +16,7 @@ public sealed record DefineVideoStreamTag(
     VideoDeblocking Deblocking,
     VideoCodec Codec) : Tag(Metadata)
 {
-    public static DefineVideoStreamTag Decode(ref SpanReader reader, TagMetadata metadata)
+    public static DefineVideoStreamTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
         var numFrames = reader.ReadUInt16();

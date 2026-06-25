@@ -14,7 +14,7 @@ public sealed record BlurFilter(Vector2 Blur, BlurFilterFlags Flags) : Filter
     public bool Impotent =>
         Passes is 0 || Blur is { X: <= 1 << 16, Y: <= 1 << 16 };
 
-    public static new BlurFilter Decode(ref SpanReader reader)
+    public static new BlurFilter Decode(MemoryReader reader)
     {
         var blur = reader.ReadVector2();
         var flags = (BlurFilterFlags)reader.ReadUInt8();

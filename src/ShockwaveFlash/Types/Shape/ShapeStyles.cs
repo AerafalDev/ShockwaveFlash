@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Types.Shape;
 
 public sealed record ShapeStyles(FillStyle[] FillStyles, LineStyle[] LineStyles)
 {
-    public static (ShapeStyles, byte, byte) Decode(ref SpanReader reader, byte swfVersion, byte shapeVersion)
+    public static (ShapeStyles, byte, byte) Decode(MemoryReader reader, byte swfVersion, byte shapeVersion)
     {
         ushort numFillStyle = reader.ReadUInt8();
 
@@ -16,7 +16,7 @@ public sealed record ShapeStyles(FillStyle[] FillStyles, LineStyle[] LineStyles)
         var fillStyles = new FillStyle[numFillStyle];
 
         for (var i = 0; i < numFillStyle; i++)
-            fillStyles[i] = FillStyle.Decode(ref reader, swfVersion, shapeVersion);
+            fillStyles[i] = FillStyle.Decode(reader, swfVersion, shapeVersion);
 
         ushort numLineStyle = reader.ReadUInt8();
 
@@ -26,7 +26,7 @@ public sealed record ShapeStyles(FillStyle[] FillStyles, LineStyle[] LineStyles)
         var lineStyles = new LineStyle[numLineStyle];
 
         for (var i = 0; i < numLineStyle; i++)
-            lineStyles[i] = LineStyle.Decode(ref reader, swfVersion, shapeVersion);
+            lineStyles[i] = LineStyle.Decode(reader, swfVersion, shapeVersion);
 
         var numBits = reader.ReadUInt8();
 

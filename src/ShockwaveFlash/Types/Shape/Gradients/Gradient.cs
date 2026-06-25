@@ -6,11 +6,11 @@ namespace ShockwaveFlash.Types.Shape.Gradients;
 
 public sealed record Gradient(Matrix Matrix, GradientSpread Spread, GradientInterpolation Interpolation, GradientRecord[] Records)
 {
-    public static Gradient Decode(ref SpanReader reader, byte shapeVersion)
+    public static Gradient Decode(MemoryReader reader, byte shapeVersion)
     {
-        var matrix = Matrix.Decode(ref reader);
+        var matrix = Matrix.Decode(reader);
 
-        var (numRecords, spread, interpolation) = DecodeFlags(ref reader);
+        var (numRecords, spread, interpolation) = DecodeFlags(reader);
 
         if (numRecords is 0)
             return new Gradient(matrix, spread, interpolation, []);
@@ -18,31 +18,31 @@ public sealed record Gradient(Matrix Matrix, GradientSpread Spread, GradientInte
         var records = new GradientRecord[numRecords];
 
         for (var i = 0; i < numRecords; i++)
-            records[i] = GradientRecord.Decode(ref reader, shapeVersion);
+            records[i] = GradientRecord.Decode(reader, shapeVersion);
 
         return new Gradient(matrix, spread, interpolation, records);
     }
 
-    public static (Gradient, Gradient) DecodeMorph(ref SpanReader reader)
+    public static (Gradient, Gradient) DecodeMorph(MemoryReader reader)
     {
-        var startMatrix = Matrix.Decode(ref reader);
-        var endMatrix = Matrix.Decode(ref reader);
+        var startMatrix = Matrix.Decode(reader);
+        var endMatrix = Matrix.Decode(reader);
 
-        var (numRecords, spread, interpolation) = DecodeFlags(ref reader);
+        var (numRecords, spread, interpolation) = DecodeFlags(reader);
 
         var startRecords = new GradientRecord[numRecords];
         var endRecords = new GradientRecord[numRecords];
 
         for (var i = 0; i < numRecords; i++)
         {
-            startRecords[i] = new GradientRecord(reader.ReadUInt8(), Color.DecodeRgba(ref reader));
-            endRecords[i] = new GradientRecord(reader.ReadUInt8(), Color.DecodeRgba(ref reader));
+            startRecords[i] = new GradientRecord(reader.ReadUInt8(), Color.DecodeRgba(reader));
+            endRecords[i] = new GradientRecord(reader.ReadUInt8(), Color.DecodeRgba(reader));
         }
 
         return (new Gradient(startMatrix, spread, interpolation, startRecords), new Gradient(endMatrix, spread, interpolation, endRecords));
     }
 
-    private static (int, GradientSpread, GradientInterpolation) DecodeFlags(ref SpanReader reader)
+    private static (int, GradientSpread, GradientInterpolation) DecodeFlags(MemoryReader reader)
     {
         var flags = reader.ReadUInt8();
         var spread = GradientSpread.Parse((byte)((flags >> 6) & 3));

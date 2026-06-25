@@ -6,7 +6,7 @@ namespace ShockwaveFlash.Types.Text;
 
 public sealed record TextLayout(TextAlignment Alignment, ushort LeftMargin, ushort RightMargin, short Indent, short Leading)
 {
-    public static TextLayout Decode(ref SpanReader reader)
+    public static TextLayout Decode(MemoryReader reader)
     {
         var alignment = (TextAlignment)reader.ReadUInt8();
         var leftMargin = reader.ReadUInt16();
