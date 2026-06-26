@@ -28,6 +28,8 @@ msbuild.wrn
 CLAUDE.md
 ROADMAP.md
 context/
+benchmarks/comparison/rust/target/
+BenchmarkDotNet.Artifacts/
 _svg_preview/
 _filter_preview/
 _oracle/

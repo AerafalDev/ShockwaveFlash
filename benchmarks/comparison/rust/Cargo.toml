@@ -1,0 +1,11 @@
+[package]
+name = "ruffle-parse-bench"
+version = "0.1.0"
+edition = "2021"
+description = "Parse-throughput harness over the SWF corpus using Ruffle's swf crate"
+
+[dependencies]
+swf = "0.2"
+
+[profile.release]
+opt-level = 3
