@@ -56,14 +56,64 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 
     public ShockwaveFlashFile ReplaceTag(Tag oldTag, Tag newTag)
     {
+        return ReplaceTagAt(IndexOf(oldTag), newTag);
+    }
+
+    public ShockwaveFlashFile ReplaceTagAt(int index, Tag newTag)
+    {
         var tags = Tags.ToList();
-        var index = tags.IndexOf(oldTag);
-
-        if (index < 0)
-            throw new ArgumentException("The tag to replace was not found in this file.", nameof(oldTag));
-
         tags[index] = newTag;
         return this with { Tags = tags };
+    }
+
+    public ShockwaveFlashFile InsertTag(int index, Tag tag)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, Tags.Count);
+
+        var tags = Tags.ToList();
+        tags.Insert(index, tag);
+        return this with { Tags = tags };
+    }
+
+    public ShockwaveFlashFile AppendTag(Tag tag)
+    {
+        return InsertTag(Tags.Count, tag);
+    }
+
+    public ShockwaveFlashFile RemoveTag(Tag tag)
+    {
+        return RemoveTagAt(IndexOf(tag));
+    }
+
+    public ShockwaveFlashFile RemoveTagAt(int index)
+    {
+        var tags = Tags.ToList();
+        tags.RemoveAt(index);
+        return this with { Tags = tags };
+    }
+
+    public ShockwaveFlashFile MoveTag(int fromIndex, int toIndex)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, Tags.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(toIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, Tags.Count);
+
+        var tags = Tags.ToList();
+        var tag = tags[fromIndex];
+        tags.RemoveAt(fromIndex);
+        tags.Insert(toIndex, tag);
+        return this with { Tags = tags };
+    }
+
+    private int IndexOf(Tag tag)
+    {
+        for (var i = 0; i < Tags.Count; i++)
+            if (ReferenceEquals(Tags[i], tag))
+                return i;
+
+        throw new ArgumentException("The tag was not found in this file.", nameof(tag));
     }
 
     private int EstimateBodyCapacity()
