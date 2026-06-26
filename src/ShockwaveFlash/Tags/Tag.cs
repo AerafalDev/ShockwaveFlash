@@ -149,6 +149,7 @@ public abstract record Tag(TagMetadata Metadata)
             TagCode.SetTabIndex => SetTabIndexTag.Decode(reader, metadata),
             TagCode.FileAttributes => FileAttributesTag.Decode(reader, metadata),
             TagCode.PlaceObject3 => PlaceObject3Tag.Decode(reader, metadata, swfVersion),
+            TagCode.PlaceObject4 => PlaceObject4Tag.Decode(reader, metadata, swfVersion),
             TagCode.ImportAssets2 => ImportAssets2Tag.Decode(reader, metadata),
             TagCode.DoAbc => DoAbcTag.Decode(reader, metadata),
             TagCode.DefineFontAlignZones => DefineFontAlignZonesTag.Decode(reader, metadata),

@@ -50,6 +50,10 @@ public sealed class TimelineProcessor
                     Apply(objects, place3.Action, place3.Depth, place3.Matrix, place3.ColorTransform, (int?)place3.Ratio, place3.Name, (int?)place3.ClipDepth, place3.Filters ?? [], MapBlend(place3.BlendMode), place3.IsVisible);
                     break;
 
+                case PlaceObject4Tag { Placement: var place4 }:
+                    Apply(objects, place4.Action, place4.Depth, place4.Matrix, place4.ColorTransform, (int?)place4.Ratio, place4.Name, (int?)place4.ClipDepth, place4.Filters ?? [], MapBlend(place4.BlendMode), place4.IsVisible);
+                    break;
+
                 case RemoveObject2Tag remove2:
                     objects.Remove(remove2.Depth);
                     break;

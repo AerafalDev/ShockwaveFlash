@@ -70,5 +70,6 @@ public enum TagCode : ushort
     StartSound2 = 89,
     DefineBitsJpeg4 = 90,
     DefineFont4 = 91,
-    EnableTelemetry = 93
+    EnableTelemetry = 93,
+    PlaceObject4 = 94
 }
