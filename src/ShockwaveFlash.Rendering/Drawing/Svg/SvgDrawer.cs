@@ -20,14 +20,22 @@ public sealed class SvgDrawer : IDrawer<string>
 
     private int _patternId;
 
+    private int _clipId;
+
     public SvgDrawer(Rectangle bounds)
     {
         _bounds = bounds;
     }
 
+    public static string RenderToSvg(IDrawable drawable, int frame = 0)
+    {
+        var drawer = new SvgDrawer(drawable.Bounds);
+        drawable.Draw(drawer, frame);
+        return drawer.Render();
+    }
+
     public void Area(Rectangle bounds)
     {
-        _bounds = bounds;
     }
 
     public void Shape(Shape shape)
@@ -79,28 +87,42 @@ public sealed class SvgDrawer : IDrawer<string>
 
     public void Image(IImage image)
     {
-        throw new NotSupportedException("Image rendering is not implemented yet.");
+        _body.Append(CultureInfo.InvariantCulture, $"<image width=\"{Px(image.Bounds.Width)}\" height=\"{Px(image.Bounds.Height)}\" href=\"{image.ToBase64Data()}\"/>");
     }
 
     public void Include(IDrawable drawable, Matrix matrix, int frame, IReadOnlyList<Filter> filters, BlendMode blendMode, string? name)
     {
-        throw new NotSupportedException("Nested drawables are not implemented yet.");
+        _body.Append(CultureInfo.InvariantCulture, $"<g transform=\"{Transform(matrix)}\">");
+        drawable.Draw(this, frame);
+        _body.Append("</g>");
     }
 
     public string StartClip(IDrawable drawable, Matrix matrix, int frame)
     {
-        throw new NotSupportedException("Clipping is not implemented yet.");
+        var id = $"c{_clipId++}";
+
+        _defs.Append(CultureInfo.InvariantCulture, $"<clipPath id=\"{id}\">");
+
+        if (drawable is ShapeDefinition definition)
+            foreach (var path in definition.Shape.Paths)
+                if (path.Style.Fill is not null)
+                    _defs.Append(CultureInfo.InvariantCulture, $"<path d=\"{BuildData(path.Edges)}\" transform=\"{Transform(matrix)}\"/>");
+
+        _defs.Append("</clipPath>");
+        _body.Append(CultureInfo.InvariantCulture, $"<g clip-path=\"url(#{id})\">");
+
+        return id;
     }
 
     public void EndClip(string clipId)
     {
-        throw new NotSupportedException("Clipping is not implemented yet.");
+        _body.Append("</g>");
     }
 
     public string Render()
     {
         return new StringBuilder()
-            .Append(CultureInfo.InvariantCulture, $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{Px(_bounds.Width)}\" height=\"{Px(_bounds.Height)}\">")
+            .Append(CultureInfo.InvariantCulture, $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{Px(_bounds.Width)}\" height=\"{Px(_bounds.Height)}\" viewBox=\"{Px(_bounds.XMin)} {Px(_bounds.YMin)} {Px(_bounds.Width)} {Px(_bounds.Height)}\">")
             .Append("<defs>").Append(_defs).Append("</defs>")
             .Append(_body)
             .Append("</svg>")
