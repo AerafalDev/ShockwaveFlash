@@ -109,45 +109,39 @@ public static class BitmapDecoder
 
     private static RasterImage DecodeJpeg(ReadOnlyMemory<byte> data, ReadOnlyMemory<byte> alpha)
     {
-        using var bitmap = SKBitmap.Decode(data.ToArray())
+        using var decoded = SKBitmap.Decode(data.ToArray())
             ?? throw new RenderingException("Failed to decode the embedded JPEG image.");
 
-        if (!alpha.IsEmpty)
-            ApplyAlpha(bitmap, alpha);
+        var plane = alpha.IsEmpty ? null : DecompressAlpha(alpha, decoded.Width * decoded.Height);
 
-        return Encode(bitmap, bitmap.Width, bitmap.Height);
+        if (plane is null)
+            return Encode(decoded, decoded.Width, decoded.Height);
+
+        // The JPEG decodes to an opaque bitmap; copy it into an unpremultiplied one so the alpha plane survives encoding.
+        var source = decoded.Pixels;
+        var pixels = new SKColor[source.Length];
+
+        for (var i = 0; i < pixels.Length; i++)
+            pixels[i] = source[i].WithAlpha(plane[i]);
+
+        using var bitmap = new SKBitmap(decoded.Width, decoded.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul) { Pixels = pixels };
+        return Encode(bitmap, decoded.Width, decoded.Height);
     }
 
-    private static void ApplyAlpha(SKBitmap bitmap, ReadOnlyMemory<byte> alpha)
+    private static byte[]? DecompressAlpha(ReadOnlyMemory<byte> alpha, int count)
     {
-        var count = bitmap.Width * bitmap.Height;
-        byte[] plane;
-
         if (alpha.Length == count)
+            return alpha.ToArray();
+
+        try
         {
-            plane = alpha.ToArray();
+            var plane = ZLib.Decompress(alpha, count).ToArray();
+            return plane.Length >= count ? plane : null;
         }
-        else
+        catch (SwfException)
         {
-            try
-            {
-                plane = ZLib.Decompress(alpha, count).ToArray();
-            }
-            catch (SwfException)
-            {
-                return;
-            }
+            return null;
         }
-
-        if (plane.Length < count)
-            return;
-
-        var pixels = bitmap.Pixels;
-
-        for (var i = 0; i < count; i++)
-            pixels[i] = pixels[i].WithAlpha(plane[i]);
-
-        bitmap.Pixels = pixels;
     }
 
     private static RasterImage Encode(SKBitmap bitmap, int width, int height)
