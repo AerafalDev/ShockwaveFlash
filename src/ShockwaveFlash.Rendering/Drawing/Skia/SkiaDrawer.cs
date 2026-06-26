@@ -82,8 +82,78 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
         _canvas.Save();
         _canvas.Concat(ref local);
-        drawable.Draw(this, frame);
+
+        var created = new List<SKImageFilter>();
+        var imageFilter = BuildImageFilter(filters, created);
+        var blend = MapBlend(blendMode);
+
+        if (imageFilter is not null || blend != SKBlendMode.SrcOver)
+        {
+            using var layerPaint = new SKPaint { ImageFilter = imageFilter, BlendMode = blend };
+            _canvas.SaveLayer(layerPaint);
+            drawable.Draw(this, frame);
+            _canvas.Restore();
+        }
+        else
+        {
+            drawable.Draw(this, frame);
+        }
+
+        foreach (var filter in created)
+            filter.Dispose();
+
         _canvas.Restore();
+    }
+
+    private static SKBlendMode MapBlend(BlendMode blendMode)
+    {
+        return blendMode switch
+        {
+            BlendMode.Multiply => SKBlendMode.Multiply,
+            BlendMode.Screen => SKBlendMode.Screen,
+            BlendMode.Lighten => SKBlendMode.Lighten,
+            BlendMode.Darken => SKBlendMode.Darken,
+            BlendMode.Difference => SKBlendMode.Difference,
+            BlendMode.Add => SKBlendMode.Plus,
+            BlendMode.Overlay => SKBlendMode.Overlay,
+            BlendMode.HardLight => SKBlendMode.HardLight,
+            _ => SKBlendMode.SrcOver
+        };
+    }
+
+    private static SKImageFilter? BuildImageFilter(IReadOnlyList<Filter> filters, List<SKImageFilter> created)
+    {
+        SKImageFilter? current = null;
+
+        foreach (var filter in filters)
+        {
+            var next = filter switch
+            {
+                BlurFilter blur => SKImageFilter.CreateBlur(Sigma(blur.Blur.X), Sigma(blur.Blur.Y), current),
+                GlowFilter glow => SKImageFilter.CreateDropShadow(0, 0, Sigma(glow.Blur.X), Sigma(glow.Blur.Y), ToSkColor(glow.Color), current),
+                DropShadowFilter shadow => SKImageFilter.CreateDropShadow(
+                    shadow.Distance.ToSingle() * (float)Math.Cos(shadow.Angle.ToSingle()),
+                    shadow.Distance.ToSingle() * (float)Math.Sin(shadow.Angle.ToSingle()),
+                    Sigma(shadow.Blur.X),
+                    Sigma(shadow.Blur.Y),
+                    ToSkColor(shadow.Color),
+                    current),
+                _ => null
+            };
+
+            if (next is null)
+                continue;
+
+            created.Add(next);
+            current = next;
+        }
+
+        return current;
+    }
+
+    private static float Sigma(Fixed16 blur)
+    {
+        return Math.Max(0f, blur.ToSingle() * 0.5f);
     }
 
     public string StartClip(IDrawable drawable, Matrix matrix, int frame)

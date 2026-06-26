@@ -22,6 +22,8 @@ public sealed class SvgDrawer : IDrawer<string>
 
     private int _clipId;
 
+    private int _filterId;
+
     public SvgDrawer(Rectangle bounds)
     {
         _bounds = bounds;
@@ -88,9 +90,68 @@ public sealed class SvgDrawer : IDrawer<string>
 
     public void Include(IDrawable drawable, Matrix matrix, int frame, IReadOnlyList<Filter> filters, BlendMode blendMode, string? name)
     {
-        _body.Append(CultureInfo.InvariantCulture, $"<g transform=\"{Transform(matrix)}\">");
+        _body.Append(CultureInfo.InvariantCulture, $"<g transform=\"{Transform(matrix)}\"");
+
+        if (BuildFilter(filters) is { } filterId)
+            _body.Append(CultureInfo.InvariantCulture, $" filter=\"url(#{filterId})\"");
+
+        if (blendMode.ToCssMixBlendMode() is { } blend)
+            _body.Append(CultureInfo.InvariantCulture, $" style=\"mix-blend-mode:{blend}\"");
+
+        _body.Append('>');
         drawable.Draw(this, frame);
         _body.Append("</g>");
+    }
+
+    private string? BuildFilter(IReadOnlyList<Filter> filters)
+    {
+        var primitives = new StringBuilder();
+        var last = "SourceGraphic";
+        var index = 0;
+
+        foreach (var filter in filters)
+        {
+            var result = $"r{index++}";
+
+            switch (filter)
+            {
+                case BlurFilter blur:
+                    primitives.Append(CultureInfo.InvariantCulture, $"<feGaussianBlur in=\"{last}\" stdDeviation=\"{Std(blur.Blur.X)} {Std(blur.Blur.Y)}\" result=\"{result}\"/>");
+                    break;
+
+                case GlowFilter glow:
+                    AppendShadow(primitives, last, result, 0, 0, Std(glow.Blur.X), glow.Color);
+                    break;
+
+                case DropShadowFilter shadow:
+                    var angle = shadow.Angle.ToSingle();
+                    var distance = shadow.Distance.ToSingle();
+                    AppendShadow(primitives, last, result, distance * Math.Cos(angle), distance * Math.Sin(angle), Std(shadow.Blur.X), shadow.Color);
+                    break;
+
+                default:
+                    continue;
+            }
+
+            last = result;
+        }
+
+        if (primitives.Length is 0)
+            return null;
+
+        var id = $"flt{_filterId++}";
+        _defs.Append(CultureInfo.InvariantCulture, $"<filter id=\"{id}\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">{primitives}</filter>");
+        return id;
+    }
+
+    private static void AppendShadow(StringBuilder primitives, string input, string result, double dx, double dy, float deviation, Color color)
+    {
+        primitives.Append(CultureInfo.InvariantCulture, $"<feDropShadow in=\"{input}\" dx=\"{dx}\" dy=\"{dy}\" stdDeviation=\"{deviation}\" flood-color=\"{Hex(color)}\" flood-opacity=\"{Opacity(color)}\" result=\"{result}\"/>");
+    }
+
+    private static float Std(Fixed16 blur)
+    {
+        return Math.Max(0f, blur.ToSingle() * 0.5f);
     }
 
     public string StartClip(IDrawable drawable, Matrix matrix, int frame)
