@@ -46,7 +46,22 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         _canvas.Translate(-bounds.XMin / 20f, -bounds.YMin / 20f);
     }
 
-    public static byte[] RenderToImage(IDrawable drawable, SKEncodedImageFormat format, int quality = 100, float scale = 1f, SKColor? background = null, int frame = 0)
+    public static byte[] RenderToPng(IDrawable drawable, float scale = 1f, SKColor? background = null, int frame = 0)
+    {
+        return Encode(drawable, SKEncodedImageFormat.Png, 100, scale, background, frame);
+    }
+
+    public static byte[] RenderToJpeg(IDrawable drawable, int quality = 90, float scale = 1f, SKColor? background = null, int frame = 0)
+    {
+        return Encode(drawable, SKEncodedImageFormat.Jpeg, quality, scale, background, frame);
+    }
+
+    public static byte[] RenderToWebp(IDrawable drawable, int quality = 90, float scale = 1f, SKColor? background = null, int frame = 0)
+    {
+        return Encode(drawable, SKEncodedImageFormat.Webp, quality, scale, background, frame);
+    }
+
+    private static byte[] Encode(IDrawable drawable, SKEncodedImageFormat format, int quality, float scale, SKColor? background, int frame)
     {
         using var drawer = new SkiaDrawer(drawable.Bounds, scale, background);
         drawable.Draw(drawer, frame);
@@ -56,11 +71,6 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             ?? throw new RenderingException($"The native Skia build cannot encode {format} images.");
 
         return data.ToArray();
-    }
-
-    public static byte[] RenderToPng(IDrawable drawable, float scale = 1f, SKColor? background = null)
-    {
-        return RenderToImage(drawable, SKEncodedImageFormat.Png, 100, scale, background);
     }
 
     public static byte[] RenderToAnimatedGif(IDrawable drawable, int delayMilliseconds = 60, float scale = 1f, SKColor? background = null)

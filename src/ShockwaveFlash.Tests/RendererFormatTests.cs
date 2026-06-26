@@ -20,14 +20,13 @@ public sealed class RendererFormatTests
         if (FirstShape() is not { } drawable)
             return;
 
-        SkiaDrawer.RenderToImage(drawable, SKEncodedImageFormat.Png, 100, 1f, White)
+        SkiaDrawer.RenderToPng(drawable, 1f, White)
             .AsSpan(0, 4).ToArray().ShouldBe([0x89, 0x50, 0x4E, 0x47]);
 
-        SkiaDrawer.RenderToImage(drawable, SKEncodedImageFormat.Jpeg, 90, 1f, White)
+        SkiaDrawer.RenderToJpeg(drawable, 90, 1f, White)
             .AsSpan(0, 3).ToArray().ShouldBe([0xFF, 0xD8, 0xFF]);
 
-        var webp = SkiaDrawer.RenderToImage(drawable, SKEncodedImageFormat.Webp, 90, 1f, White);
-        Encoding.ASCII.GetString(webp, 0, 4).ShouldBe("RIFF");
+        Encoding.ASCII.GetString(SkiaDrawer.RenderToWebp(drawable, 90, 1f, White), 0, 4).ShouldBe("RIFF");
     }
 
     [Fact]
