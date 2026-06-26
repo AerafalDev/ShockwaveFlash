@@ -31,6 +31,8 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
     private readonly TextProcessor _textProcessor;
 
+    private readonly EditTextProcessor _editTextProcessor;
+
     private readonly Dictionary<int, IImage?> _imageCache = new();
 
     private readonly Dictionary<int, TextDefinition> _textCache = new();
@@ -58,6 +60,7 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         _shapeProcessor = new ShapeProcessor(this, _options);
         _timelineProcessor = new TimelineProcessor(this, _options);
         _textProcessor = new TextProcessor(this, _shapeProcessor);
+        _editTextProcessor = new EditTextProcessor(this, _shapeProcessor);
     }
 
     public IDrawable Character(int characterId)
@@ -137,6 +140,7 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         {
             DefineTextTag text1 => _textProcessor.Process(text1.Bounds, text1.Matrix, text1.Records),
             DefineText2Tag text2 => _textProcessor.Process(text2.Bounds, text2.Matrix, text2.Records),
+            DefineEditTextTag editText => _editTextProcessor.Process(editText),
             _ => null
         };
 
@@ -200,6 +204,10 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
                 case DefineText2Tag text2:
                     map[text2.Id] = text2;
+                    break;
+
+                case DefineEditTextTag editText:
+                    map[editText.Id] = editText;
                     break;
 
                 default:
@@ -267,11 +275,11 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
             switch (tag)
             {
                 case DefineFont2Tag font2:
-                    map[font2.Id] = new ResolvedFont(font2.Glyphs, 1024f);
+                    map[font2.Id] = BuildFont(font2.Glyphs, 1024f, font2.Layout);
                     break;
 
                 case DefineFont3Tag font3:
-                    map[font3.Id] = new ResolvedFont(font3.Glyphs, 20480f);
+                    map[font3.Id] = BuildFont(font3.Glyphs, 20480f, font3.Layout);
                     break;
 
                 default:
@@ -280,6 +288,13 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         }
 
         return map;
+    }
+
+    private static ResolvedFont BuildFont(IReadOnlyList<FontGlyph> glyphs, float emSquare, FontLayout? layout)
+    {
+        return layout is { } resolved
+            ? new ResolvedFont(glyphs, emSquare, resolved.Ascent, resolved.Descent, resolved.Leading)
+            : new ResolvedFont(glyphs, emSquare, (int)(emSquare * 0.8f), (int)(emSquare * 0.2f), 0);
     }
 
     private Dictionary<int, Tag> IndexImageTags()
