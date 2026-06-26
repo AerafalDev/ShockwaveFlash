@@ -21,9 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ShockwaveFlash\ShockwaveFlash.csproj" />
-    <ProjectReference Include="..\..\src\ShockwaveFlash.Avm1\ShockwaveFlash.Avm1.csproj" />
-    <ProjectReference Include="..\..\src\ShockwaveFlash.Rendering\ShockwaveFlash.Rendering.csproj" />
+    <ProjectReference Include="..\ShockwaveFlash\ShockwaveFlash.csproj" />
+    <ProjectReference Include="..\ShockwaveFlash.Avm1\ShockwaveFlash.Avm1.csproj" />
+    <ProjectReference Include="..\ShockwaveFlash.Rendering\ShockwaveFlash.Rendering.csproj" />
   </ItemGroup>
 
   <ItemGroup>

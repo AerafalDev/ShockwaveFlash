@@ -36,4 +36,8 @@
     <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ShockwaveFlash.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -27,7 +27,6 @@ msbuild.wrn
 .vs/
 CLAUDE.md
 ROADMAP.md
-src/ShockwaveFlash/InternalsVisibleTo.cs
 context/
 _svg_preview/
 _filter_preview/
