@@ -1,5 +1,6 @@
 using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Rendering.Diagnostics;
+using ShockwaveFlash.Rendering.Model.Buttons;
 using ShockwaveFlash.Rendering.Model.Images;
 using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Rendering.Model.Sprites;
@@ -7,6 +8,7 @@ using ShockwaveFlash.Rendering.Model.Text;
 using ShockwaveFlash.Rendering.Processing;
 using ShockwaveFlash.Tags;
 using ShockwaveFlash.Tags.Bitmap;
+using ShockwaveFlash.Tags.Button;
 using ShockwaveFlash.Tags.Font;
 using ShockwaveFlash.Tags.Shape;
 using ShockwaveFlash.Tags.Sprite;
@@ -31,6 +33,8 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
     private readonly Dictionary<int, TextDefinition> _textCache = new();
 
+    private readonly Dictionary<int, ButtonDefinition> _buttonCache = new();
+
     private Dictionary<int, Tag>? _imageTags;
 
     private Dictionary<int, ShapeDefinition>? _shapes;
@@ -38,6 +42,8 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
     private Dictionary<int, SpriteDefinition>? _sprites;
 
     private Dictionary<int, Tag>? _textTags;
+
+    private Dictionary<int, Tag>? _buttonTags;
 
     private Dictionary<int, ResolvedFont>? _fonts;
 
@@ -61,10 +67,35 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         if (Text(characterId) is { } text)
             return text;
 
+        if (Button(characterId) is { } button)
+            return button;
+
         if (ResolveImage(characterId) is { } image)
             return new ImageDrawable(image);
 
         return MissingCharacter.Instance;
+    }
+
+    public ButtonDefinition? Button(int characterId)
+    {
+        if (_buttonCache.TryGetValue(characterId, out var cached))
+            return cached;
+
+        _buttonTags ??= IndexButtonTags();
+
+        var button = _buttonTags.TryGetValue(characterId, out var tag)
+            ? tag switch
+            {
+                DefineButtonTag button1 => new ButtonDefinition(this, button1.Records),
+                DefineButton2Tag button2 => new ButtonDefinition(this, button2.Records),
+                _ => null
+            }
+            : null;
+
+        if (button is not null)
+            _buttonCache[characterId] = button;
+
+        return button;
     }
 
     public ShapeDefinition? Shape(int characterId)
@@ -156,6 +187,30 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
                 case DefineText2Tag text2:
                     map[text2.Id] = text2;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return map;
+    }
+
+    private Dictionary<int, Tag> IndexButtonTags()
+    {
+        var map = new Dictionary<int, Tag>();
+
+        foreach (var tag in _file.Tags)
+        {
+            switch (tag)
+            {
+                case DefineButtonTag button1:
+                    map[button1.Id] = button1;
+                    break;
+
+                case DefineButton2Tag button2:
+                    map[button2.Id] = button2;
                     break;
 
                 default:
