@@ -40,12 +40,8 @@ public sealed class SvgDrawer : IDrawer<string>
 
     public void Shape(Shape shape)
     {
-        _body.Append(CultureInfo.InvariantCulture, $"<g transform=\"translate({Px(shape.XOffset)} {Px(shape.YOffset)})\">");
-
         foreach (var path in shape.Paths)
             Path(path);
-
-        _body.Append("</g>");
     }
 
     public void Path(ShapePath path)
