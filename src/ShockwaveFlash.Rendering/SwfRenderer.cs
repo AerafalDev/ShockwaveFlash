@@ -1,5 +1,6 @@
 using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Rendering.Diagnostics;
+using ShockwaveFlash.Rendering.Model;
 using ShockwaveFlash.Rendering.Model.Buttons;
 using ShockwaveFlash.Rendering.Model.Images;
 using ShockwaveFlash.Rendering.Model.Morph;
@@ -9,6 +10,7 @@ using ShockwaveFlash.Rendering.Model.Text;
 using ShockwaveFlash.Rendering.Processing;
 using ShockwaveFlash.Tags;
 using ShockwaveFlash.Tags.Bitmap;
+using ShockwaveFlash.Tags.Control;
 using ShockwaveFlash.Tags.Button;
 using ShockwaveFlash.Tags.Font;
 using ShockwaveFlash.Tags.Morph;
@@ -84,6 +86,13 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
             return new ImageDrawable(image);
 
         return MissingCharacter.Instance;
+    }
+
+    public MovieDefinition Movie()
+    {
+        var background = _file.Tags.OfType<SetBackgroundColorTag>().LastOrDefault()?.BackgroundColor;
+
+        return new MovieDefinition(_timelineProcessor, _file.Tags, _file.Header.FrameSize, background);
     }
 
     public MorphShapeDefinition? Morph(int characterId)

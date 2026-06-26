@@ -15,7 +15,9 @@ public sealed record Timeline(Rectangle Bounds, IReadOnlyList<Frame> Frames) : I
         if (Frames.Count is 0)
             return drawer;
 
-        Frames[Math.Clamp(frame, 0, Frames.Count - 1)].Draw(drawer, frame);
+        var index = ((frame % Frames.Count) + Frames.Count) % Frames.Count;
+
+        Frames[index].Draw(drawer, frame);
         return drawer;
     }
 
