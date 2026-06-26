@@ -15,7 +15,7 @@ Disassemble a `.swf` file into a strongly-typed tag tree, inspect or edit it in 
 - **Byte-identical** assembly: parse then assemble reproduces the original bytes exactly.
 - **Broad tag coverage** (shapes, fonts, text, sounds, bitmaps, sprites, buttons, morph shapes, video, ABC, filters, control tags). Unknown tags are preserved verbatim, so nothing is lost on round-trip.
 - **Exact fixed-point types** (`Fixed16` 16.16, `Fixed8` 8.8) — no lossy `float` conversions in the wire model.
-- **Compression**: reads `FWS` (uncompressed), `CWS` (zlib) and `ZWS` (LZMA); writes uncompressed and zlib.
+- **Compression**: `FWS` (uncompressed) and `CWS` (zlib), both read and write. `ZWS` (LZMA) throws `SwfUnsupportedException` — the .NET BCL ships no LZMA codec; plug one in to enable it.
 - **Typed exceptions** (`SwfFormatException`, `SwfTruncatedException`, `SwfUnsupportedException`, `SwfCompressionException`) for precise error handling on malformed input.
 - **No `unsafe` in your code path, no `Span` plumbing** — the public surface works over `ReadOnlyMemory<byte>`.
 
@@ -94,6 +94,10 @@ catch (SwfFormatException)
     // the bytes are not a valid SWF
 }
 ```
+
+## ActionScript (AVM1)
+
+Decoding AVM1 `DoAction` bytecode, evaluating localization/config data scripts to a typed value tree, editing them and writing them back lives in the companion package **[ShockwaveFlash.Avm1](https://www.nuget.org/packages/ShockwaveFlash.Avm1)**.
 
 ## License
 
