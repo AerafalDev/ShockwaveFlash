@@ -3,6 +3,7 @@ using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Rendering.Scene;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Filter;
+using ShockwaveFlash.Types.Shape;
 using SkiaSharp;
 
 namespace ShockwaveFlash.Rendering.Drawing.Skia;
@@ -54,13 +55,17 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         if (style.IsEmpty)
             return;
 
-        using var skPath = BuildPath(path.Edges);
-
         if (style.Fill is { } fill)
-            FillPath(skPath, fill);
+        {
+            using var fillPath = BuildPath(path.Edges, false);
+            FillPath(fillPath, fill);
+        }
 
         if (style.LineColor is { } lineColor)
-            StrokePath(skPath, ToSkColor(lineColor), style.LineWidth);
+        {
+            using var strokePath = BuildPath(path.Edges, true);
+            StrokePath(strokePath, ToSkColor(lineColor), style);
+        }
     }
 
     public void Image(IImage image)
@@ -156,30 +161,53 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         }
     }
 
-    private void StrokePath(SKPath skPath, SKColor color, int lineWidth)
+    private void StrokePath(SKPath skPath, SKColor color, PathStyle style)
     {
         using var paint = new SKPaint
         {
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
             Color = color,
-            StrokeWidth = Math.Max(lineWidth / 20f, 0.05f),
-            StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round
+            StrokeWidth = Math.Max(style.LineWidth / 20f, 0.05f),
+            StrokeCap = MapCap(style.LineCap),
+            StrokeJoin = MapJoin(style.LineJoin),
+            StrokeMiter = Math.Max(style.MiterLimit, 1f)
         };
 
         _canvas.DrawPath(skPath, paint);
     }
 
-    private static SKPath BuildPath(IReadOnlyList<IEdge> edges)
+    private static SKStrokeCap MapCap(LineCapStyle cap)
+    {
+        return cap switch
+        {
+            LineCapStyle.None => SKStrokeCap.Butt,
+            LineCapStyle.Square => SKStrokeCap.Square,
+            _ => SKStrokeCap.Round
+        };
+    }
+
+    private static SKStrokeJoin MapJoin(LineJoinStyle? join)
+    {
+        return join switch
+        {
+            LineJoinStyleBevel => SKStrokeJoin.Bevel,
+            LineJoinStyleMiter => SKStrokeJoin.Miter,
+            _ => SKStrokeJoin.Round
+        };
+    }
+
+    private static SKPath BuildPath(IReadOnlyList<IEdge> edges, bool closeContours)
     {
         var skPath = new SKPath { FillType = SKPathFillType.EvenOdd };
-        AppendEdges(skPath, edges);
+        AppendEdges(skPath, edges, closeContours);
         return skPath;
     }
 
-    private static void AppendEdges(SKPath skPath, IReadOnlyList<IEdge> edges)
+    private static void AppendEdges(SKPath skPath, IReadOnlyList<IEdge> edges, bool closeContours = false)
     {
+        var startX = float.NaN;
+        var startY = float.NaN;
         var lastX = float.NaN;
         var lastY = float.NaN;
 
@@ -189,7 +217,14 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             var fromY = edge.FromY / 20f;
 
             if (fromX != lastX || fromY != lastY)
+            {
+                if (closeContours && startX == lastX && startY == lastY)
+                    skPath.Close();
+
                 skPath.MoveTo(fromX, fromY);
+                startX = fromX;
+                startY = fromY;
+            }
 
             if (edge is CurvedEdge curve)
                 skPath.QuadTo(curve.ControlX / 20f, curve.ControlY / 20f, curve.ToX / 20f, curve.ToY / 20f);
@@ -199,6 +234,9 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             lastX = edge.ToX / 20f;
             lastY = edge.ToY / 20f;
         }
+
+        if (closeContours && startX == lastX && startY == lastY)
+            skPath.Close();
     }
 
     private static SKPath? BuildClipPath(IDrawable drawable)

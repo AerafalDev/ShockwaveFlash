@@ -1,4 +1,5 @@
 using ShockwaveFlash.Types;
+using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Rendering.Model.Shapes;
 
@@ -11,6 +12,12 @@ public sealed record PathStyle
     public IFillStyle? LineFill { get; init; }
 
     public int LineWidth { get; init; }
+
+    public LineCapStyle LineCap { get; init; } = LineCapStyle.Round;
+
+    public LineJoinStyle? LineJoin { get; init; }
+
+    public float MiterLimit { get; init; } = 3f;
 
     public bool IsLine => LineColor is not null || LineFill is not null;
 

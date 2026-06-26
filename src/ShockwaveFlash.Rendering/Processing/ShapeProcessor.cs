@@ -131,7 +131,10 @@ public sealed class ShapeProcessor
         {
             LineColor = solid?.Color,
             LineFill = solid is null ? MapFill(lineStyle.FillStyle) : null,
-            LineWidth = lineStyle.Width
+            LineWidth = lineStyle.Width,
+            LineCap = lineStyle.StartCap,
+            LineJoin = lineStyle.JoinStyle,
+            MiterLimit = lineStyle.MiterLimit.ToSingle()
         };
 
         return new StyleSlot(style, false, $"L{group}-{index}");
