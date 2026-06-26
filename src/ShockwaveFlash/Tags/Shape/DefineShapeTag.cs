@@ -26,8 +26,15 @@ public record DefineShapeTag(TagMetadata Metadata, ushort ShapeId, Rectangle Sha
 
         var bits = new BitReader();
 
-        while (reader.Remaining > 0)
-            records.Add(ShapeRecord.Decode(reader, bits, shapeContext));
+        var record = ShapeRecord.Decode(reader, bits, shapeContext);
+
+        while (record is not EndShapeRecord)
+        {
+            records.Add(record);
+            record = ShapeRecord.Decode(reader, bits, shapeContext);
+        }
+
+        records.Add(record);
 
         return shapeVersion switch
         {
