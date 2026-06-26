@@ -128,8 +128,33 @@ public sealed class TimelineProcessor
     private static Frame Snapshot(Dictionary<int, FrameObject> objects)
     {
         var ordered = objects.OrderBy(pair => pair.Key).Select(pair => pair.Value).ToList();
-        var bounds = Union(ordered.Where(item => item.ClipDepth is null).Select(item => TransformBounds(item.Matrix, item.Drawable.Bounds)));
+        var bounds = Union(ordered.Select(item => TransformBounds(item.Matrix, Expand(item.Drawable.Bounds, FilterSpread(item.Filters)))));
         return new Frame(bounds, ordered);
+    }
+
+    private static int FilterSpread(IReadOnlyList<Filter> filters)
+    {
+        var spread = 0.0;
+
+        foreach (var filter in filters)
+        {
+            spread += filter switch
+            {
+                BlurFilter blur => blur.Blur.X.ToSingle() * 2.5,
+                GlowFilter glow => glow.Blur.X.ToSingle() * 2.5,
+                DropShadowFilter shadow => (shadow.Blur.X.ToSingle() * 2.5) + Math.Abs(shadow.Distance.ToSingle()),
+                _ => 0.0
+            };
+        }
+
+        return (int)Math.Ceiling(spread * 20);
+    }
+
+    private static Rectangle Expand(Rectangle rectangle, int amount)
+    {
+        return amount <= 0
+            ? rectangle
+            : new Rectangle(rectangle.XMin - amount, rectangle.XMax + amount, rectangle.YMin - amount, rectangle.YMax + amount);
     }
 
     private static Rectangle Union(IEnumerable<Rectangle> rectangles)
