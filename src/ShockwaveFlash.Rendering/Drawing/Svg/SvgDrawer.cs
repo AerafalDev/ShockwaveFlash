@@ -5,6 +5,7 @@ using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Rendering.Scene;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Filter;
+using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Rendering.Drawing.Svg;
 
@@ -68,7 +69,7 @@ public sealed class SvgDrawer : IDrawer<string>
         if (style.LineFill is not null)
         {
             AppendPaint(style.LineFill, "stroke");
-            AppendStrokeWidth(style.LineWidth);
+            AppendStroke(style);
         }
         else if (style.LineColor is { } lineColor)
         {
@@ -77,7 +78,7 @@ public sealed class SvgDrawer : IDrawer<string>
             if (lineColor.A < 255)
                 _body.Append(CultureInfo.InvariantCulture, $" stroke-opacity=\"{Opacity(lineColor)}\"");
 
-            AppendStrokeWidth(style.LineWidth);
+            AppendStroke(style);
         }
 
         _body.Append("/>");
@@ -116,17 +117,29 @@ public sealed class SvgDrawer : IDrawer<string>
             switch (filter)
             {
                 case BlurFilter blur:
-                    primitives.Append(CultureInfo.InvariantCulture, $"<feGaussianBlur in=\"{last}\" stdDeviation=\"{Std(blur.Blur.X)} {Std(blur.Blur.Y)}\" result=\"{result}\"/>");
+                    primitives.Append(CultureInfo.InvariantCulture, $"<feGaussianBlur in=\"{last}\" stdDeviation=\"{Sigma(blur.Blur.X, blur.Passes)} {Sigma(blur.Blur.Y, blur.Passes)}\" result=\"{result}\"/>");
+                    break;
+
+                case GlowFilter { IsInner: true } glow:
+                    AppendInnerGlow(primitives, last, result, Sigma(glow.Blur.X, glow.Passes), glow.Color);
                     break;
 
                 case GlowFilter glow:
-                    AppendShadow(primitives, last, result, 0, 0, Std(glow.Blur.X), glow.Color);
+                    AppendShadow(primitives, last, result, 0, 0, Sigma(glow.Blur.X, glow.Passes), glow.Color);
+                    break;
+
+                case DropShadowFilter { IsInner: true } shadow:
+                    AppendInnerGlow(primitives, last, result, Sigma(shadow.Blur.X, shadow.Passes), shadow.Color);
                     break;
 
                 case DropShadowFilter shadow:
                     var angle = shadow.Angle.ToSingle();
                     var distance = shadow.Distance.ToSingle();
-                    AppendShadow(primitives, last, result, distance * Math.Cos(angle), distance * Math.Sin(angle), Std(shadow.Blur.X), shadow.Color);
+                    AppendShadow(primitives, last, result, distance * Math.Cos(angle), distance * Math.Sin(angle), Sigma(shadow.Blur.X, shadow.Passes), shadow.Color);
+                    break;
+
+                case ColorMatrixFilter matrix when !matrix.Impotent:
+                    AppendColorMatrix(primitives, last, result, matrix.Matrix);
                     break;
 
                 default:
@@ -149,9 +162,38 @@ public sealed class SvgDrawer : IDrawer<string>
         primitives.Append(CultureInfo.InvariantCulture, $"<feDropShadow in=\"{input}\" dx=\"{dx}\" dy=\"{dy}\" stdDeviation=\"{deviation}\" flood-color=\"{Hex(color)}\" flood-opacity=\"{Opacity(color)}\" result=\"{result}\"/>");
     }
 
-    private static float Std(Fixed16 blur)
+    private static void AppendInnerGlow(StringBuilder primitives, string input, string result, float deviation, Color color)
     {
-        return Math.Max(0f, blur.ToSingle() * 0.5f);
+        // Inner glow: invert the source alpha, blur it, clip to the source, flood with the glow colour
+        // and composite the rim back over the source (mirrors the Skia inner-shadow path).
+        primitives.Append(CultureInfo.InvariantCulture, $"<feComponentTransfer in=\"{input}\" result=\"{result}_i\"><feFuncA type=\"table\" tableValues=\"1 0\"/></feComponentTransfer>");
+        primitives.Append(CultureInfo.InvariantCulture, $"<feGaussianBlur in=\"{result}_i\" stdDeviation=\"{deviation}\" result=\"{result}_b\"/>");
+        primitives.Append(CultureInfo.InvariantCulture, $"<feFlood flood-color=\"{Hex(color)}\" flood-opacity=\"{Opacity(color)}\" result=\"{result}_f\"/>");
+        primitives.Append(CultureInfo.InvariantCulture, $"<feComposite in=\"{result}_f\" in2=\"{result}_b\" operator=\"in\" result=\"{result}_r\"/>");
+        primitives.Append(CultureInfo.InvariantCulture, $"<feComposite in=\"{result}_r\" in2=\"{input}\" operator=\"in\" result=\"{result}_c\"/>");
+        primitives.Append(CultureInfo.InvariantCulture, $"<feMerge result=\"{result}\"><feMergeNode in=\"{input}\"/><feMergeNode in=\"{result}_c\"/></feMerge>");
+    }
+
+    private static void AppendColorMatrix(StringBuilder primitives, string input, string result, float[] matrix)
+    {
+        var values = new StringBuilder();
+
+        for (var i = 0; i < matrix.Length; i++)
+        {
+            if (i > 0)
+                values.Append(' ');
+
+            var value = i % 5 is 4 ? matrix[i] / 255f : matrix[i];
+            values.Append(value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        primitives.Append(CultureInfo.InvariantCulture, $"<feColorMatrix in=\"{input}\" type=\"matrix\" values=\"{values}\" result=\"{result}\"/>");
+    }
+
+    private static float Sigma(Fixed16 blur, int passes)
+    {
+        var width = blur.ToSingle();
+        return width <= 1f || passes <= 0 ? 0f : width * 0.2886751f * MathF.Sqrt(passes);
     }
 
     public string StartClip(IDrawable drawable, Matrix matrix, int frame)
@@ -214,9 +256,32 @@ public sealed class SvgDrawer : IDrawer<string>
         }
     }
 
-    private void AppendStrokeWidth(int lineWidth)
+    private void AppendStroke(PathStyle style)
     {
-        _body.Append(CultureInfo.InvariantCulture, $" stroke-width=\"{Px(lineWidth)}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"");
+        _body.Append(CultureInfo.InvariantCulture, $" stroke-width=\"{Px(style.LineWidth)}\" stroke-linecap=\"{Cap(style.LineCap)}\" stroke-linejoin=\"{Join(style.LineJoin)}\"");
+
+        if (style.LineJoin is LineJoinStyleMiter)
+            _body.Append(CultureInfo.InvariantCulture, $" stroke-miterlimit=\"{Math.Max(style.MiterLimit, 1f).ToString(CultureInfo.InvariantCulture)}\"");
+    }
+
+    private static string Cap(LineCapStyle cap)
+    {
+        return cap switch
+        {
+            LineCapStyle.None => "butt",
+            LineCapStyle.Square => "square",
+            _ => "round"
+        };
+    }
+
+    private static string Join(LineJoinStyle? join)
+    {
+        return join switch
+        {
+            LineJoinStyleBevel => "bevel",
+            LineJoinStyleMiter => "miter",
+            _ => "round"
+        };
     }
 
     private string BitmapPattern(BitmapFill fill)
@@ -248,7 +313,7 @@ public sealed class SvgDrawer : IDrawer<string>
     {
         var id = $"g{_gradientId++}";
 
-        _defs.Append(CultureInfo.InvariantCulture, $"<linearGradient id=\"{id}\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"{Transform(fill.Matrix)}\" x1=\"-819.2\" x2=\"819.2\">");
+        _defs.Append(CultureInfo.InvariantCulture, $"<linearGradient id=\"{id}\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"{Transform(fill.Matrix)}\" spreadMethod=\"{Spread(fill.Gradient.Spread)}\" x1=\"-819.2\" x2=\"819.2\">");
         AppendStops(fill.Gradient);
         _defs.Append("</linearGradient>");
 
@@ -259,7 +324,7 @@ public sealed class SvgDrawer : IDrawer<string>
     {
         var id = $"g{_gradientId++}";
 
-        _defs.Append(CultureInfo.InvariantCulture, $"<radialGradient id=\"{id}\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"{Transform(fill.Matrix)}\" cx=\"0\" cy=\"0\" r=\"819.2\"");
+        _defs.Append(CultureInfo.InvariantCulture, $"<radialGradient id=\"{id}\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"{Transform(fill.Matrix)}\" spreadMethod=\"{Spread(fill.Gradient.Spread)}\" cx=\"0\" cy=\"0\" r=\"819.2\"");
 
         if (fill.Gradient.FocalPoint is { } focal)
             _defs.Append(CultureInfo.InvariantCulture, $" fx=\"0\" fy=\"{(focal * 819.2).ToString(CultureInfo.InvariantCulture)}\"");
@@ -273,15 +338,93 @@ public sealed class SvgDrawer : IDrawer<string>
 
     private void AppendStops(Gradient gradient)
     {
-        foreach (var stop in gradient.Stops)
+        // Flash interpolates LinearRGB gradients in linear light; SVG interpolates in sRGB, so bake a
+        // dense ramp sampled in linear light for that mode (mirrors the Skia backend for parity).
+        if (gradient.Interpolation is GradientInterpolation.LinearRgb && gradient.Stops.Count > 1)
         {
-            _defs.Append(CultureInfo.InvariantCulture, $"<stop offset=\"{(stop.Ratio / 255.0).ToString(CultureInfo.InvariantCulture)}\" stop-color=\"{Hex(stop.Color)}\"");
+            const int samples = 64;
 
-            if (stop.Color.A < 255)
-                _defs.Append(CultureInfo.InvariantCulture, $" stop-opacity=\"{Opacity(stop.Color)}\"");
+            for (var i = 0; i < samples; i++)
+            {
+                var t = i / (float)(samples - 1);
+                AppendStop(t, SampleLinear(gradient.Stops, t));
+            }
 
-            _defs.Append("/>");
+            return;
         }
+
+        foreach (var stop in gradient.Stops)
+            AppendStop(stop.Ratio / 255.0, stop.Color);
+    }
+
+    private void AppendStop(double offset, Color color)
+    {
+        _defs.Append(CultureInfo.InvariantCulture, $"<stop offset=\"{offset.ToString(CultureInfo.InvariantCulture)}\" stop-color=\"{Hex(color)}\"");
+
+        if (color.A < 255)
+            _defs.Append(CultureInfo.InvariantCulture, $" stop-opacity=\"{Opacity(color)}\"");
+
+        _defs.Append("/>");
+    }
+
+    private static Color SampleLinear(IReadOnlyList<GradientStop> stops, float t)
+    {
+        var lo = stops[0];
+        var hi = stops[^1];
+
+        for (var i = 0; i < stops.Count - 1; i++)
+        {
+            var a = stops[i].Ratio / 255f;
+            var b = stops[i + 1].Ratio / 255f;
+
+            if (t <= a)
+                return stops[i].Color;
+
+            if (t < b)
+            {
+                lo = stops[i];
+                hi = stops[i + 1];
+                break;
+            }
+        }
+
+        if (t >= stops[^1].Ratio / 255f)
+            return stops[^1].Color;
+
+        var span = (hi.Ratio - lo.Ratio) / 255f;
+        var k = span <= 0 ? 0f : (t - (lo.Ratio / 255f)) / span;
+
+        return new Color(
+            LerpLinear(lo.Color.R, hi.Color.R, k),
+            LerpLinear(lo.Color.G, hi.Color.G, k),
+            LerpLinear(lo.Color.B, hi.Color.B, k),
+            (byte)Math.Clamp((int)Math.Round(lo.Color.A + ((hi.Color.A - lo.Color.A) * k)), 0, 255));
+    }
+
+    private static byte LerpLinear(byte a, byte b, float k)
+    {
+        var linear = SrgbToLinear(a / 255f) + ((SrgbToLinear(b / 255f) - SrgbToLinear(a / 255f)) * k);
+        return (byte)Math.Clamp((int)Math.Round(LinearToSrgb(linear) * 255f), 0, 255);
+    }
+
+    private static float SrgbToLinear(float c)
+    {
+        return c <= 0.04045f ? c / 12.92f : MathF.Pow((c + 0.055f) / 1.055f, 2.4f);
+    }
+
+    private static float LinearToSrgb(float c)
+    {
+        return c <= 0.0031308f ? c * 12.92f : (1.055f * MathF.Pow(c, 1f / 2.4f)) - 0.055f;
+    }
+
+    private static string Spread(GradientSpread spread)
+    {
+        return spread switch
+        {
+            GradientSpread.Reflect => "reflect",
+            GradientSpread.Repeat => "repeat",
+            _ => "pad"
+        };
     }
 
     private static string BuildData(IReadOnlyList<IEdge> edges)
