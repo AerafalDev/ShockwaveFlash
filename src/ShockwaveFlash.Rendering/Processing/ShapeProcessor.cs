@@ -113,7 +113,7 @@ public sealed class ShapeProcessor
         }
 
         var style = new PathStyle { Fill = MapFill(styles[index - 1]) };
-        return new StyleSlot(style, reverse, $"F{group}-{index}");
+        return new StyleSlot(style, reverse, $"F{group}-{index}", group);
     }
 
     private StyleSlot? BuildLine(LineStyle[] styles, uint index, int group)
@@ -137,7 +137,7 @@ public sealed class ShapeProcessor
             MiterLimit = lineStyle.MiterLimit.ToSingle()
         };
 
-        return new StyleSlot(style, false, $"L{group}-{index}");
+        return new StyleSlot(style, false, $"L{group}-{index}", group);
     }
 
     private IFillStyle MapFill(FillStyle fillStyle)

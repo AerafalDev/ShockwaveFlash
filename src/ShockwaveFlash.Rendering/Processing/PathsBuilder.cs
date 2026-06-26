@@ -2,17 +2,20 @@ using ShockwaveFlash.Rendering.Model.Shapes;
 
 namespace ShockwaveFlash.Rendering.Processing;
 
-internal sealed record StyleSlot(PathStyle Style, bool Reverse, string Key);
+internal sealed record StyleSlot(PathStyle Style, bool Reverse, string Key, int Group);
 
 internal sealed class OpenPath
 {
     public PathStyle Style { get; }
 
+    public int Group { get; }
+
     public List<IEdge> Edges { get; }
 
-    public OpenPath(PathStyle style, List<IEdge> edges)
+    public OpenPath(PathStyle style, int group, List<IEdge> edges)
     {
         Style = style;
+        Group = group;
         Edges = edges;
     }
 }
@@ -43,16 +46,20 @@ internal sealed class PathsBuilder
     {
         Close();
 
-        var fills = new List<ShapePath>();
-        var lines = new List<ShapePath>();
+        var result = new List<ShapePath>(_closed.Count);
 
-        foreach (var open in _closed)
+        foreach (var group in _closed.GroupBy(open => open.Group).OrderBy(group => group.Key))
         {
-            var path = new ShapePath(Stitch(open.Edges), open.Style);
-            (open.Style.IsLine ? lines : fills).Add(path);
+            foreach (var open in group)
+                if (!open.Style.IsLine)
+                    result.Add(new ShapePath(Stitch(open.Edges), open.Style));
+
+            foreach (var open in group)
+                if (open.Style.IsLine)
+                    result.Add(new ShapePath(Stitch(open.Edges), open.Style));
         }
 
-        return [.. fills, .. lines];
+        return result;
     }
 
     private void Push(StyleSlot? slot, IReadOnlyList<IEdge> edges)
@@ -65,7 +72,7 @@ internal sealed class PathsBuilder
         if (_open.TryGetValue(slot.Key, out var open))
             open.Edges.AddRange(run);
         else
-            _open[slot.Key] = new OpenPath(slot.Style, run);
+            _open[slot.Key] = new OpenPath(slot.Style, slot.Group, run);
     }
 
     private static List<IEdge> ReverseRun(IReadOnlyList<IEdge> edges)
