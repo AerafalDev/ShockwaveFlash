@@ -90,7 +90,7 @@ public static class Avm1Emitter
         switch (value)
         {
             case Avm1Object table:
-                foreach (var (name, member) in table.Members)
+                foreach (var (name, member) in table.Members.Reverse())
                 {
                     actions.Add(PushString(name, indexByString));
                     EmitValue(member, actions, indexByString);
