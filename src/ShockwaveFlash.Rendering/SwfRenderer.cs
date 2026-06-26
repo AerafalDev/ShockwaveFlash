@@ -18,6 +18,7 @@ using ShockwaveFlash.Tags.Shape;
 using ShockwaveFlash.Tags.Sprite;
 using ShockwaveFlash.Tags.Text;
 using ShockwaveFlash.Types.Font;
+using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Rendering;
 
@@ -277,12 +278,35 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
     private Dictionary<int, ResolvedFont> IndexFonts()
     {
+        var codeTables = new Dictionary<int, IReadOnlyList<ushort>>();
+
+        foreach (var tag in _file.Tags)
+        {
+            switch (tag)
+            {
+                case DefineFontInfoTag info1:
+                    codeTables[info1.Id] = info1.CodeTable;
+                    break;
+
+                case DefineFontInfo2Tag info2:
+                    codeTables[info2.Id] = info2.CodeTable;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
         var map = new Dictionary<int, ResolvedFont>();
 
         foreach (var tag in _file.Tags)
         {
             switch (tag)
             {
+                case DefineFontTag font1:
+                    map[font1.Id] = BuildFont(BuildGlyphs(font1.Glyphs, codeTables.GetValueOrDefault(font1.Id)), 1024f, null);
+                    break;
+
                 case DefineFont2Tag font2:
                     map[font2.Id] = BuildFont(font2.Glyphs, 1024f, font2.Layout);
                     break;
@@ -297,6 +321,19 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         }
 
         return map;
+    }
+
+    private static FontGlyph[] BuildGlyphs(IReadOnlyList<IReadOnlyList<ShapeRecord>> shapes, IReadOnlyList<ushort>? codeTable)
+    {
+        var glyphs = new FontGlyph[shapes.Count];
+
+        for (var i = 0; i < glyphs.Length; i++)
+        {
+            var code = codeTable is not null && i < codeTable.Count ? codeTable[i] : (ushort)0;
+            glyphs[i] = new FontGlyph(shapes[i], code, advance: 0, bounds: null);
+        }
+
+        return glyphs;
     }
 
     private static ResolvedFont BuildFont(IReadOnlyList<FontGlyph> glyphs, float emSquare, FontLayout? layout)
