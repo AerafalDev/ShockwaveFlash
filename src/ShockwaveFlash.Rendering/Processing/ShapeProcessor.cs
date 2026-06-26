@@ -1,4 +1,5 @@
 using ShockwaveFlash.Rendering.Diagnostics;
+using ShockwaveFlash.Rendering.Model.Images;
 using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Tags.Shape;
 using ShockwaveFlash.Types;
@@ -9,10 +10,13 @@ namespace ShockwaveFlash.Rendering.Processing;
 
 public sealed class ShapeProcessor
 {
+    private readonly IImageResolver? _images;
+
     private readonly RenderOptions _options;
 
-    public ShapeProcessor(RenderOptions? options = null)
+    public ShapeProcessor(IImageResolver? images = null, RenderOptions? options = null)
     {
+        _images = images;
         _options = options ?? new RenderOptions();
     }
 
@@ -148,6 +152,16 @@ public sealed class ShapeProcessor
 
             case FillStyleFocalGradient focal:
                 return new RadialGradientFill(focal.Gradient.Matrix, MapGradient(focal.Gradient, focal.FocalPoint.ToSingle()));
+
+            case FillStyleBitmap bitmap:
+                var image = _images?.ResolveImage(bitmap.Id);
+                if (image is null)
+                {
+                    Report($"Bitmap {bitmap.Id} could not be resolved; using a transparent placeholder.");
+                    return new SolidFill(new Color(0, 0, 0, 0));
+                }
+
+                return new BitmapFill(image, bitmap.Matrix, bitmap.IsSmoothed, bitmap.IsRepeating);
 
             default:
                 Report($"Fill style {fillStyle.GetType().Name} is not rendered yet; using a transparent placeholder.");

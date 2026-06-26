@@ -18,6 +18,8 @@ public sealed class SvgDrawer : IDrawer<string>
 
     private int _gradientId;
 
+    private int _patternId;
+
     public SvgDrawer(Rectangle bounds)
     {
         _bounds = bounds;
@@ -123,6 +125,10 @@ public sealed class SvgDrawer : IDrawer<string>
                 _body.Append(CultureInfo.InvariantCulture, $" {attribute}=\"url(#{RadialGradient(radial)})\"");
                 break;
 
+            case BitmapFill bitmap:
+                _body.Append(CultureInfo.InvariantCulture, $" {attribute}=\"url(#{BitmapPattern(bitmap)})\"");
+                break;
+
             default:
                 _body.Append(CultureInfo.InvariantCulture, $" {attribute}=\"none\"");
                 break;
@@ -132,6 +138,31 @@ public sealed class SvgDrawer : IDrawer<string>
     private void AppendStrokeWidth(int lineWidth)
     {
         _body.Append(CultureInfo.InvariantCulture, $" stroke-width=\"{Px(lineWidth)}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"");
+    }
+
+    private string BitmapPattern(BitmapFill fill)
+    {
+        var id = $"p{_patternId++}";
+        var width = (fill.Bitmap.Bounds.Width / 20.0).ToString(CultureInfo.InvariantCulture);
+        var height = (fill.Bitmap.Bounds.Height / 20.0).ToString(CultureInfo.InvariantCulture);
+
+        _defs.Append(CultureInfo.InvariantCulture, $"<pattern id=\"{id}\" patternUnits=\"userSpaceOnUse\" width=\"{width}\" height=\"{height}\" patternTransform=\"{BitmapTransform(fill.Matrix)}\">");
+        _defs.Append(CultureInfo.InvariantCulture, $"<image width=\"{width}\" height=\"{height}\" href=\"{fill.Bitmap.ToBase64Data()}\"/>");
+        _defs.Append("</pattern>");
+
+        return id;
+    }
+
+    private static string BitmapTransform(Matrix matrix)
+    {
+        var a = matrix.Scale.X.ToSingle() / 20.0;
+        var b = matrix.Rotation.X.ToSingle() / 20.0;
+        var c = matrix.Rotation.Y.ToSingle() / 20.0;
+        var d = matrix.Scale.Y.ToSingle() / 20.0;
+        var e = matrix.Translation.X / 20.0;
+        var f = matrix.Translation.Y / 20.0;
+
+        return FormattableString.Invariant($"matrix({a} {b} {c} {d} {e} {f})");
     }
 
     private string LinearGradient(LinearGradientFill fill)

@@ -101,27 +101,45 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
     private void FillPath(SKPath skPath, IFillStyle fill)
     {
         using var paint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill };
+        SKImage? image = null;
+        SKShader? shader = null;
 
-        switch (fill)
+        try
         {
-            case SolidFill solid:
-                paint.Color = ToSkColor(solid.Color);
-                break;
+            switch (fill)
+            {
+                case SolidFill solid:
+                    paint.Color = ToSkColor(solid.Color);
+                    break;
 
-            case LinearGradientFill linear:
-                paint.Shader = LinearShader(linear);
-                break;
+                case LinearGradientFill linear:
+                    shader = LinearShader(linear);
+                    break;
 
-            case RadialGradientFill radial:
-                paint.Shader = RadialShader(radial);
-                break;
+                case RadialGradientFill radial:
+                    shader = RadialShader(radial);
+                    break;
 
-            default:
-                return;
+                case BitmapFill bitmap:
+                    image = SKImage.FromEncodedData(bitmap.Bitmap.ToPng().ToArray());
+                    if (image is null)
+                        return;
+                    var tile = bitmap.Repeat ? SKShaderTileMode.Repeat : SKShaderTileMode.Clamp;
+                    shader = image.ToShader(tile, tile, BitmapMatrix(bitmap.Matrix));
+                    break;
+
+                default:
+                    return;
+            }
+
+            paint.Shader = shader;
+            _canvas.DrawPath(skPath, paint);
         }
-
-        _canvas.DrawPath(skPath, paint);
-        paint.Shader?.Dispose();
+        finally
+        {
+            shader?.Dispose();
+            image?.Dispose();
+        }
     }
 
     private void StrokePath(SKPath skPath, SKColor color, int lineWidth)
@@ -227,6 +245,20 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             matrix.Translation.X / 20f,
             matrix.Rotation.X.ToSingle(),
             matrix.Scale.Y.ToSingle(),
+            matrix.Translation.Y / 20f,
+            0,
+            0,
+            1);
+    }
+
+    private static SKMatrix BitmapMatrix(Matrix matrix)
+    {
+        return new SKMatrix(
+            matrix.Scale.X.ToSingle() / 20f,
+            matrix.Rotation.Y.ToSingle() / 20f,
+            matrix.Translation.X / 20f,
+            matrix.Rotation.X.ToSingle() / 20f,
+            matrix.Scale.Y.ToSingle() / 20f,
             matrix.Translation.Y / 20f,
             0,
             0,
