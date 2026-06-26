@@ -3,7 +3,6 @@ using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Rendering.Scene;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Filter;
-using Path = ShockwaveFlash.Rendering.Model.Shapes.Path;
 
 namespace ShockwaveFlash.Rendering.Drawing;
 
@@ -21,7 +20,7 @@ public interface IDrawer
 
     void EndClip(string clipId);
 
-    void Path(Path path);
+    void Path(ShapePath path);
 }
 
 public interface IDrawer<out TResult> : IDrawer
