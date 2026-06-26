@@ -2,6 +2,7 @@ using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Rendering.Diagnostics;
 using ShockwaveFlash.Rendering.Model.Buttons;
 using ShockwaveFlash.Rendering.Model.Images;
+using ShockwaveFlash.Rendering.Model.Morph;
 using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Rendering.Model.Sprites;
 using ShockwaveFlash.Rendering.Model.Text;
@@ -10,6 +11,7 @@ using ShockwaveFlash.Tags;
 using ShockwaveFlash.Tags.Bitmap;
 using ShockwaveFlash.Tags.Button;
 using ShockwaveFlash.Tags.Font;
+using ShockwaveFlash.Tags.Morph;
 using ShockwaveFlash.Tags.Shape;
 using ShockwaveFlash.Tags.Sprite;
 using ShockwaveFlash.Tags.Text;
@@ -45,6 +47,8 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
     private Dictionary<int, Tag>? _buttonTags;
 
+    private Dictionary<int, MorphShapeDefinition>? _morphs;
+
     private Dictionary<int, ResolvedFont>? _fonts;
 
     public SwfRenderer(ShockwaveFlashFile file, RenderOptions? options = null)
@@ -70,10 +74,19 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         if (Button(characterId) is { } button)
             return button;
 
+        if (Morph(characterId) is { } morph)
+            return morph;
+
         if (ResolveImage(characterId) is { } image)
             return new ImageDrawable(image);
 
         return MissingCharacter.Instance;
+    }
+
+    public MorphShapeDefinition? Morph(int characterId)
+    {
+        _morphs ??= IndexMorphs();
+        return _morphs.GetValueOrDefault(characterId);
     }
 
     public ButtonDefinition? Button(int characterId)
@@ -211,6 +224,30 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
                 case DefineButton2Tag button2:
                     map[button2.Id] = button2;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return map;
+    }
+
+    private Dictionary<int, MorphShapeDefinition> IndexMorphs()
+    {
+        var map = new Dictionary<int, MorphShapeDefinition>();
+
+        foreach (var tag in _file.Tags)
+        {
+            switch (tag)
+            {
+                case DefineMorphShapeTag morph1:
+                    map[morph1.Id] = new MorphShapeDefinition(_shapeProcessor, morph1.Start, morph1.End);
+                    break;
+
+                case DefineMorphShape2Tag morph2:
+                    map[morph2.Id] = new MorphShapeDefinition(_shapeProcessor, morph2.Start, morph2.End);
                     break;
 
                 default:

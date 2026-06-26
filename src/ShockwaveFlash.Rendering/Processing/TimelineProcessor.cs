@@ -1,3 +1,4 @@
+using ShockwaveFlash.Rendering.Model.Morph;
 using ShockwaveFlash.Rendering.Scene;
 using ShockwaveFlash.Tags;
 using ShockwaveFlash.Tags.Control;
@@ -127,9 +128,16 @@ public sealed class TimelineProcessor
 
     private static Frame Snapshot(Dictionary<int, FrameObject> objects)
     {
-        var ordered = objects.OrderBy(pair => pair.Key).Select(pair => pair.Value).ToList();
+        var ordered = objects.OrderBy(pair => pair.Key).Select(pair => ResolveMorph(pair.Value)).ToList();
         var bounds = Union(ordered.Select(item => TransformBounds(item.Matrix, Expand(item.Drawable.Bounds, FilterSpread(item.Filters)))));
         return new Frame(bounds, ordered);
+    }
+
+    private static FrameObject ResolveMorph(FrameObject item)
+    {
+        return item.Ratio is { } ratio && item.Drawable is MorphShapeDefinition morph
+            ? item with { Drawable = morph.AtRatio(ratio) }
+            : item;
     }
 
     private static int FilterSpread(IReadOnlyList<Filter> filters)

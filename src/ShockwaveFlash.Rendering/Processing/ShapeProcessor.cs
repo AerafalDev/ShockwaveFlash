@@ -35,6 +35,13 @@ public sealed class ShapeProcessor
         return new Shape(0, 0, 0, 0, paths);
     }
 
+    public Shape ProcessMorph(IReadOnlyList<ShapeRecord> records, FillStyle[] fillStyles, LineStyle[] lineStyles, Rectangle bounds)
+    {
+        var paths = ProcessRecords(records, fillStyles, lineStyles);
+
+        return new Shape(bounds.Width, bounds.Height, -bounds.XMin, -bounds.YMin, paths);
+    }
+
     private IReadOnlyList<ShapePath> ProcessRecords(IReadOnlyList<ShapeRecord> records, FillStyle[] fillStyles, LineStyle[] lineStyles)
     {
         var x = 0;
