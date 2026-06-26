@@ -25,6 +25,9 @@ public sealed record Frame(Rectangle Bounds, IReadOnlyList<FrameObject> Objects)
                 continue;
             }
 
+            if (!item.Visible)
+                continue;
+
             var drawable = item.ColorTransform is { } colorTransform
                 ? item.Drawable.TransformColors(colorTransform)
                 : item.Drawable;

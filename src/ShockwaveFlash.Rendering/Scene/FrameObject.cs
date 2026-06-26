@@ -17,6 +17,8 @@ public sealed record FrameObject
 
     public BlendMode BlendMode { get; init; } = BlendMode.Normal;
 
+    public bool Visible { get; init; } = true;
+
     public int? Ratio { get; init; }
 
     public string? Name { get; init; }

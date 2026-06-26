@@ -39,15 +39,15 @@ public sealed class TimelineProcessor
             switch (tag)
             {
                 case PlaceObjectTag place:
-                    objects[place.Depth] = NewObject(place.Depth, place.Id, place.Matrix, place.ColorTransform, null, null, null, [], Scene.BlendMode.Normal);
+                    objects[place.Depth] = NewObject(place.Depth, place.Id, place.Matrix, place.ColorTransform, null, null, null, [], Scene.BlendMode.Normal, null);
                     break;
 
                 case PlaceObject2Tag place2:
-                    Apply(objects, place2.Action, place2.Depth, place2.Matrix, place2.ColorTransform, (int?)place2.Ratio, place2.Name, (int?)place2.ClipDepth, [], Scene.BlendMode.Normal);
+                    Apply(objects, place2.Action, place2.Depth, place2.Matrix, place2.ColorTransform, (int?)place2.Ratio, place2.Name, (int?)place2.ClipDepth, [], Scene.BlendMode.Normal, null);
                     break;
 
                 case PlaceObject3Tag place3:
-                    Apply(objects, place3.Action, place3.Depth, place3.Matrix, place3.ColorTransform, (int?)place3.Ratio, place3.Name, (int?)place3.ClipDepth, place3.Filters ?? [], MapBlend(place3.BlendMode));
+                    Apply(objects, place3.Action, place3.Depth, place3.Matrix, place3.ColorTransform, (int?)place3.Ratio, place3.Name, (int?)place3.ClipDepth, place3.Filters ?? [], MapBlend(place3.BlendMode), place3.IsVisible);
                     break;
 
                 case RemoveObject2Tag remove2:
@@ -73,16 +73,16 @@ public sealed class TimelineProcessor
         return new Timeline(Union(frames.Select(static frame => frame.Bounds)), frames);
     }
 
-    private void Apply(Dictionary<int, FrameObject> objects, PlaceObjectAction action, int depth, Matrix? matrix, ColorTransform? colorTransform, int? ratio, string? name, int? clipDepth, Filter[] filters, Scene.BlendMode blend)
+    private void Apply(Dictionary<int, FrameObject> objects, PlaceObjectAction action, int depth, Matrix? matrix, ColorTransform? colorTransform, int? ratio, string? name, int? clipDepth, Filter[] filters, Scene.BlendMode blend, bool? visible)
     {
         switch (action)
         {
             case PlaceObjectAction.PlaceObjectActionPlace place:
-                objects[depth] = NewObject(depth, place.Id, matrix, colorTransform, ratio, name, clipDepth, filters, blend);
+                objects[depth] = NewObject(depth, place.Id, matrix, colorTransform, ratio, name, clipDepth, filters, blend, visible);
                 break;
 
             case PlaceObjectAction.PlaceObjectActionReplace replace:
-                objects[depth] = NewObject(depth, replace.Id, matrix ?? (objects.TryGetValue(depth, out var previous) ? previous.Matrix : null), colorTransform, ratio, name, clipDepth, filters, blend);
+                objects[depth] = NewObject(depth, replace.Id, matrix ?? (objects.TryGetValue(depth, out var previous) ? previous.Matrix : null), colorTransform, ratio, name, clipDepth, filters, blend, visible);
                 break;
 
             case PlaceObjectAction.PlaceObjectActionModify when objects.TryGetValue(depth, out var existing):
@@ -94,7 +94,8 @@ public sealed class TimelineProcessor
                     Name = name ?? existing.Name,
                     ClipDepth = clipDepth ?? existing.ClipDepth,
                     Filters = filters.Length > 0 ? filters : existing.Filters,
-                    BlendMode = blend != Scene.BlendMode.Normal ? blend : existing.BlendMode
+                    BlendMode = blend != Scene.BlendMode.Normal ? blend : existing.BlendMode,
+                    Visible = visible ?? existing.Visible
                 };
                 break;
 
@@ -103,7 +104,7 @@ public sealed class TimelineProcessor
         }
     }
 
-    private FrameObject NewObject(int depth, int id, Matrix? matrix, ColorTransform? colorTransform, int? ratio, string? name, int? clipDepth, Filter[] filters, Scene.BlendMode blend)
+    private FrameObject NewObject(int depth, int id, Matrix? matrix, ColorTransform? colorTransform, int? ratio, string? name, int? clipDepth, Filter[] filters, Scene.BlendMode blend, bool? visible)
     {
         return new FrameObject
         {
@@ -115,7 +116,8 @@ public sealed class TimelineProcessor
             Name = name,
             ClipDepth = clipDepth,
             Filters = filters,
-            BlendMode = blend
+            BlendMode = blend,
+            Visible = visible ?? true
         };
     }
 

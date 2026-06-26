@@ -327,7 +327,7 @@ public sealed class SvgDrawer : IDrawer<string>
         _defs.Append(CultureInfo.InvariantCulture, $"<radialGradient id=\"{id}\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"{Transform(fill.Matrix)}\" spreadMethod=\"{Spread(fill.Gradient.Spread)}\" cx=\"0\" cy=\"0\" r=\"819.2\"");
 
         if (fill.Gradient.FocalPoint is { } focal)
-            _defs.Append(CultureInfo.InvariantCulture, $" fx=\"0\" fy=\"{(focal * 819.2).ToString(CultureInfo.InvariantCulture)}\"");
+            _defs.Append(CultureInfo.InvariantCulture, $" fx=\"{(focal * 819.2).ToString(CultureInfo.InvariantCulture)}\" fy=\"0\"");
 
         _defs.Append('>');
         AppendStops(fill.Gradient);
