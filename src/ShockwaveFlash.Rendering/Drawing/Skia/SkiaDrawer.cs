@@ -1,3 +1,4 @@
+using ShockwaveFlash.Rendering.Exceptions;
 using ShockwaveFlash.Rendering.Model.Images;
 using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Rendering.Model.Sprites;
@@ -15,9 +16,11 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     private const float SigmaFactor = 0.2886751f;
 
-    private readonly SKBitmap _bitmap;
+    private readonly SKBitmap? _bitmap;
 
     private readonly SKCanvas _canvas;
+
+    private readonly bool _ownsCanvas;
 
     public SkiaDrawer(Rectangle bounds, float scale = 1f, SKColor? background = null)
     {
@@ -26,19 +29,59 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
         _bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
         _canvas = new SKCanvas(_bitmap);
+        _ownsCanvas = true;
+        Initialize(bounds, scale, background);
+    }
+
+    private SkiaDrawer(SKCanvas canvas, Rectangle bounds, float scale, SKColor? background)
+    {
+        _canvas = canvas;
+        Initialize(bounds, scale, background);
+    }
+
+    private void Initialize(Rectangle bounds, float scale, SKColor? background)
+    {
         _canvas.Clear(background ?? SKColors.Transparent);
         _canvas.Scale(scale);
         _canvas.Translate(-bounds.XMin / 20f, -bounds.YMin / 20f);
     }
 
-    public static byte[] RenderToPng(IDrawable drawable, float scale = 1f, SKColor? background = null)
+    public static byte[] RenderToImage(IDrawable drawable, SKEncodedImageFormat format, int quality = 100, float scale = 1f, SKColor? background = null, int frame = 0)
     {
         using var drawer = new SkiaDrawer(drawable.Bounds, scale, background);
-        drawable.Draw(drawer);
+        drawable.Draw(drawer, frame);
 
         using var image = drawer.Render();
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var data = image.Encode(format, quality)
+            ?? throw new RenderingException($"The native Skia build cannot encode {format} images.");
+
         return data.ToArray();
+    }
+
+    public static byte[] RenderToPng(IDrawable drawable, float scale = 1f, SKColor? background = null)
+    {
+        return RenderToImage(drawable, SKEncodedImageFormat.Png, 100, scale, background);
+    }
+
+    public static byte[] RenderToPdf(IDrawable drawable, float scale = 1f, SKColor? background = null, int frame = 0)
+    {
+        var bounds = drawable.Bounds;
+        var width = Math.Max(1f, (float)(bounds.Width / 20.0 * scale));
+        var height = Math.Max(1f, (float)(bounds.Height / 20.0 * scale));
+
+        using var stream = new MemoryStream();
+
+        using (var document = SKDocument.CreatePdf(stream))
+        {
+            var canvas = document.BeginPage(width, height);
+
+            using (var drawer = new SkiaDrawer(canvas, bounds, scale, background))
+                drawable.Draw(drawer, frame);
+
+            document.EndPage();
+        }
+
+        return stream.ToArray();
     }
 
     public void Area(Rectangle bounds)
@@ -266,13 +309,15 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     public SKImage Render()
     {
-        return SKImage.FromBitmap(_bitmap);
+        return SKImage.FromBitmap(_bitmap ?? throw new InvalidOperationException("This drawer renders to an external canvas and has no backing bitmap."));
     }
 
     public void Dispose()
     {
-        _canvas.Dispose();
-        _bitmap.Dispose();
+        if (_ownsCanvas)
+            _canvas.Dispose();
+
+        _bitmap?.Dispose();
     }
 
     private void FillPath(SKPath skPath, IFillStyle fill)
