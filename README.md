@@ -3,7 +3,7 @@
 [![Build](https://github.com/AerafalDev/ShockwaveFlash/actions/workflows/ci.yml/badge.svg)](https://github.com/AerafalDev/ShockwaveFlash/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A fast, allocation-light toolkit for the **SWF** (Shockwave Flash) binary format on .NET 10 — read, edit and write SWF files, and their AVM1 ActionScript, entirely in code.
+Read, edit and write **SWF** (Shockwave Flash) files — and their AVM1 ActionScript — entirely in code, on .NET 10. Fast, allocation-light, and round-trips byte-for-byte.
 
 ## Packages
 
@@ -12,23 +12,25 @@ A fast, allocation-light toolkit for the **SWF** (Shockwave Flash) binary format
 | [**ShockwaveFlash**](src/ShockwaveFlash/README.md) | [![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.svg)](https://www.nuget.org/packages/ShockwaveFlash) | The SWF container: disassemble a `.swf` into a strongly-typed tag tree and assemble it back, byte-identical. |
 | [**ShockwaveFlash.Avm1**](src/ShockwaveFlash.Avm1/README.md) | [![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.Avm1.svg)](https://www.nuget.org/packages/ShockwaveFlash.Avm1) | AVM1 `DoAction` bytecode: decode actions, evaluate data scripts to a typed value tree, edit, and write back. |
 
-## At a glance
+## Highlights
 
-```csharp
-using ShockwaveFlash;
+- **Byte-identical round-trip** — parse a real-world `.swf` and re-assemble the exact same bytes.
+- **Broad tag coverage** — shapes, fonts, text, sounds, bitmaps, sprites, buttons, morph shapes, video, ABC, filters; unknown tags are kept verbatim.
+- **AVM1 data scripts** — evaluate localization/config bytecode into a typed value tree, edit it, and write it back.
+- **Typed & allocation-light** — immutable records over `ReadOnlyMemory<byte>`, exact fixed-point types, typed exceptions; no `unsafe` in your path.
 
-var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+## Getting started
 
-Console.WriteLine($"SWF v{swf.Header.Version} — {swf.Tags.Count} tags");
-
-// Re-assembly is byte-identical to the input it was parsed from.
-ReadOnlyMemory<byte> rebuilt = swf.Assemble();
+```sh
+dotnet add package ShockwaveFlash        # read / write SWF
+dotnet add package ShockwaveFlash.Avm1   # AVM1 bytecode & data scripts
 ```
 
-Head to each package's README for full usage:
+Usage and examples live in each package's README, linked in the table above.
 
-- **[src/ShockwaveFlash](src/ShockwaveFlash/README.md)** — reading and writing SWF.
-- **[src/ShockwaveFlash.Avm1](src/ShockwaveFlash.Avm1/README.md)** — AVM1 bytecode and data scripts.
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING](CONTRIBUTING.md).
 
 ## License
 
