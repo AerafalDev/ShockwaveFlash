@@ -1,6 +1,10 @@
 # ShockwaveFlash.Avm1
 
-AVM1 (ActionScript 1/2 bytecode) support for [ShockwaveFlash](https://www.nuget.org/packages/ShockwaveFlash) — decode `DoAction` bytecode to a typed action model, evaluate data scripts to a typed value tree, edit, and write the bytecode back.
+[![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.Avm1.svg)](https://www.nuget.org/packages/ShockwaveFlash.Avm1)
+[![Downloads](https://img.shields.io/nuget/dt/ShockwaveFlash.Avm1.svg)](https://www.nuget.org/packages/ShockwaveFlash.Avm1)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/AerafalDev/ShockwaveFlash/blob/main/LICENSE)
+
+AVM1 (ActionScript 1/2 bytecode) support for [**ShockwaveFlash**](https://www.nuget.org/packages/ShockwaveFlash) — decode `DoAction` bytecode to a typed action model, evaluate data scripts to a typed value tree, edit, and write the bytecode back.
 
 ## Install
 
@@ -21,11 +25,11 @@ var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("emotes.swf"));
 var version = swf.Header.Version;
 var tag = swf.Tags.OfType<DoActionTag>().First();
 
-var globals = tag.Evaluate(version);                       // Avm1Object
-var name = globals["EM"].AsObject["1"].AsObject["n"].AsString;
+Avm1Object globals = tag.Evaluate(version);
+string name = globals["EM"].AsObject["1"].AsObject["n"].AsString;
 ```
 
-## Edit and write back
+## Edit & write back
 
 `Avm1Object` / `Avm1Array` are editable in place, and primitives convert implicitly:
 
@@ -33,32 +37,32 @@ var name = globals["EM"].AsObject["1"].AsObject["n"].AsString;
 var globals = tag.Evaluate(version);
 var emotes = globals["EM"].AsObject;
 
-emotes["1"].AsObject["n"] = "New name";                                          // change
+emotes["1"].AsObject["n"] = "New name";                                             // change
 emotes["24"] = new Avm1Object { Members = { ["n"] = "New emote", ["s"] = "new" } }; // add
 
 var output = swf.ReplaceTag(tag, tag.WithGlobals(globals, version)).Assemble();
 File.WriteAllBytes("emotes.swf", output.ToArray());
 ```
 
-## Work with raw actions
+## Raw actions
 
 For surgical edits that preserve everything else byte-for-byte, go through the action list instead of the value tree:
 
 ```csharp
-var actions = tag.DecodeActions(version);          // IReadOnlyList<Action>
+var actions = tag.DecodeActions(version);       // IReadOnlyList<Action>
 // ... inspect or modify actions ...
-var newTag = tag.WithActions(actions, version);    // re-encoded; byte-identical when unchanged
+var newTag = tag.WithActions(actions, version); // re-encoded; byte-identical when unchanged
 ```
 
 ## Value model
 
-`Evaluate` returns an `Avm1Object` whose members are `Avm1Value`s: `Avm1String`, `Avm1Number`, `Avm1Boolean`, `Avm1Null`, `Avm1Undefined`, `Avm1Object`, `Avm1Array`. Use `AsObject` / `AsArray` / `AsString` / `AsNumber` / `AsBoolean` to read them.
+`Evaluate` returns an `Avm1Object` whose members are `Avm1Value`s — `Avm1String`, `Avm1Number`, `Avm1Boolean`, `Avm1Null`, `Avm1Undefined`, `Avm1Object`, `Avm1Array`. Read them with `AsObject` / `AsArray` / `AsString` / `AsNumber` / `AsBoolean`.
 
-## Scope
+## Notes
 
 - The decoder and encoder cover the documented AVM1 opcode set (SWF 1–7) and round-trip **byte-for-byte**.
 - `Avm1Machine` is a focused evaluator for **linear data scripts** — no control-flow or function execution. Opcodes outside the supported subset are collected in `UnsupportedOpcodes`; pass `strict: true` to throw `Avm1UnsupportedActionException` instead of skipping them.
 
-## License
+---
 
-[MIT](https://github.com/AerafalDev/ShockwaveFlash/blob/main/LICENSE) © Aerafal
+Part of the [ShockwaveFlash](https://github.com/AerafalDev/ShockwaveFlash) project · [MIT](https://github.com/AerafalDev/ShockwaveFlash/blob/main/LICENSE) © Aerafal
