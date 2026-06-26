@@ -48,7 +48,7 @@ internal sealed class PathsBuilder
 
         var result = new List<ShapePath>(_closed.Count);
 
-        foreach (var group in _closed.GroupBy(open => open.Group).OrderBy(group => group.Key))
+        foreach (var group in _closed.GroupBy(static open => open.Group).OrderBy(static group => group.Key))
         {
             foreach (var open in group)
                 if (!open.Style.IsLine)

@@ -43,7 +43,7 @@ public sealed class ButtonDefinition : IDrawable
     {
         var objects = new List<FrameObject>();
 
-        foreach (var record in _records.Where(record => record.States.HasFlag(ButtonStates.Up)).OrderBy(record => record.Depth))
+        foreach (var record in _records.Where(static record => record.States.HasFlag(ButtonStates.Up)).OrderBy(static record => record.Depth))
         {
             objects.Add(new FrameObject
             {
@@ -56,7 +56,7 @@ public sealed class ButtonDefinition : IDrawable
             });
         }
 
-        var bounds = Union(objects.Select(item => TransformBounds(item.Matrix, item.Drawable.Bounds)));
+        var bounds = Union(objects.Select(static item => TransformBounds(item.Matrix, item.Drawable.Bounds)));
         return new Frame(bounds, objects);
     }
 

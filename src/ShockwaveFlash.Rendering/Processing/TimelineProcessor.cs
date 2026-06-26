@@ -70,7 +70,7 @@ public sealed class TimelineProcessor
         if (frames.Count is 0)
             frames.Add(Snapshot(objects));
 
-        return new Timeline(Union(frames.Select(frame => frame.Bounds)), frames);
+        return new Timeline(Union(frames.Select(static frame => frame.Bounds)), frames);
     }
 
     private void Apply(Dictionary<int, FrameObject> objects, PlaceObjectAction action, int depth, Matrix? matrix, ColorTransform? colorTransform, int? ratio, string? name, int? clipDepth, Filter[] filters, Scene.BlendMode blend)
@@ -128,8 +128,8 @@ public sealed class TimelineProcessor
 
     private static Frame Snapshot(Dictionary<int, FrameObject> objects)
     {
-        var ordered = objects.OrderBy(pair => pair.Key).Select(pair => ResolveMorph(pair.Value)).ToList();
-        var bounds = Union(ordered.Select(item => TransformBounds(item.Matrix, Expand(item.Drawable.Bounds, FilterSpread(item.Filters)))));
+        var ordered = objects.OrderBy(static pair => pair.Key).Select(static pair => ResolveMorph(pair.Value)).ToList();
+        var bounds = Union(ordered.Select(static item => TransformBounds(item.Matrix, Expand(item.Drawable.Bounds, FilterSpread(item.Filters)))));
         return new Frame(bounds, ordered);
     }
 
