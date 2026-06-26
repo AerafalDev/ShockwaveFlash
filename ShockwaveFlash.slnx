@@ -4,4 +4,7 @@
     <Project Path="src/ShockwaveFlash.Avm1/ShockwaveFlash.Avm1.csproj" />
     <Project Path="src/ShockwaveFlash.Rendering/ShockwaveFlash.Rendering.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ShockwaveFlash.Tests/ShockwaveFlash.Tests.csproj" />
+  </Folder>
 </Solution>
