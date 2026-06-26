@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="MinVer" Version="6.0.0" />
+    <PackageVersion Include="SkiaSharp" Version="2.88.8" />
   </ItemGroup>
 
 </Project>

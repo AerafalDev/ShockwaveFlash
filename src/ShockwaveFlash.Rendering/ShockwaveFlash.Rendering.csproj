@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>ShockwaveFlash.Rendering</PackageId>
+    <Description>Render SWF characters (shapes, sprites, timelines, images) parsed by ShockwaveFlash to SVG and to raster images (PNG/JPEG/WebP/GIF) through a native, cross-platform Skia backend.</Description>
+    <Authors>Aerafal</Authors>
+    <Copyright>Copyright (c) 2026 Aerafal</Copyright>
+    <PackageTags>swf;shockwave;flash;rendering;render;svg;skia;raster</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/AerafalDev/ShockwaveFlash</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AerafalDev/ShockwaveFlash.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShockwaveFlash\ShockwaveFlash.csproj" />
+  </ItemGroup>
+
+</Project>

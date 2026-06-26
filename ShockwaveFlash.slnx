@@ -2,5 +2,6 @@
   <Folder Name="/src/">
     <Project Path="src/ShockwaveFlash/ShockwaveFlash.csproj" />
     <Project Path="src/ShockwaveFlash.Avm1/ShockwaveFlash.Avm1.csproj" />
+    <Project Path="src/ShockwaveFlash.Rendering/ShockwaveFlash.Rendering.csproj" />
   </Folder>
 </Solution>
