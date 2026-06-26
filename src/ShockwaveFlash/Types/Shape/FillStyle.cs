@@ -3,7 +3,7 @@ using ShockwaveFlash.Types.Shape.Gradients;
 
 namespace ShockwaveFlash.Types.Shape;
 
-public abstract record FillStyle
+public abstract class FillStyle
 {
     public static FillStyle Decode(MemoryReader reader, byte swfVersion, byte shapeVersion)
     {

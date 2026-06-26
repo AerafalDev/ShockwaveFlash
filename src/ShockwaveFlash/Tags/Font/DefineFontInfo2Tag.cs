@@ -2,8 +2,18 @@ using ShockwaveFlash.Types.Font;
 
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed record DefineFontInfo2Tag(TagMetadata Metadata, ushort Id, string Name, Language Language, FontInfoFlags Flags, IReadOnlyList<ushort> CodeTable) : Tag(Metadata)
+public sealed class DefineFontInfo2Tag : Tag
 {
+    public ushort Id { get; set; }
+
+    public string Name { get; set; }
+
+    public Language Language { get; set; }
+
+    public FontInfoFlags Flags { get; set; }
+
+    public IReadOnlyList<ushort> CodeTable { get; set; }
+
     public bool HasWideCodes =>
         Flags.HasFlag(FontInfoFlags.HasWideCodes);
 
@@ -21,6 +31,15 @@ public sealed record DefineFontInfo2Tag(TagMetadata Metadata, ushort Id, string 
 
     public bool IsSmallText =>
         Flags.HasFlag(FontInfoFlags.IsSmallText);
+
+    public DefineFontInfo2Tag(TagMetadata metadata, ushort id, string name, Language language, FontInfoFlags flags, IReadOnlyList<ushort> codeTable) : base(metadata)
+    {
+        Id = id;
+        Name = name;
+        Language = language;
+        Flags = flags;
+        CodeTable = codeTable;
+    }
 
     public static DefineFontInfo2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {

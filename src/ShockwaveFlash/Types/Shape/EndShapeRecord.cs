@@ -1,3 +1,5 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public sealed record EndShapeRecord : ShapeRecord;
+public sealed class EndShapeRecord : ShapeRecord
+{
+}

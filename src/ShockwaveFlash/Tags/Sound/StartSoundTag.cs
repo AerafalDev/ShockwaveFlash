@@ -2,8 +2,18 @@ using ShockwaveFlash.Types.Sound;
 
 namespace ShockwaveFlash.Tags.Sound;
 
-public sealed record StartSoundTag(TagMetadata Metadata, ushort Id, SoundInfo SoundInfo) : Tag(Metadata)
+public sealed class StartSoundTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public SoundInfo SoundInfo { get; set; }
+
+    public StartSoundTag(TagMetadata metadata, ushort id, SoundInfo soundInfo) : base(metadata)
+    {
+        Id = id;
+        SoundInfo = soundInfo;
+    }
+
     public static StartSoundTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

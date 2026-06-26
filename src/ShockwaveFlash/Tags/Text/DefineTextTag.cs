@@ -3,8 +3,24 @@ using ShockwaveFlash.Types.Text;
 
 namespace ShockwaveFlash.Tags.Text;
 
-public sealed record DefineTextTag(TagMetadata Metadata, ushort Id, Rectangle Bounds, Matrix Matrix, IReadOnlyList<TextRecord> Records) : Tag(Metadata)
+public sealed class DefineTextTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public Rectangle Bounds { get; set; }
+
+    public Matrix Matrix { get; set; }
+
+    public IReadOnlyList<TextRecord> Records { get; set; }
+
+    public DefineTextTag(TagMetadata metadata, ushort id, Rectangle bounds, Matrix matrix, IReadOnlyList<TextRecord> records) : base(metadata)
+    {
+        Id = id;
+        Bounds = bounds;
+        Matrix = matrix;
+        Records = records;
+    }
+
     public static DefineTextTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

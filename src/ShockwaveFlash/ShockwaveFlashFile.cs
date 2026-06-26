@@ -3,9 +3,19 @@ using ShockwaveFlash.Tags;
 
 namespace ShockwaveFlash;
 
-public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyList<Tag> Tags)
+public sealed class ShockwaveFlashFile
 {
     private const int HeaderSize = 8;
+
+    public ShockwaveFlashHeader Header { get; set; }
+
+    public IReadOnlyList<Tag> Tags { get; set; }
+
+    public ShockwaveFlashFile(ShockwaveFlashHeader header, IReadOnlyList<Tag> tags)
+    {
+        Header = header;
+        Tags = tags;
+    }
 
     public static ShockwaveFlashFile Disassemble(ReadOnlyMemory<byte> data, bool lenient = false)
     {
@@ -63,7 +73,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
     {
         var tags = Tags.ToList();
         tags[index] = newTag;
-        return this with { Tags = tags };
+        return new ShockwaveFlashFile(Header, tags);
     }
 
     public ShockwaveFlashFile InsertTag(int index, Tag tag)
@@ -73,7 +83,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 
         var tags = Tags.ToList();
         tags.Insert(index, tag);
-        return this with { Tags = tags };
+        return new ShockwaveFlashFile(Header, tags);
     }
 
     public ShockwaveFlashFile AppendTag(Tag tag)
@@ -90,7 +100,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
     {
         var tags = Tags.ToList();
         tags.RemoveAt(index);
-        return this with { Tags = tags };
+        return new ShockwaveFlashFile(Header, tags);
     }
 
     public ShockwaveFlashFile MoveTag(int fromIndex, int toIndex)
@@ -104,7 +114,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
         var tag = tags[fromIndex];
         tags.RemoveAt(fromIndex);
         tags.Insert(toIndex, tag);
-        return this with { Tags = tags };
+        return new ShockwaveFlashFile(Header, tags);
     }
 
     private int IndexOf(Tag tag)

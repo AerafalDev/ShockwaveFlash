@@ -1,7 +1,11 @@
 namespace ShockwaveFlash.Tags.DisplayList;
 
-public sealed record ShowFrameTag(TagMetadata Metadata) : Tag(Metadata)
+public sealed class ShowFrameTag : Tag
 {
+    public ShowFrameTag(TagMetadata metadata) : base(metadata)
+    {
+    }
+
     public override void Encode(MemoryWriter writer, byte swfVersion)
     {
     }

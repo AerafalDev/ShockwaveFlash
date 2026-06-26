@@ -1,12 +1,30 @@
 namespace ShockwaveFlash.Types.DisplayList;
 
-public abstract record PlaceObjectAction
+public abstract class PlaceObjectAction
 {
-    public sealed record PlaceObjectActionPlace(ushort Id) : PlaceObjectAction;
+    public sealed class PlaceObjectActionPlace : PlaceObjectAction
+    {
+        public ushort Id { get; set; }
 
-    public sealed record PlaceObjectActionReplace(ushort Id) : PlaceObjectAction;
+        public PlaceObjectActionPlace(ushort id)
+        {
+            Id = id;
+        }
+    }
 
-    public sealed record PlaceObjectActionModify : PlaceObjectAction;
+    public sealed class PlaceObjectActionReplace : PlaceObjectAction
+    {
+        public ushort Id { get; set; }
+
+        public PlaceObjectActionReplace(ushort id)
+        {
+            Id = id;
+        }
+    }
+
+    public sealed class PlaceObjectActionModify : PlaceObjectAction
+    {
+    }
 
     public static PlaceObjectAction Place(ushort id)
     {

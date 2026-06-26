@@ -1,3 +1,11 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public sealed record FillStyleSolid(Color Color) : FillStyle;
+public sealed class FillStyleSolid : FillStyle
+{
+    public Color Color { get; set; }
+
+    public FillStyleSolid(Color color)
+    {
+        Color = color;
+    }
+}

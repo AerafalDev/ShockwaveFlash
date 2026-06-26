@@ -3,9 +3,34 @@ using ShockwaveFlash.Types.Control;
 
 namespace ShockwaveFlash.Tags.Metadata;
 
-public sealed record ProductInfoTag(TagMetadata Metadata, FlashProduct ProductId, FlashEdition Edition, byte MajorVersion, byte MinorVersion, uint BuildLow, uint BuildHigh, DateTime CompilationDate) : Tag(Metadata)
+public sealed class ProductInfoTag : Tag
 {
     private static readonly ulong MaxCompilationMilliseconds = (ulong)(DateTime.MaxValue - DateTime.UnixEpoch).TotalMilliseconds;
+
+    public FlashProduct ProductId { get; set; }
+
+    public FlashEdition Edition { get; set; }
+
+    public byte MajorVersion { get; set; }
+
+    public byte MinorVersion { get; set; }
+
+    public uint BuildLow { get; set; }
+
+    public uint BuildHigh { get; set; }
+
+    public DateTime CompilationDate { get; set; }
+
+    public ProductInfoTag(TagMetadata metadata, FlashProduct productId, FlashEdition edition, byte majorVersion, byte minorVersion, uint buildLow, uint buildHigh, DateTime compilationDate) : base(metadata)
+    {
+        ProductId = productId;
+        Edition = edition;
+        MajorVersion = majorVersion;
+        MinorVersion = minorVersion;
+        BuildLow = buildLow;
+        BuildHigh = buildHigh;
+        CompilationDate = compilationDate;
+    }
 
     public static ProductInfoTag Decode(MemoryReader reader, TagMetadata metadata)
     {

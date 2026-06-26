@@ -1,8 +1,27 @@
 
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed record DefineFont4Tag(TagMetadata Metadata, ushort Id, bool IsItalic, bool IsBold, string Name, ReadOnlyMemory<byte> Data) : Tag(Metadata)
+public sealed class DefineFont4Tag : Tag
 {
+    public ushort Id { get; set; }
+
+    public bool IsItalic { get; set; }
+
+    public bool IsBold { get; set; }
+
+    public string Name { get; set; }
+
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public DefineFont4Tag(TagMetadata metadata, ushort id, bool isItalic, bool isBold, string name, ReadOnlyMemory<byte> data) : base(metadata)
+    {
+        Id = id;
+        IsItalic = isItalic;
+        IsBold = isBold;
+        Name = name;
+        Data = data;
+    }
+
     public static DefineFont4Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

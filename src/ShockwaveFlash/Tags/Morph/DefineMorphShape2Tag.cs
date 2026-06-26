@@ -4,13 +4,29 @@ using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Tags.Morph;
 
-public sealed record DefineMorphShape2Tag(TagMetadata Metadata, ushort Id, DefineMorphShapeFlags Flags, MorphShape Start, MorphShape End) : Tag(Metadata)
+public sealed class DefineMorphShape2Tag : Tag
 {
+    public ushort Id { get; set; }
+
+    public DefineMorphShapeFlags Flags { get; set; }
+
+    public MorphShape Start { get; set; }
+
+    public MorphShape End { get; set; }
+
     public bool HasScalingStrokes =>
         Flags.HasFlag(DefineMorphShapeFlags.HasScalingStrokes);
 
     public bool HasNonScalingStrokes =>
         Flags.HasFlag(DefineMorphShapeFlags.HasNonScalingStrokes);
+
+    public DefineMorphShape2Tag(TagMetadata metadata, ushort id, DefineMorphShapeFlags flags, MorphShape start, MorphShape end) : base(metadata)
+    {
+        Id = id;
+        Flags = flags;
+        Start = start;
+        End = end;
+    }
 
     public static DefineMorphShape2Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {

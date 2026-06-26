@@ -2,8 +2,15 @@ using ShockwaveFlash.Types.Control;
 
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record SymbolClassTag(TagMetadata Metadata, SymbolReference[] Symbols) : Tag(Metadata)
+public sealed class SymbolClassTag : Tag
 {
+    public SymbolReference[] Symbols { get; set; }
+
+    public SymbolClassTag(TagMetadata metadata, SymbolReference[] symbols) : base(metadata)
+    {
+        Symbols = symbols;
+    }
+
     public static SymbolClassTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var numSymbols = reader.ReadUInt16();

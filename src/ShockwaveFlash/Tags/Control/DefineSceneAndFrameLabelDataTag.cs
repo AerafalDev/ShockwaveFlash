@@ -3,8 +3,18 @@ using ShockwaveFlash.Types.Control;
 
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record DefineSceneAndFrameLabelDataTag(TagMetadata Metadata, SceneOffset[] Scenes, FrameLabel[] FrameLabels) : Tag(Metadata)
+public sealed class DefineSceneAndFrameLabelDataTag : Tag
 {
+    public SceneOffset[] Scenes { get; set; }
+
+    public FrameLabel[] FrameLabels { get; set; }
+
+    public DefineSceneAndFrameLabelDataTag(TagMetadata metadata, SceneOffset[] scenes, FrameLabel[] frameLabels) : base(metadata)
+    {
+        Scenes = scenes;
+        FrameLabels = frameLabels;
+    }
+
     public static DefineSceneAndFrameLabelDataTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var numScenes = reader.ReadEncodedU32();

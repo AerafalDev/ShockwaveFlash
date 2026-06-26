@@ -2,8 +2,15 @@ using ShockwaveFlash.Types.Control;
 
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record ExportAssetsTag(TagMetadata Metadata, AssetReference[] Assets) : Tag(Metadata)
+public sealed class ExportAssetsTag : Tag
 {
+    public AssetReference[] Assets { get; set; }
+
+    public ExportAssetsTag(TagMetadata metadata, AssetReference[] assets) : base(metadata)
+    {
+        Assets = assets;
+    }
+
     public static ExportAssetsTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var assetsCount = reader.ReadUInt16();

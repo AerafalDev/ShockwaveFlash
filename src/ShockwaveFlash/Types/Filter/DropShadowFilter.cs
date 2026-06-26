@@ -1,7 +1,19 @@
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record DropShadowFilter(Color Color, FixedPoint2 Blur, Fixed16 Angle, Fixed16 Distance, Fixed8 Strength, DropShadowFilterFlags Flags) : Filter
+public sealed class DropShadowFilter : Filter
 {
+    public Color Color { get; set; }
+
+    public FixedPoint2 Blur { get; set; }
+
+    public Fixed16 Angle { get; set; }
+
+    public Fixed16 Distance { get; set; }
+
+    public Fixed8 Strength { get; set; }
+
+    public DropShadowFilterFlags Flags { get; set; }
+
     public bool IsInner =>
         Flags.HasFlag(DropShadowFilterFlags.InnerShadow);
 
@@ -13,6 +25,16 @@ public sealed record DropShadowFilter(Color Color, FixedPoint2 Blur, Fixed16 Ang
 
     public byte Passes =>
         (byte)(Flags & DropShadowFilterFlags.Passes);
+
+    public DropShadowFilter(Color color, FixedPoint2 blur, Fixed16 angle, Fixed16 distance, Fixed8 strength, DropShadowFilterFlags flags)
+    {
+        Color = color;
+        Blur = blur;
+        Angle = angle;
+        Distance = distance;
+        Strength = strength;
+        Flags = flags;
+    }
 
     public BlurFilter GetInnerBlurFilter()
     {

@@ -1,7 +1,29 @@
 namespace ShockwaveFlash.Types.Text;
 
-public sealed record TextRecord(ushort? Id, Color? Color, short? OffsetX, short? OffsetY, ushort? Height, Glyph[] Glyphs)
+public sealed class TextRecord
 {
+    public ushort? Id { get; set; }
+
+    public Color? Color { get; set; }
+
+    public short? OffsetX { get; set; }
+
+    public short? OffsetY { get; set; }
+
+    public ushort? Height { get; set; }
+
+    public Glyph[] Glyphs { get; set; }
+
+    public TextRecord(ushort? id, Color? color, short? offsetX, short? offsetY, ushort? height, Glyph[] glyphs)
+    {
+        Id = id;
+        Color = color;
+        OffsetX = offsetX;
+        OffsetY = offsetY;
+        Height = height;
+        Glyphs = glyphs;
+    }
+
     public static TextRecord? Decode(MemoryReader reader, byte tagVersion, byte numGlyphBits, byte numAdvanceBits)
     {
         var flags = reader.ReadUInt8();

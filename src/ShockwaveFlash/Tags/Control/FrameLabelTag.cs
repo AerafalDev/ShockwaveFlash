@@ -1,7 +1,17 @@
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record FrameLabelTag(TagMetadata Metadata, string Name, bool IsAnchor) : Tag(Metadata)
+public sealed class FrameLabelTag : Tag
 {
+    public string Name { get; set; }
+
+    public bool IsAnchor { get; set; }
+
+    public FrameLabelTag(TagMetadata metadata, string name, bool isAnchor) : base(metadata)
+    {
+        Name = name;
+        IsAnchor = isAnchor;
+    }
+
     public static FrameLabelTag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         var name = reader.ReadNullTerminatedString();

@@ -3,8 +3,13 @@ using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Tags.Shape;
 
-public sealed record DefineShape2Tag(TagMetadata Metadata, ushort ShapeId, Rectangle ShapeBounds, ShapeStyles Styles, IReadOnlyList<ShapeRecord> Shapes) : DefineShapeTag(Metadata, ShapeId, ShapeBounds, Styles, Shapes)
+public sealed class DefineShape2Tag : DefineShapeTag
 {
+    public DefineShape2Tag(TagMetadata metadata, ushort shapeId, Rectangle shapeBounds, ShapeStyles styles, IReadOnlyList<ShapeRecord> shapes)
+        : base(metadata, shapeId, shapeBounds, styles, shapes)
+    {
+    }
+
     public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         Encode(writer, swfVersion, 2);

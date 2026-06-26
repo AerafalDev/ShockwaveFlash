@@ -1,12 +1,24 @@
 namespace ShockwaveFlash.Types.Bitmap;
 
-public abstract record BitmapFormat
+public abstract class BitmapFormat
 {
-    public sealed record BitmapFormatColorMap8(int NumColors) : BitmapFormat;
+    public sealed class BitmapFormatColorMap8 : BitmapFormat
+    {
+        public int NumColors { get; set; }
 
-    public sealed record BitmapFormatRgb15 : BitmapFormat;
+        public BitmapFormatColorMap8(int numColors)
+        {
+            NumColors = numColors;
+        }
+    }
 
-    public sealed record BitmapFormatRgb32 : BitmapFormat;
+    public sealed class BitmapFormatRgb15 : BitmapFormat
+    {
+    }
+
+    public sealed class BitmapFormatRgb32 : BitmapFormat
+    {
+    }
 
     public static BitmapFormat ColorMap8(int numColors)
     {

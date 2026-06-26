@@ -1,3 +1,5 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public sealed record LineJoinStyleBevel : LineJoinStyle;
+public sealed class LineJoinStyleBevel : LineJoinStyle
+{
+}

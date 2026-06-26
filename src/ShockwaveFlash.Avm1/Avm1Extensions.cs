@@ -17,11 +17,11 @@ public static class Avm1Extensions
 
     public static DoActionTag WithActions(this DoActionTag tag, IReadOnlyList<Action> actions, byte swfVersion)
     {
-        return tag with { Data = Action.EncodeCollection(actions, swfVersion) };
+        return new DoActionTag(tag.Metadata, Action.EncodeCollection(actions, swfVersion));
     }
 
     public static DoActionTag WithGlobals(this DoActionTag tag, Avm1Object globals, byte swfVersion)
     {
-        return tag with { Data = Avm1Emitter.EmitBytes(globals, swfVersion) };
+        return new DoActionTag(tag.Metadata, Avm1Emitter.EmitBytes(globals, swfVersion));
     }
 }

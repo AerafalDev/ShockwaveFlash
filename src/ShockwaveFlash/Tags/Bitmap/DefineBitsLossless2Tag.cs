@@ -3,8 +3,27 @@ using ShockwaveFlash.Types.Bitmap;
 
 namespace ShockwaveFlash.Tags.Bitmap;
 
-public sealed record DefineBitsLossless2Tag(TagMetadata Metadata, ushort Id, ushort Width, ushort Height, BitmapFormat Format, ReadOnlyMemory<byte> ZLibBitmapData) : Tag(Metadata)
+public sealed class DefineBitsLossless2Tag : Tag
 {
+    public ushort Id { get; set; }
+
+    public ushort Width { get; set; }
+
+    public ushort Height { get; set; }
+
+    public BitmapFormat Format { get; set; }
+
+    public ReadOnlyMemory<byte> ZLibBitmapData { get; set; }
+
+    public DefineBitsLossless2Tag(TagMetadata metadata, ushort id, ushort width, ushort height, BitmapFormat format, ReadOnlyMemory<byte> zLibBitmapData) : base(metadata)
+    {
+        Id = id;
+        Width = width;
+        Height = height;
+        Format = format;
+        ZLibBitmapData = zLibBitmapData;
+    }
+
     public static DefineBitsLossless2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

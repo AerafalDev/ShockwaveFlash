@@ -2,8 +2,21 @@ using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed record DefineFontTag(TagMetadata Metadata, ushort Id, ushort[] OffsetTable, IReadOnlyList<IReadOnlyList<ShapeRecord>> Glyphs) : Tag(Metadata)
+public sealed class DefineFontTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public ushort[] OffsetTable { get; set; }
+
+    public IReadOnlyList<IReadOnlyList<ShapeRecord>> Glyphs { get; set; }
+
+    public DefineFontTag(TagMetadata metadata, ushort id, ushort[] offsetTable, IReadOnlyList<IReadOnlyList<ShapeRecord>> glyphs) : base(metadata)
+    {
+        Id = id;
+        OffsetTable = offsetTable;
+        Glyphs = glyphs;
+    }
+
     public static DefineFontTag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {
         var id = reader.ReadUInt16();

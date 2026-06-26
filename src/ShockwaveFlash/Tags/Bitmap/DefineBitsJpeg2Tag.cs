@@ -1,8 +1,18 @@
 
 namespace ShockwaveFlash.Tags.Bitmap;
 
-public sealed record DefineBitsJpeg2Tag(TagMetadata Metadata, ushort Id, ReadOnlyMemory<byte> Data) : Tag(Metadata)
+public sealed class DefineBitsJpeg2Tag : Tag
 {
+    public ushort Id { get; set; }
+
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public DefineBitsJpeg2Tag(TagMetadata metadata, ushort id, ReadOnlyMemory<byte> data) : base(metadata)
+    {
+        Id = id;
+        Data = data;
+    }
+
     public static DefineBitsJpeg2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new DefineBitsJpeg2Tag(metadata, reader.ReadUInt16(), reader.ReadMemoryToEnd());

@@ -2,8 +2,24 @@ using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.Tags.DisplayList;
 
-public sealed record PlaceObjectTag(TagMetadata Metadata, ushort Id, ushort Depth, Matrix Matrix, ColorTransform? ColorTransform) : Tag(Metadata)
+public sealed class PlaceObjectTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public ushort Depth { get; set; }
+
+    public Matrix Matrix { get; set; }
+
+    public ColorTransform? ColorTransform { get; set; }
+
+    public PlaceObjectTag(TagMetadata metadata, ushort id, ushort depth, Matrix matrix, ColorTransform? colorTransform) : base(metadata)
+    {
+        Id = id;
+        Depth = depth;
+        Matrix = matrix;
+        ColorTransform = colorTransform;
+    }
+
     public static PlaceObjectTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

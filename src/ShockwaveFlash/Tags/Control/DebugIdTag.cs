@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record DebugIdTag(TagMetadata Metadata, Guid Id) : Tag(Metadata)
+public sealed class DebugIdTag : Tag
 {
+    public Guid Id { get; set; }
+
+    public DebugIdTag(TagMetadata metadata, Guid id) : base(metadata)
+    {
+        Id = id;
+    }
+
     public static DebugIdTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new DebugIdTag(metadata, new Guid(reader.ReadMemory(16).Span));

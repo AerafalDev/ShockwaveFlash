@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Tags.Action;
 
-public sealed record DoActionTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data) : Tag(Metadata)
+public sealed class DoActionTag : Tag
 {
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public DoActionTag(TagMetadata metadata, ReadOnlyMemory<byte> data) : base(metadata)
+    {
+        Data = data;
+    }
+
     public static DoActionTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new DoActionTag(metadata, reader.ReadMemoryToEnd());

@@ -1,7 +1,26 @@
 namespace ShockwaveFlash.Types.Sound;
 
-public sealed record SoundInfo(SoundEvent Event, uint? InSample, uint? OutSample, ushort NumLoops, SoundEnvelope? Envelope)
+public sealed class SoundInfo
 {
+    public SoundEvent Event { get; set; }
+
+    public uint? InSample { get; set; }
+
+    public uint? OutSample { get; set; }
+
+    public ushort NumLoops { get; set; }
+
+    public SoundEnvelope? Envelope { get; set; }
+
+    public SoundInfo(SoundEvent @event, uint? inSample, uint? outSample, ushort numLoops, SoundEnvelope? envelope)
+    {
+        Event = @event;
+        InSample = inSample;
+        OutSample = outSample;
+        NumLoops = numLoops;
+        Envelope = envelope;
+    }
+
     public static SoundInfo Decode(MemoryReader reader)
     {
         var flags = reader.ReadUInt8();

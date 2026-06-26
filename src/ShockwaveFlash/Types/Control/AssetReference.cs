@@ -1,7 +1,17 @@
 namespace ShockwaveFlash.Types.Control;
 
-public sealed record AssetReference(ushort Id, string Name)
+public sealed class AssetReference
 {
+    public ushort Id { get; set; }
+
+    public string Name { get; set; }
+
+    public AssetReference(ushort id, string name)
+    {
+        Id = id;
+        Name = name;
+    }
+
     public static AssetReference Decode(MemoryReader reader)
     {
         return new AssetReference(reader.ReadUInt16(), reader.ReadNullTerminatedString());

@@ -4,20 +4,30 @@ using ShockwaveFlash.Types.Text;
 
 namespace ShockwaveFlash.Tags.Text;
 
-public sealed record DefineEditTextTag(
-    TagMetadata Metadata,
-    ushort Id,
-    Rectangle Bounds,
-    ushort? FontId,
-    string? FontClass,
-    ushort? Height,
-    Color? Color,
-    ushort? MaxLength,
-    TextLayout? Layout,
-    string VariableName,
-    string? InitialText,
-    EditTextFlags Flags) : Tag(Metadata)
+public sealed class DefineEditTextTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public Rectangle Bounds { get; set; }
+
+    public ushort? FontId { get; set; }
+
+    public string? FontClass { get; set; }
+
+    public ushort? Height { get; set; }
+
+    public Color? Color { get; set; }
+
+    public ushort? MaxLength { get; set; }
+
+    public TextLayout? Layout { get; set; }
+
+    public string VariableName { get; set; }
+
+    public string? InitialText { get; set; }
+
+    public EditTextFlags Flags { get; set; }
+
     public bool HasVariableName =>
         !string.IsNullOrEmpty(VariableName);
 
@@ -78,6 +88,21 @@ public sealed record DefineEditTextTag(
     [MemberNotNullWhen(true, nameof(FontClass))]
     public bool HasFontClass =>
         Flags.HasFlag(EditTextFlags.HasFontClass);
+
+    public DefineEditTextTag(TagMetadata metadata, ushort id, Rectangle bounds, ushort? fontId, string? fontClass, ushort? height, Color? color, ushort? maxLength, TextLayout? layout, string variableName, string? initialText, EditTextFlags flags) : base(metadata)
+    {
+        Id = id;
+        Bounds = bounds;
+        FontId = fontId;
+        FontClass = fontClass;
+        Height = height;
+        Color = color;
+        MaxLength = maxLength;
+        Layout = layout;
+        VariableName = variableName;
+        InitialText = initialText;
+        Flags = flags;
+    }
 
     public static DefineEditTextTag Decode(MemoryReader reader, TagMetadata metadata)
     {

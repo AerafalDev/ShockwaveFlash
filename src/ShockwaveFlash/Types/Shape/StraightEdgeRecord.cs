@@ -1,3 +1,11 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public sealed record StraightEdgeRecord(Point Delta) : ShapeRecord;
+public sealed class StraightEdgeRecord : ShapeRecord
+{
+    public Point Delta { get; set; }
+
+    public StraightEdgeRecord(Point delta)
+    {
+        Delta = delta;
+    }
+}

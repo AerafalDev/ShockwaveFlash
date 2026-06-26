@@ -2,8 +2,22 @@ using ShockwaveFlash.Types.Shape.Gradients;
 
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record GradientFilter(GradientRecord[] Colors, FixedPoint2 Blur, Fixed16 Angle, Fixed16 Distance, Fixed8 Strength, GradientFilterFlags Flags, FilterType Type) : Filter
+public sealed class GradientFilter : Filter
 {
+    public GradientRecord[] Colors { get; set; }
+
+    public FixedPoint2 Blur { get; set; }
+
+    public Fixed16 Angle { get; set; }
+
+    public Fixed16 Distance { get; set; }
+
+    public Fixed8 Strength { get; set; }
+
+    public GradientFilterFlags Flags { get; set; }
+
+    public FilterType Type { get; set; }
+
     public bool IsInner =>
         Flags.HasFlag(GradientFilterFlags.InnerShadow);
 
@@ -18,6 +32,17 @@ public sealed record GradientFilter(GradientRecord[] Colors, FixedPoint2 Blur, F
 
     public byte Passes =>
         (byte)(Flags & GradientFilterFlags.Passes);
+
+    public GradientFilter(GradientRecord[] colors, FixedPoint2 blur, Fixed16 angle, Fixed16 distance, Fixed8 strength, GradientFilterFlags flags, FilterType type)
+    {
+        Colors = colors;
+        Blur = blur;
+        Angle = angle;
+        Distance = distance;
+        Strength = strength;
+        Flags = flags;
+        Type = type;
+    }
 
     public BlurFilter GetInnerBlurFilter()
     {

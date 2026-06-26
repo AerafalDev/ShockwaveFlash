@@ -2,8 +2,10 @@ using ShockwaveFlash.Types.Control;
 
 namespace ShockwaveFlash.Tags.Metadata;
 
-public sealed record FileAttributesTag(TagMetadata Metadata, FileAttributesFlags Flags) : Tag(Metadata)
+public sealed class FileAttributesTag : Tag
 {
+    public FileAttributesFlags Flags { get; set; }
+
     public bool UseDirectBlit =>
         Flags.HasFlag(FileAttributesFlags.UseDirectBlit);
 
@@ -18,6 +20,11 @@ public sealed record FileAttributesTag(TagMetadata Metadata, FileAttributesFlags
 
     public bool UseNetworkSandbox =>
         Flags.HasFlag(FileAttributesFlags.UseNetworkSandbox);
+
+    public FileAttributesTag(TagMetadata metadata, FileAttributesFlags flags) : base(metadata)
+    {
+        Flags = flags;
+    }
 
     public static FileAttributesTag Decode(MemoryReader reader, TagMetadata metadata)
     {

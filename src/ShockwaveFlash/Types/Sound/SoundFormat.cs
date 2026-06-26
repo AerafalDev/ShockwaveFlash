@@ -2,8 +2,24 @@ using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Types.Sound;
 
-public sealed record SoundFormat(AudioCompression Compression, ushort SampleRate, bool IsStereo, bool Is16Bit)
+public sealed class SoundFormat
 {
+    public AudioCompression Compression { get; set; }
+
+    public ushort SampleRate { get; set; }
+
+    public bool IsStereo { get; set; }
+
+    public bool Is16Bit { get; set; }
+
+    public SoundFormat(AudioCompression compression, ushort sampleRate, bool isStereo, bool is16Bit)
+    {
+        Compression = compression;
+        SampleRate = sampleRate;
+        IsStereo = isStereo;
+        Is16Bit = is16Bit;
+    }
+
     public static SoundFormat Decode(MemoryReader reader)
     {
         var flags = reader.ReadUInt8();

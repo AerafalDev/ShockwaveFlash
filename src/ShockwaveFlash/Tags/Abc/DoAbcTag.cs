@@ -1,8 +1,15 @@
 
 namespace ShockwaveFlash.Tags.Abc;
 
-public sealed record DoAbcTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data) : Tag(Metadata)
+public sealed class DoAbcTag : Tag
 {
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public DoAbcTag(TagMetadata metadata, ReadOnlyMemory<byte> data) : base(metadata)
+    {
+        Data = data;
+    }
+
     public static DoAbcTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new DoAbcTag(metadata, reader.ReadMemoryToEnd());

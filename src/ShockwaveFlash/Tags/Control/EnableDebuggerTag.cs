@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record EnableDebuggerTag(TagMetadata Metadata, string Password) : Tag(Metadata)
+public sealed class EnableDebuggerTag : Tag
 {
+    public string Password { get; set; }
+
+    public EnableDebuggerTag(TagMetadata metadata, string password) : base(metadata)
+    {
+        Password = password;
+    }
+
     public static EnableDebuggerTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new EnableDebuggerTag(metadata, reader.ReadNullTerminatedString());

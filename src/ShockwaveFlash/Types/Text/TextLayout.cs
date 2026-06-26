@@ -1,7 +1,26 @@
 namespace ShockwaveFlash.Types.Text;
 
-public sealed record TextLayout(TextAlignment Alignment, ushort LeftMargin, ushort RightMargin, short Indent, short Leading)
+public sealed class TextLayout
 {
+    public TextAlignment Alignment { get; set; }
+
+    public ushort LeftMargin { get; set; }
+
+    public ushort RightMargin { get; set; }
+
+    public short Indent { get; set; }
+
+    public short Leading { get; set; }
+
+    public TextLayout(TextAlignment alignment, ushort leftMargin, ushort rightMargin, short indent, short leading)
+    {
+        Alignment = alignment;
+        LeftMargin = leftMargin;
+        RightMargin = rightMargin;
+        Indent = indent;
+        Leading = leading;
+    }
+
     public static TextLayout Decode(MemoryReader reader)
     {
         var alignment = (TextAlignment)reader.ReadUInt8();

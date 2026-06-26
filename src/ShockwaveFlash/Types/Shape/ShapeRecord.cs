@@ -1,6 +1,6 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public abstract record ShapeRecord
+public abstract class ShapeRecord
 {
     public static ShapeRecord Decode(MemoryReader reader, BitReader bits, ShapeContext context)
     {

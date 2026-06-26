@@ -2,8 +2,27 @@ using ShockwaveFlash.Types.Text;
 
 namespace ShockwaveFlash.Tags.Text;
 
-public sealed record CsmTextSettingsTag(TagMetadata Metadata, ushort Id, bool UseAdvancedRendering, TextGridFit GridFit, float Thickness, float Sharpness) : Tag(Metadata)
+public sealed class CsmTextSettingsTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public bool UseAdvancedRendering { get; set; }
+
+    public TextGridFit GridFit { get; set; }
+
+    public float Thickness { get; set; }
+
+    public float Sharpness { get; set; }
+
+    public CsmTextSettingsTag(TagMetadata metadata, ushort id, bool useAdvancedRendering, TextGridFit gridFit, float thickness, float sharpness) : base(metadata)
+    {
+        Id = id;
+        UseAdvancedRendering = useAdvancedRendering;
+        GridFit = gridFit;
+        Thickness = thickness;
+        Sharpness = sharpness;
+    }
+
     public static CsmTextSettingsTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

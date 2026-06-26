@@ -101,7 +101,7 @@ public sealed class MorphShapeDefinition : IDrawable
                         endPen = endMove;
 
                     var bothMove = startChange.MoveTo is not null || endChange.MoveTo is not null;
-                    records.Add(startChange with { MoveTo = bothMove ? LerpPoint(startPen, endPen, a, b) : startChange.MoveTo });
+                    records.Add(new StyleChangeRecord(bothMove ? LerpPoint(startPen, endPen, a, b) : startChange.MoveTo, startChange.FillStyle0, startChange.FillStyle1, startChange.LineStyle, startChange.NewStyles));
                     si++;
                     ei++;
                     break;
@@ -114,7 +114,7 @@ public sealed class MorphShapeDefinition : IDrawable
                         startOnlyMove = LerpPoint(startPen, endPen, a, b);
                     }
 
-                    records.Add(onlyStart with { MoveTo = startOnlyMove });
+                    records.Add(new StyleChangeRecord(startOnlyMove, onlyStart.FillStyle0, onlyStart.FillStyle1, onlyStart.LineStyle, onlyStart.NewStyles));
                     startPen = UpdatePen(startPen, s);
                     si++;
                     break;
@@ -127,7 +127,7 @@ public sealed class MorphShapeDefinition : IDrawable
                         endOnlyMove = LerpPoint(startPen, endPen, a, b);
                     }
 
-                    records.Add(onlyEnd with { MoveTo = endOnlyMove });
+                    records.Add(new StyleChangeRecord(endOnlyMove, onlyEnd.FillStyle0, onlyEnd.FillStyle1, onlyEnd.LineStyle, onlyEnd.NewStyles));
                     endPen = UpdatePen(endPen, s);
                     ei++;
                     break;

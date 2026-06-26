@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Tags;
 
-public sealed record UnknownTag(TagMetadata Metadata, ReadOnlyMemory<byte> Data) : Tag(Metadata)
+public sealed class UnknownTag : Tag
 {
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public UnknownTag(TagMetadata metadata, ReadOnlyMemory<byte> data) : base(metadata)
+    {
+        Data = data;
+    }
+
     public static UnknownTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new UnknownTag(metadata, reader.ReadMemoryToEnd());

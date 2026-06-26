@@ -1,12 +1,37 @@
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record ConvolutionFilter(byte NumMatrixRows, byte NumMatrixColumns, float[] Matrix, float Divisor, float Bias, Color DefaultColor, ConvolutionFilterFlags Flags) : Filter
+public sealed class ConvolutionFilter : Filter
 {
+    public byte NumMatrixRows { get; set; }
+
+    public byte NumMatrixColumns { get; set; }
+
+    public float[] Matrix { get; set; }
+
+    public float Divisor { get; set; }
+
+    public float Bias { get; set; }
+
+    public Color DefaultColor { get; set; }
+
+    public ConvolutionFilterFlags Flags { get; set; }
+
     public bool IsClamped =>
         Flags.HasFlag(ConvolutionFilterFlags.Clamp);
 
     public bool IsPreserveAlpha =>
         Flags.HasFlag(ConvolutionFilterFlags.PreserveAlpha);
+
+    public ConvolutionFilter(byte numMatrixRows, byte numMatrixColumns, float[] matrix, float divisor, float bias, Color defaultColor, ConvolutionFilterFlags flags)
+    {
+        NumMatrixRows = numMatrixRows;
+        NumMatrixColumns = numMatrixColumns;
+        Matrix = matrix;
+        Divisor = divisor;
+        Bias = bias;
+        DefaultColor = defaultColor;
+        Flags = flags;
+    }
 
     public static ConvolutionFilter DecodeBody(MemoryReader reader)
     {

@@ -1,7 +1,15 @@
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record GlowFilter(Color Color, FixedPoint2 Blur, Fixed8 Strength, GlowFilterFlags Flags) : Filter
+public sealed class GlowFilter : Filter
 {
+    public Color Color { get; set; }
+
+    public FixedPoint2 Blur { get; set; }
+
+    public Fixed8 Strength { get; set; }
+
+    public GlowFilterFlags Flags { get; set; }
+
     public bool IsInner =>
         Flags.HasFlag(GlowFilterFlags.InnerGlow);
 
@@ -13,6 +21,14 @@ public sealed record GlowFilter(Color Color, FixedPoint2 Blur, Fixed8 Strength, 
 
     public byte Passes =>
         (byte)(Flags & GlowFilterFlags.Passes);
+
+    public GlowFilter(Color color, FixedPoint2 blur, Fixed8 strength, GlowFilterFlags flags)
+    {
+        Color = color;
+        Blur = blur;
+        Strength = strength;
+        Flags = flags;
+    }
 
     public BlurFilter GetInnerBlurFilter()
     {

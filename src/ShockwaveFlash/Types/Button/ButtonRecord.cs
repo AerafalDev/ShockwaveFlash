@@ -2,8 +2,33 @@ using ShockwaveFlash.Types.DisplayList;
 
 namespace ShockwaveFlash.Types.Button;
 
-public sealed record ButtonRecord(ButtonStates States, ushort Id, ushort Depth, Matrix Matrix, ColorTransform ColorTransform, Filter.Filter[] Filters, BlendMode BlendMode)
+public sealed class ButtonRecord
 {
+    public ButtonStates States { get; set; }
+
+    public ushort Id { get; set; }
+
+    public ushort Depth { get; set; }
+
+    public Matrix Matrix { get; set; }
+
+    public ColorTransform ColorTransform { get; set; }
+
+    public Filter.Filter[] Filters { get; set; }
+
+    public BlendMode BlendMode { get; set; }
+
+    public ButtonRecord(ButtonStates states, ushort id, ushort depth, Matrix matrix, ColorTransform colorTransform, Filter.Filter[] filters, BlendMode blendMode)
+    {
+        States = states;
+        Id = id;
+        Depth = depth;
+        Matrix = matrix;
+        ColorTransform = colorTransform;
+        Filters = filters;
+        BlendMode = blendMode;
+    }
+
     public static ButtonRecord? Decode(MemoryReader reader, byte buttonVersion)
     {
         var flags = reader.ReadUInt8();

@@ -2,8 +2,18 @@ using ShockwaveFlash.Types.Control;
 
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record ImportAssets2Tag(TagMetadata Metadata, string Url, AssetReference[] Assets) : Tag(Metadata)
+public sealed class ImportAssets2Tag : Tag
 {
+    public string Url { get; set; }
+
+    public AssetReference[] Assets { get; set; }
+
+    public ImportAssets2Tag(TagMetadata metadata, string url, AssetReference[] assets) : base(metadata)
+    {
+        Url = url;
+        Assets = assets;
+    }
+
     public static ImportAssets2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var url = reader.ReadNullTerminatedString();

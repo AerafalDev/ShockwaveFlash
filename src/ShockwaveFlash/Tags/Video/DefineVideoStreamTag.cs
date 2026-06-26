@@ -2,16 +2,33 @@ using ShockwaveFlash.Types.Video;
 
 namespace ShockwaveFlash.Tags.Video;
 
-public sealed record DefineVideoStreamTag(
-    TagMetadata Metadata,
-    ushort Id,
-    ushort NumFrames,
-    ushort Width,
-    ushort Height,
-    bool IsSmoothed,
-    VideoDeblocking Deblocking,
-    VideoCodec Codec) : Tag(Metadata)
+public sealed class DefineVideoStreamTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public ushort NumFrames { get; set; }
+
+    public ushort Width { get; set; }
+
+    public ushort Height { get; set; }
+
+    public bool IsSmoothed { get; set; }
+
+    public VideoDeblocking Deblocking { get; set; }
+
+    public VideoCodec Codec { get; set; }
+
+    public DefineVideoStreamTag(TagMetadata metadata, ushort id, ushort numFrames, ushort width, ushort height, bool isSmoothed, VideoDeblocking deblocking, VideoCodec codec) : base(metadata)
+    {
+        Id = id;
+        NumFrames = numFrames;
+        Width = width;
+        Height = height;
+        IsSmoothed = isSmoothed;
+        Deblocking = deblocking;
+        Codec = codec;
+    }
+
     public static DefineVideoStreamTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

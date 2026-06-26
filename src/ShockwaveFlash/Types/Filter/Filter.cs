@@ -2,7 +2,7 @@ using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Types.Filter;
 
-public abstract record Filter
+public abstract class Filter
 {
     public static Filter Decode(MemoryReader reader)
     {

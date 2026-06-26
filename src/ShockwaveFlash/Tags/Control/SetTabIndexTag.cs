@@ -1,7 +1,17 @@
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record SetTabIndexTag(TagMetadata Metadata, ushort Depth, ushort TabIndex) : Tag(Metadata)
+public sealed class SetTabIndexTag : Tag
 {
+    public ushort Depth { get; set; }
+
+    public ushort TabIndex { get; set; }
+
+    public SetTabIndexTag(TagMetadata metadata, ushort depth, ushort tabIndex) : base(metadata)
+    {
+        Depth = depth;
+        TabIndex = tabIndex;
+    }
+
     public static SetTabIndexTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new SetTabIndexTag(metadata, reader.ReadUInt16(), reader.ReadUInt16());

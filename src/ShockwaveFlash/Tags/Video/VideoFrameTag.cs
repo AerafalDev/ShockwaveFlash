@@ -1,8 +1,21 @@
 
 namespace ShockwaveFlash.Tags.Video;
 
-public sealed record VideoFrameTag(TagMetadata Metadata, ushort Id, ushort FrameNum, ReadOnlyMemory<byte> Data) : Tag(Metadata)
+public sealed class VideoFrameTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public ushort FrameNum { get; set; }
+
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public VideoFrameTag(TagMetadata metadata, ushort id, ushort frameNum, ReadOnlyMemory<byte> data) : base(metadata)
+    {
+        Id = id;
+        FrameNum = frameNum;
+        Data = data;
+    }
+
     public static VideoFrameTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

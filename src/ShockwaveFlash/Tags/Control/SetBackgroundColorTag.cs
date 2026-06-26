@@ -2,8 +2,15 @@ using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record SetBackgroundColorTag(TagMetadata Metadata, Color BackgroundColor) : Tag(Metadata)
+public sealed class SetBackgroundColorTag : Tag
 {
+    public Color BackgroundColor { get; set; }
+
+    public SetBackgroundColorTag(TagMetadata metadata, Color backgroundColor) : base(metadata)
+    {
+        BackgroundColor = backgroundColor;
+    }
+
     public static SetBackgroundColorTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new SetBackgroundColorTag(metadata, Color.DecodeRgb(reader));

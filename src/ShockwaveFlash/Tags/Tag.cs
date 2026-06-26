@@ -18,7 +18,7 @@ using ShockwaveFlash.Tags.Video;
 namespace ShockwaveFlash.Tags;
 
 [DebuggerDisplay("{Metadata.Code,nq}")]
-public abstract record Tag(TagMetadata Metadata)
+public abstract class Tag
 {
     private const int MaxShortTagLength = 63;
     private const int MaxNestingDepth = 256;
@@ -28,6 +28,13 @@ public abstract record Tag(TagMetadata Metadata)
 
     [ThreadStatic]
     private static bool s_lenient;
+
+    public TagMetadata Metadata { get; set; }
+
+    protected Tag(TagMetadata metadata)
+    {
+        Metadata = metadata;
+    }
 
     public abstract void Encode(MemoryWriter writer, byte swfVersion);
 

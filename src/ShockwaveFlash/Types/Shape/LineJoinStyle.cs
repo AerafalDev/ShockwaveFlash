@@ -1,3 +1,5 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public abstract record LineJoinStyle;
+public abstract class LineJoinStyle
+{
+}

@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Tags.DisplayList;
 
-public sealed record RemoveObject2Tag(TagMetadata Metadata, ushort Depth) : Tag(Metadata)
+public sealed class RemoveObject2Tag : Tag
 {
+    public ushort Depth { get; set; }
+
+    public RemoveObject2Tag(TagMetadata metadata, ushort depth) : base(metadata)
+    {
+        Depth = depth;
+    }
+
     public static RemoveObject2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new RemoveObject2Tag(metadata, reader.ReadUInt16());

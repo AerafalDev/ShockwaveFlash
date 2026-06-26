@@ -1,7 +1,9 @@
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record ColorMatrixFilter(float[] Matrix) : Filter
+public sealed class ColorMatrixFilter : Filter
 {
+    public float[] Matrix { get; set; }
+
     public static ColorMatrixFilter Identity =>
         new([
             1f, 0f, 0f, 0f, 0f, // r
@@ -12,6 +14,11 @@ public sealed record ColorMatrixFilter(float[] Matrix) : Filter
 
     public bool Impotent =>
         Matrix.SequenceEqual(Identity.Matrix);
+
+    public ColorMatrixFilter(float[] matrix)
+    {
+        Matrix = matrix;
+    }
 
     public ColorMatrixFilter() : this(Identity.Matrix)
     {

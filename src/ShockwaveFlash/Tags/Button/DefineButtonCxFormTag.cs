@@ -2,8 +2,18 @@ using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.Tags.Button;
 
-public sealed record DefineButtonCxFormTag(TagMetadata Metadata, ushort Id, IReadOnlyList<ColorTransform> ColorTransforms) : Tag(Metadata)
+public sealed class DefineButtonCxFormTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public IReadOnlyList<ColorTransform> ColorTransforms { get; set; }
+
+    public DefineButtonCxFormTag(TagMetadata metadata, ushort id, IReadOnlyList<ColorTransform> colorTransforms) : base(metadata)
+    {
+        Id = id;
+        ColorTransforms = colorTransforms;
+    }
+
     public static DefineButtonCxFormTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

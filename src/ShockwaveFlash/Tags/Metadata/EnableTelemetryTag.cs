@@ -1,8 +1,15 @@
 
 namespace ShockwaveFlash.Tags.Metadata;
 
-public sealed record EnableTelemetryTag(TagMetadata Metadata, ReadOnlyMemory<byte> PasswordHash) : Tag(Metadata)
+public sealed class EnableTelemetryTag : Tag
 {
+    public ReadOnlyMemory<byte> PasswordHash { get; set; }
+
+    public EnableTelemetryTag(TagMetadata metadata, ReadOnlyMemory<byte> passwordHash) : base(metadata)
+    {
+        PasswordHash = passwordHash;
+    }
+
     public static EnableTelemetryTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         reader.Advance(sizeof(ushort));

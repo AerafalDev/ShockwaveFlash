@@ -2,8 +2,24 @@ using ShockwaveFlash.Types.Sound;
 
 namespace ShockwaveFlash.Tags.Sound;
 
-public sealed record SoundStreamHead2Tag(TagMetadata Metadata, SoundFormat StreamFormat, SoundFormat PlaybackFormat, ushort NumSamplesPerBlock, short LatencySeek) : Tag(Metadata)
+public sealed class SoundStreamHead2Tag : Tag
 {
+    public SoundFormat StreamFormat { get; set; }
+
+    public SoundFormat PlaybackFormat { get; set; }
+
+    public ushort NumSamplesPerBlock { get; set; }
+
+    public short LatencySeek { get; set; }
+
+    public SoundStreamHead2Tag(TagMetadata metadata, SoundFormat streamFormat, SoundFormat playbackFormat, ushort numSamplesPerBlock, short latencySeek) : base(metadata)
+    {
+        StreamFormat = streamFormat;
+        PlaybackFormat = playbackFormat;
+        NumSamplesPerBlock = numSamplesPerBlock;
+        LatencySeek = latencySeek;
+    }
+
     public static SoundStreamHead2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var streamFormat = SoundFormat.Decode(reader);

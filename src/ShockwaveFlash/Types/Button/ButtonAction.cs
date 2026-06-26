@@ -2,8 +2,18 @@ using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Types.Button;
 
-public sealed record ButtonAction(ButtonActionCondition Conditions, ReadOnlyMemory<byte> Data)
+public sealed class ButtonAction
 {
+    public ButtonActionCondition Conditions { get; set; }
+
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public ButtonAction(ButtonActionCondition conditions, ReadOnlyMemory<byte> data)
+    {
+        Conditions = conditions;
+        Data = data;
+    }
+
     public static (ButtonAction, bool) Decode(MemoryReader reader)
     {
         var length = reader.ReadUInt16();

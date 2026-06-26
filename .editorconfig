@@ -37,5 +37,9 @@ dotnet_diagnostic.CA1711.severity = none
 dotnet_diagnostic.CA1708.severity = none
 dotnet_diagnostic.CA1720.severity = none
 
+# This library uses explicit constructors, never C# primary constructors.
+csharp_style_prefer_primary_constructors = false
+dotnet_diagnostic.IDE0290.severity = none
+
 [*.{g.cs,generated.cs}]
 generated_code = true

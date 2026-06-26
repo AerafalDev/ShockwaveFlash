@@ -4,8 +4,20 @@ using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name, Language Language, FontLayout? Layout, FontGlyph[] Glyphs, FontFlags Flags) : Tag(Metadata)
+public sealed class DefineFont2Tag : Tag
 {
+    public ushort Id { get; set; }
+
+    public string Name { get; set; }
+
+    public Language Language { get; set; }
+
+    public FontLayout? Layout { get; set; }
+
+    public FontGlyph[] Glyphs { get; set; }
+
+    public FontFlags Flags { get; set; }
+
     public bool IsBold =>
         Flags.HasFlag(FontFlags.IsBold);
 
@@ -29,6 +41,16 @@ public sealed record DefineFont2Tag(TagMetadata Metadata, ushort Id, string Name
 
     public bool HasLayout =>
         Flags.HasFlag(FontFlags.HasLayout);
+
+    public DefineFont2Tag(TagMetadata metadata, ushort id, string name, Language language, FontLayout? layout, FontGlyph[] glyphs, FontFlags flags) : base(metadata)
+    {
+        Id = id;
+        Name = name;
+        Language = language;
+        Layout = layout;
+        Glyphs = glyphs;
+        Flags = flags;
+    }
 
     public static DefineFont2Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {

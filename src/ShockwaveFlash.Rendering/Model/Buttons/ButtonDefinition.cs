@@ -44,7 +44,7 @@ public sealed class ButtonDefinition : IDrawable
 
     public IDrawable TransformColors(ColorTransform colorTransform)
     {
-        return new ButtonDefinition(_characters, [.. _records.Select(record => record with { ColorTransform = colorTransform.Merge(record.ColorTransform) })], _state);
+        return new ButtonDefinition(_characters, [.. _records.Select(record => new ButtonRecord(record.States, record.Id, record.Depth, record.Matrix, colorTransform.Merge(record.ColorTransform), record.Filters, record.BlendMode))], _state);
     }
 
     public ButtonDefinition ForState(ButtonStates state)

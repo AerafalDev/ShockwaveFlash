@@ -2,8 +2,18 @@ using ShockwaveFlash.Types;
 
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record DefineScalingGridTag(TagMetadata Metadata, ushort Id, Rectangle Splitter) : Tag(Metadata)
+public sealed class DefineScalingGridTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public Rectangle Splitter { get; set; }
+
+    public DefineScalingGridTag(TagMetadata metadata, ushort id, Rectangle splitter) : base(metadata)
+    {
+        Id = id;
+        Splitter = splitter;
+    }
+
     public static DefineScalingGridTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new DefineScalingGridTag(metadata, reader.ReadUInt16(), Rectangle.Decode(reader));

@@ -1,7 +1,17 @@
 namespace ShockwaveFlash.Types.Shape;
 
-public sealed record ShapeStyles(FillStyle[] FillStyles, LineStyle[] LineStyles)
+public sealed class ShapeStyles
 {
+    public FillStyle[] FillStyles { get; set; }
+
+    public LineStyle[] LineStyles { get; set; }
+
+    public ShapeStyles(FillStyle[] fillStyles, LineStyle[] lineStyles)
+    {
+        FillStyles = fillStyles;
+        LineStyles = lineStyles;
+    }
+
     public static (ShapeStyles, byte, byte) Decode(MemoryReader reader, byte swfVersion, byte shapeVersion)
     {
         ushort numFillStyle = reader.ReadUInt8();

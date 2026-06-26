@@ -5,24 +5,38 @@ using ShockwaveFlash.Types.Filter;
 
 namespace ShockwaveFlash.Tags.DisplayList;
 
-public sealed record PlaceObject3Tag(
-    TagMetadata Metadata,
-    PlaceObjectAction Action,
-    ushort Depth,
-    string? ClassName,
-    Matrix? Matrix,
-    ColorTransform? ColorTransform,
-    PlaceObjectFlags Flags,
-    ushort? Ratio,
-    string? Name,
-    ushort? ClipDepth,
-    Filter[]? Filters,
-    BlendMode? BlendMode,
-    bool? IsBitmapCached,
-    bool? IsVisible,
-    Color? BackgroundColor,
-    IReadOnlyList<ClipAction>? ClipActions) : Tag(Metadata)
+public sealed class PlaceObject3Tag : Tag
 {
+    public PlaceObjectAction Action { get; set; }
+
+    public ushort Depth { get; set; }
+
+    public string? ClassName { get; set; }
+
+    public Matrix? Matrix { get; set; }
+
+    public ColorTransform? ColorTransform { get; set; }
+
+    public PlaceObjectFlags Flags { get; set; }
+
+    public ushort? Ratio { get; set; }
+
+    public string? Name { get; set; }
+
+    public ushort? ClipDepth { get; set; }
+
+    public Filter[]? Filters { get; set; }
+
+    public BlendMode? BlendMode { get; set; }
+
+    public bool? IsBitmapCached { get; set; }
+
+    public bool? IsVisible { get; set; }
+
+    public Color? BackgroundColor { get; set; }
+
+    public IReadOnlyList<ClipAction>? ClipActions { get; set; }
+
     public bool Move =>
         Flags.HasFlag(PlaceObjectFlags.Move);
 
@@ -67,6 +81,25 @@ public sealed record PlaceObject3Tag(
 
     public bool OpaqueBackground =>
         Flags.HasFlag(PlaceObjectFlags.OpaqueBackground);
+
+    public PlaceObject3Tag(TagMetadata metadata, PlaceObjectAction action, ushort depth, string? className, Matrix? matrix, ColorTransform? colorTransform, PlaceObjectFlags flags, ushort? ratio, string? name, ushort? clipDepth, Filter[]? filters, BlendMode? blendMode, bool? isBitmapCached, bool? isVisible, Color? backgroundColor, IReadOnlyList<ClipAction>? clipActions) : base(metadata)
+    {
+        Action = action;
+        Depth = depth;
+        ClassName = className;
+        Matrix = matrix;
+        ColorTransform = colorTransform;
+        Flags = flags;
+        Ratio = ratio;
+        Name = name;
+        ClipDepth = clipDepth;
+        Filters = filters;
+        BlendMode = blendMode;
+        IsBitmapCached = isBitmapCached;
+        IsVisible = isVisible;
+        BackgroundColor = backgroundColor;
+        ClipActions = clipActions;
+    }
 
     public static PlaceObject3Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {

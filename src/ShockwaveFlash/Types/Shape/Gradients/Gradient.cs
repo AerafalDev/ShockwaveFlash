@@ -1,7 +1,23 @@
 namespace ShockwaveFlash.Types.Shape.Gradients;
 
-public sealed record Gradient(Matrix Matrix, GradientSpread Spread, GradientInterpolation Interpolation, GradientRecord[] Records)
+public sealed class Gradient
 {
+    public Matrix Matrix { get; set; }
+
+    public GradientSpread Spread { get; set; }
+
+    public GradientInterpolation Interpolation { get; set; }
+
+    public GradientRecord[] Records { get; set; }
+
+    public Gradient(Matrix matrix, GradientSpread spread, GradientInterpolation interpolation, GradientRecord[] records)
+    {
+        Matrix = matrix;
+        Spread = spread;
+        Interpolation = interpolation;
+        Records = records;
+    }
+
     public static Gradient Decode(MemoryReader reader, byte shapeVersion)
     {
         var matrix = Matrix.Decode(reader);

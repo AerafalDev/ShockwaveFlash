@@ -3,14 +3,27 @@ using ShockwaveFlash.Types.Sound;
 
 namespace ShockwaveFlash.Tags.Button;
 
-public sealed record DefineButtonSoundTag(
-    TagMetadata Metadata,
-    ushort Id,
-    ButtonSound? OverToUpSound,
-    ButtonSound? UpToOverSound,
-    ButtonSound? OverToDownSound,
-    ButtonSound? DownToOverSound) : Tag(Metadata)
+public sealed class DefineButtonSoundTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public ButtonSound? OverToUpSound { get; set; }
+
+    public ButtonSound? UpToOverSound { get; set; }
+
+    public ButtonSound? OverToDownSound { get; set; }
+
+    public ButtonSound? DownToOverSound { get; set; }
+
+    public DefineButtonSoundTag(TagMetadata metadata, ushort id, ButtonSound? overToUpSound, ButtonSound? upToOverSound, ButtonSound? overToDownSound, ButtonSound? downToOverSound) : base(metadata)
+    {
+        Id = id;
+        OverToUpSound = overToUpSound;
+        UpToOverSound = upToOverSound;
+        OverToDownSound = overToDownSound;
+        DownToOverSound = downToOverSound;
+    }
+
     public static DefineButtonSoundTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

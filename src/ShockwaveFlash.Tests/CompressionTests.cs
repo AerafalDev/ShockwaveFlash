@@ -9,7 +9,7 @@ public sealed class CompressionTests
     public void Lzma_compressed_movie_round_trips_to_an_equal_model()
     {
         var source = ShockwaveFlashFile.Disassemble(SwfTestData.MinimalUncompressed());
-        var lzma = source with { Header = source.Header with { Compression = ShockwaveFlashCompression.Lzma } };
+        var lzma = new ShockwaveFlashFile(source.Header with { Compression = ShockwaveFlashCompression.Lzma }, source.Tags);
 
         var bytes = lzma.Assemble();
         bytes.Span[0].ShouldBe((byte)'Z');

@@ -1,8 +1,21 @@
 
 namespace ShockwaveFlash.Types.DisplayList;
 
-public sealed record ClipAction(ClipEventFlags Events, KeyCode? KeyCode, ReadOnlyMemory<byte> Data)
+public sealed class ClipAction
 {
+    public ClipEventFlags Events { get; set; }
+
+    public KeyCode? KeyCode { get; set; }
+
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public ClipAction(ClipEventFlags events, KeyCode? keyCode, ReadOnlyMemory<byte> data)
+    {
+        Events = events;
+        KeyCode = keyCode;
+        Data = data;
+    }
+
     public static IReadOnlyList<ClipAction> DecodeCollection(MemoryReader reader, byte swfVersion)
     {
         _ = reader.ReadUInt16();

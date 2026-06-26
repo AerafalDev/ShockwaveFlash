@@ -1,7 +1,20 @@
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed record DefineFontNameTag(TagMetadata Metadata, ushort Id, string FontName, string Copyright) : Tag(Metadata)
+public sealed class DefineFontNameTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public string FontName { get; set; }
+
+    public string Copyright { get; set; }
+
+    public DefineFontNameTag(TagMetadata metadata, ushort id, string fontName, string copyright) : base(metadata)
+    {
+        Id = id;
+        FontName = fontName;
+        Copyright = copyright;
+    }
+
     public static DefineFontNameTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

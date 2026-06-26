@@ -1,4 +1,5 @@
 using ShockwaveFlash;
+using ShockwaveFlash.Tags;
 using ShockwaveFlash.Tags.Control;
 using ShockwaveFlash.Types;
 using Shouldly;
@@ -12,11 +13,17 @@ public sealed class EditingTests
         return ShockwaveFlashFile.Disassemble(SwfTestData.MinimalUncompressed());
     }
 
+    private static SetBackgroundColorTag CloneBackground(Tag tag)
+    {
+        var background = (SetBackgroundColorTag)tag;
+        return new SetBackgroundColorTag(background.Metadata, background.BackgroundColor);
+    }
+
     [Fact]
     public void AppendTag_adds_at_the_end_and_round_trips()
     {
         var swf = Movie();
-        var edited = swf.AppendTag(swf.Tags[0] with { });
+        var edited = swf.AppendTag(CloneBackground(swf.Tags[0]));
 
         edited.Tags.Count.ShouldBe(swf.Tags.Count + 1);
         ShockwaveFlashFile.Disassemble(edited.Assemble()).Tags.Count.ShouldBe(edited.Tags.Count);
@@ -26,7 +33,7 @@ public sealed class EditingTests
     public void InsertTag_places_the_tag_at_the_index()
     {
         var swf = Movie();
-        var clone = swf.Tags[0] with { };
+        var clone = CloneBackground(swf.Tags[0]);
         var edited = swf.InsertTag(1, clone);
 
         edited.Tags[1].ShouldBeSameAs(clone);
@@ -59,10 +66,10 @@ public sealed class EditingTests
     {
         var swf = Movie();
         var original = (SetBackgroundColorTag)swf.Tags[0];
-        var duplicate = original with { };
-        var file = swf with { Tags = [original, duplicate, .. swf.Tags.Skip(1)] };
+        var duplicate = new SetBackgroundColorTag(original.Metadata, original.BackgroundColor);
+        var file = new ShockwaveFlashFile(swf.Header, [original, duplicate, .. swf.Tags.Skip(1)]);
 
-        var replacement = original with { BackgroundColor = new Color(1, 2, 3, 4) };
+        var replacement = new SetBackgroundColorTag(original.Metadata, new Color(1, 2, 3, 4));
         var edited = file.ReplaceTag(duplicate, replacement);
 
         edited.Tags[0].ShouldBeSameAs(original);
@@ -73,7 +80,7 @@ public sealed class EditingTests
     public void ReplaceTag_throws_when_the_tag_is_not_in_the_file()
     {
         var swf = Movie();
-        var foreign = swf.Tags[0] with { };
+        var foreign = CloneBackground(swf.Tags[0]);
 
         Should.Throw<ArgumentException>(() => swf.ReplaceTag(foreign, foreign));
     }

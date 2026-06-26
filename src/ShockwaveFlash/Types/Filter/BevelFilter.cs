@@ -1,7 +1,21 @@
 namespace ShockwaveFlash.Types.Filter;
 
-public sealed record BevelFilter(Color ShadowColor, Color HighlightColor, FixedPoint2 Blur, Fixed16 Angle, Fixed16 Distance, Fixed8 Strength, BevelFilterFlags Flags) : Filter
+public sealed class BevelFilter : Filter
 {
+    public Color ShadowColor { get; set; }
+
+    public Color HighlightColor { get; set; }
+
+    public FixedPoint2 Blur { get; set; }
+
+    public Fixed16 Angle { get; set; }
+
+    public Fixed16 Distance { get; set; }
+
+    public Fixed8 Strength { get; set; }
+
+    public BevelFilterFlags Flags { get; set; }
+
     public bool IsInner =>
         Flags.HasFlag(BevelFilterFlags.InnerShadow);
 
@@ -13,6 +27,17 @@ public sealed record BevelFilter(Color ShadowColor, Color HighlightColor, FixedP
 
     public byte Passes =>
         (byte)(Flags & BevelFilterFlags.Passes);
+
+    public BevelFilter(Color shadowColor, Color highlightColor, FixedPoint2 blur, Fixed16 angle, Fixed16 distance, Fixed8 strength, BevelFilterFlags flags)
+    {
+        ShadowColor = shadowColor;
+        HighlightColor = highlightColor;
+        Blur = blur;
+        Angle = angle;
+        Distance = distance;
+        Strength = strength;
+        Flags = flags;
+    }
 
     public BlurFilter GetInnerBlurFilter()
     {

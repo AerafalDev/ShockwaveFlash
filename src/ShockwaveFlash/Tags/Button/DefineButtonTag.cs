@@ -2,8 +2,21 @@ using ShockwaveFlash.Types.Button;
 
 namespace ShockwaveFlash.Tags.Button;
 
-public sealed record DefineButtonTag(TagMetadata Metadata, ushort Id, IReadOnlyList<ButtonRecord> Records, IReadOnlyList<ButtonAction> Actions) : Tag(Metadata)
+public sealed class DefineButtonTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public IReadOnlyList<ButtonRecord> Records { get; set; }
+
+    public IReadOnlyList<ButtonAction> Actions { get; set; }
+
+    public DefineButtonTag(TagMetadata metadata, ushort id, IReadOnlyList<ButtonRecord> records, IReadOnlyList<ButtonAction> actions) : base(metadata)
+    {
+        Id = id;
+        Records = records;
+        Actions = actions;
+    }
+
     public static DefineButtonTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

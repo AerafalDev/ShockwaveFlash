@@ -1,7 +1,20 @@
 namespace ShockwaveFlash.Types.Font;
 
-public sealed record FontKerning(ushort LeftCode, ushort RightCode, short Adjustment)
+public sealed class FontKerning
 {
+    public ushort LeftCode { get; set; }
+
+    public ushort RightCode { get; set; }
+
+    public short Adjustment { get; set; }
+
+    public FontKerning(ushort leftCode, ushort rightCode, short adjustment)
+    {
+        LeftCode = leftCode;
+        RightCode = rightCode;
+        Adjustment = adjustment;
+    }
+
     public static FontKerning Decode(MemoryReader reader, bool wideCodes)
     {
         var leftCode = wideCodes ? reader.ReadUInt16() : reader.ReadUInt8();

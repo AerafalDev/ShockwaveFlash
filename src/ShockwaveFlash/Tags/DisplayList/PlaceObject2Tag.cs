@@ -4,18 +4,26 @@ using ShockwaveFlash.Types.DisplayList;
 
 namespace ShockwaveFlash.Tags.DisplayList;
 
-public sealed record PlaceObject2Tag(
-    TagMetadata Metadata,
-    PlaceObjectAction Action,
-    ushort Depth,
-    Matrix? Matrix,
-    ColorTransform? ColorTransform,
-    PlaceObjectFlags Flags,
-    ushort? Ratio,
-    string? Name,
-    ushort? ClipDepth,
-    IReadOnlyList<ClipAction>? ClipActions) : Tag(Metadata)
+public sealed class PlaceObject2Tag : Tag
 {
+    public PlaceObjectAction Action { get; set; }
+
+    public ushort Depth { get; set; }
+
+    public Matrix? Matrix { get; set; }
+
+    public ColorTransform? ColorTransform { get; set; }
+
+    public PlaceObjectFlags Flags { get; set; }
+
+    public ushort? Ratio { get; set; }
+
+    public string? Name { get; set; }
+
+    public ushort? ClipDepth { get; set; }
+
+    public IReadOnlyList<ClipAction>? ClipActions { get; set; }
+
     public bool Move =>
         Flags.HasFlag(PlaceObjectFlags.Move);
 
@@ -39,6 +47,19 @@ public sealed record PlaceObject2Tag(
 
     public bool HasClipActions =>
         Flags.HasFlag(PlaceObjectFlags.HasClipActions);
+
+    public PlaceObject2Tag(TagMetadata metadata, PlaceObjectAction action, ushort depth, Matrix? matrix, ColorTransform? colorTransform, PlaceObjectFlags flags, ushort? ratio, string? name, ushort? clipDepth, IReadOnlyList<ClipAction>? clipActions) : base(metadata)
+    {
+        Action = action;
+        Depth = depth;
+        Matrix = matrix;
+        ColorTransform = colorTransform;
+        Flags = flags;
+        Ratio = ratio;
+        Name = name;
+        ClipDepth = clipDepth;
+        ClipActions = clipActions;
+    }
 
     public static PlaceObject2Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
     {

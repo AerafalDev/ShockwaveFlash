@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Tags.Control;
 
-public sealed record ProtectTag(TagMetadata Metadata, string? PasswordHash) : Tag(Metadata)
+public sealed class ProtectTag : Tag
 {
+    public string? PasswordHash { get; set; }
+
+    public ProtectTag(TagMetadata metadata, string? passwordHash) : base(metadata)
+    {
+        PasswordHash = passwordHash;
+    }
+
     public static ProtectTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         return new ProtectTag(metadata, metadata.Length > 0 ? reader.ReadNullTerminatedString() : null);

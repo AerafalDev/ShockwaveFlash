@@ -1,3 +1,11 @@
 namespace ShockwaveFlash.Types.Sound;
 
-public sealed record SoundEnvelope(SoundEnvelopePoint[] Points);
+public sealed class SoundEnvelope
+{
+    public SoundEnvelopePoint[] Points { get; set; }
+
+    public SoundEnvelope(SoundEnvelopePoint[] points)
+    {
+        Points = points;
+    }
+}

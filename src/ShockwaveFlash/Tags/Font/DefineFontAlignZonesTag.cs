@@ -2,8 +2,21 @@ using ShockwaveFlash.Types.Font;
 
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed record DefineFontAlignZonesTag(TagMetadata Metadata, ushort Id, FontThickness Thickness, IReadOnlyList<FontAlignZone> Zones) : Tag(Metadata)
+public sealed class DefineFontAlignZonesTag : Tag
 {
+    public ushort Id { get; set; }
+
+    public FontThickness Thickness { get; set; }
+
+    public IReadOnlyList<FontAlignZone> Zones { get; set; }
+
+    public DefineFontAlignZonesTag(TagMetadata metadata, ushort id, FontThickness thickness, IReadOnlyList<FontAlignZone> zones) : base(metadata)
+    {
+        Id = id;
+        Thickness = thickness;
+        Zones = zones;
+    }
+
     public static DefineFontAlignZonesTag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();

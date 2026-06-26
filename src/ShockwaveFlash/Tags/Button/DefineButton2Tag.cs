@@ -2,8 +2,24 @@ using ShockwaveFlash.Types.Button;
 
 namespace ShockwaveFlash.Tags.Button;
 
-public sealed record DefineButton2Tag(TagMetadata Metadata, ushort Id, bool IsTrackAsMenu, IReadOnlyList<ButtonRecord> Records, IReadOnlyList<ButtonAction> Actions) : Tag(Metadata)
+public sealed class DefineButton2Tag : Tag
 {
+    public ushort Id { get; set; }
+
+    public bool IsTrackAsMenu { get; set; }
+
+    public IReadOnlyList<ButtonRecord> Records { get; set; }
+
+    public IReadOnlyList<ButtonAction> Actions { get; set; }
+
+    public DefineButton2Tag(TagMetadata metadata, ushort id, bool isTrackAsMenu, IReadOnlyList<ButtonRecord> records, IReadOnlyList<ButtonAction> actions) : base(metadata)
+    {
+        Id = id;
+        IsTrackAsMenu = isTrackAsMenu;
+        Records = records;
+        Actions = actions;
+    }
+
     public static DefineButton2Tag Decode(MemoryReader reader, TagMetadata metadata)
     {
         var id = reader.ReadUInt16();
