@@ -1,4 +1,5 @@
 using System.Globalization;
+using ShockwaveFlash.Avm1.Exceptions;
 using ShockwaveFlash.Avm1.Special;
 using ShockwaveFlash.Avm1.Swf4;
 using ShockwaveFlash.Avm1.Swf5;
@@ -8,26 +9,26 @@ namespace ShockwaveFlash.Avm1;
 
 public sealed class Avm1Machine
 {
-    private static readonly object s_undefined = new();
+    private readonly Stack<Avm1Value> _stack = new();
 
-    private readonly Stack<object?> _stack = new();
+    private readonly Avm1Object _globals = new();
 
-    private readonly Dictionary<string, object?> _globals = new(StringComparer.Ordinal);
+    private readonly HashSet<ActionOpcode> _unsupported = [];
 
     private IReadOnlyList<string> _constantPool = [];
 
-    public static object Undefined => s_undefined;
+    public Avm1Object Globals => _globals;
 
-    public IReadOnlyDictionary<string, object?> Globals => _globals;
+    public IReadOnlySet<ActionOpcode> UnsupportedOpcodes => _unsupported;
 
-    public static IReadOnlyDictionary<string, object?> Run(ReadOnlyMemory<byte> actions, byte swfVersion)
+    public static Avm1Object Run(ReadOnlyMemory<byte> actions, byte swfVersion, bool strict = false)
     {
         var machine = new Avm1Machine();
-        machine.Execute(Action.DecodeCollection(actions, swfVersion));
+        machine.Execute(Action.DecodeCollection(actions, swfVersion), strict);
         return machine.Globals;
     }
 
-    public void Execute(IReadOnlyList<Action> actions)
+    public void Execute(IReadOnlyList<Action> actions, bool strict = false)
     {
         foreach (var action in actions)
         {
@@ -45,23 +46,21 @@ public sealed class Avm1Machine
                 case ActionGetVariable:
                     {
                         var name = ToStr(Pop());
-                        _stack.Push(_globals.GetValueOrDefault(name, s_undefined));
+                        _stack.Push(_globals.Members.GetValueOrDefault(name, Avm1Value.Undefined));
                         break;
                     }
 
                 case ActionSetVariable:
                     {
                         var value = Pop();
-                        var name = ToStr(Pop());
-                        _globals[name] = value;
+                        _globals.Members[ToStr(Pop())] = value;
                         break;
                     }
 
                 case ActionGetMember:
                     {
                         var name = ToStr(Pop());
-                        var target = Pop();
-                        _stack.Push(target is Dictionary<string, object?> members && members.TryGetValue(name, out var value) ? value : s_undefined);
+                        _stack.Push(Pop() is Avm1Object members && members.Members.TryGetValue(name, out var value) ? value : Avm1Value.Undefined);
                         break;
                     }
 
@@ -69,19 +68,19 @@ public sealed class Avm1Machine
                     {
                         var value = Pop();
                         var name = ToStr(Pop());
-                        if (Pop() is Dictionary<string, object?> members)
-                            members[name] = value;
+                        if (Pop() is Avm1Object members)
+                            members.Members[name] = value;
                         break;
                     }
 
                 case ActionInitObject:
                     {
                         var count = (int)ToNum(Pop());
-                        var members = new Dictionary<string, object?>(StringComparer.Ordinal);
+                        var members = new Avm1Object();
                         for (var i = 0; i < count; i++)
                         {
                             var value = Pop();
-                            members[ToStr(Pop())] = value;
+                            members.Members[ToStr(Pop())] = value;
                         }
 
                         _stack.Push(members);
@@ -91,11 +90,11 @@ public sealed class Avm1Machine
                 case ActionInitArray:
                     {
                         var count = (int)ToNum(Pop());
-                        var items = new List<object?>(count);
+                        var items = new Avm1Array();
                         for (var i = 0; i < count; i++)
-                            items.Add(Pop());
+                            items.Items.Add(Pop());
 
-                        items.Reverse();
+                        items.Items.Reverse();
                         _stack.Push(items);
                         break;
                     }
@@ -104,7 +103,7 @@ public sealed class Avm1Machine
                     {
                         _ = ToStr(Pop());
                         DropArguments();
-                        _stack.Push(new Dictionary<string, object?>(StringComparer.Ordinal));
+                        _stack.Push(new Avm1Object());
                         break;
                     }
 
@@ -113,7 +112,7 @@ public sealed class Avm1Machine
                         _ = ToStr(Pop());
                         _ = Pop();
                         DropArguments();
-                        _stack.Push(s_undefined);
+                        _stack.Push(Avm1Value.Undefined);
                         break;
                     }
 
@@ -121,7 +120,25 @@ public sealed class Avm1Machine
                     {
                         _ = ToStr(Pop());
                         DropArguments();
-                        _stack.Push(s_undefined);
+                        _stack.Push(Avm1Value.Undefined);
+                        break;
+                    }
+
+                case ActionAdd2:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(left is Avm1String || right is Avm1String
+                            ? (Avm1Value)(ToStr(left) + ToStr(right))
+                            : ToNum(left) + ToNum(right));
+                        break;
+                    }
+
+                case ActionStringAdd:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(ToStr(left) + ToStr(right));
                         break;
                     }
 
@@ -133,35 +150,38 @@ public sealed class Avm1Machine
                     return;
 
                 default:
+                    if (strict)
+                        throw new Avm1UnsupportedActionException(action.Opcode);
+                    _unsupported.Add(action.Opcode);
                     break;
             }
         }
     }
 
-    private object? Resolve(PushValue value)
+    private Avm1Value Resolve(PushValue value)
     {
         return value switch
         {
             PushValue.PushValueString item => item.Value,
-            PushValue.PushValueInteger item => (double)item.Value,
+            PushValue.PushValueInteger item => item.Value,
             PushValue.PushValueFloat item => (double)item.Value,
             PushValue.PushValueDouble item => item.Value,
             PushValue.PushValueBoolean item => item.Value,
-            PushValue.PushValueNull => null,
+            PushValue.PushValueNull => Avm1Value.Null,
             PushValue.PushValueConstant8 item => Constant(item.ConstantIndex),
             PushValue.PushValueConstant16 item => Constant(item.ConstantIndex),
-            _ => s_undefined
+            _ => Avm1Value.Undefined
         };
     }
 
-    private object? Constant(int index)
+    private Avm1Value Constant(int index)
     {
-        return index >= 0 && index < _constantPool.Count ? _constantPool[index] : s_undefined;
+        return index >= 0 && index < _constantPool.Count ? _constantPool[index] : Avm1Value.Undefined;
     }
 
-    private object? Pop()
+    private Avm1Value Pop()
     {
-        return _stack.Count > 0 ? _stack.Pop() : s_undefined;
+        return _stack.Count > 0 ? _stack.Pop() : Avm1Value.Undefined;
     }
 
     private void DropArguments()
@@ -171,26 +191,27 @@ public sealed class Avm1Machine
             Pop();
     }
 
-    private static double ToNum(object? value)
+    private static double ToNum(Avm1Value value)
     {
         return value switch
         {
-            double number => number,
-            bool flag => flag ? 1 : 0,
-            string text => double.TryParse(text, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0,
+            Avm1Number number => number.Value,
+            Avm1Boolean flag => flag.Value ? 1 : 0,
+            Avm1String text => double.TryParse(text.Value, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0,
             _ => 0
         };
     }
 
-    private static string ToStr(object? value)
+    private static string ToStr(Avm1Value value)
     {
         return value switch
         {
-            null => "null",
-            string text => text,
-            bool flag => flag ? "true" : "false",
-            double number => FormatNumber(number),
-            _ => ReferenceEquals(value, s_undefined) ? "undefined" : value.ToString() ?? "null"
+            Avm1String text => text.Value,
+            Avm1Number number => FormatNumber(number.Value),
+            Avm1Boolean flag => flag.Value ? "true" : "false",
+            Avm1Null => "null",
+            Avm1Undefined => "undefined",
+            _ => value.ToString() ?? "null"
         };
     }
 

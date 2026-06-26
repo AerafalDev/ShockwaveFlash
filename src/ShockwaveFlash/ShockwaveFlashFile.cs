@@ -54,6 +54,18 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
         return file.WrittenMemory;
     }
 
+    public ShockwaveFlashFile ReplaceTag(Tag oldTag, Tag newTag)
+    {
+        var tags = Tags.ToList();
+        var index = tags.IndexOf(oldTag);
+
+        if (index < 0)
+            throw new ArgumentException("The tag to replace was not found in this file.", nameof(oldTag));
+
+        tags[index] = newTag;
+        return this with { Tags = tags };
+    }
+
     private int EstimateBodyCapacity()
     {
         long estimate = 64;

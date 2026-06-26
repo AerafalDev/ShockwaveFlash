@@ -215,7 +215,7 @@ public abstract record Action(ActionOpcode Opcode)
 
             case PushValue.PushValueDouble x:
                 writer.WriteUInt8(6);
-                Avm1Number.WriteDouble(writer, x.Value);
+                Avm1Double.WriteDouble(writer, x.Value);
                 break;
 
             case PushValue.PushValueInteger x:
