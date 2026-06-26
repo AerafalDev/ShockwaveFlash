@@ -9,10 +9,21 @@ public sealed record Frame(Rectangle Bounds, IReadOnlyList<FrameObject> Objects)
     {
         drawer.Area(Bounds);
 
+        var clips = new List<(int ClipDepth, string Id)>();
+
         foreach (var item in Objects)
         {
-            if (item.ClipDepth is not null)
+            while (clips.Count > 0 && clips[^1].ClipDepth < item.Depth)
+            {
+                drawer.EndClip(clips[^1].Id);
+                clips.RemoveAt(clips.Count - 1);
+            }
+
+            if (item.ClipDepth is { } clipDepth)
+            {
+                clips.Add((clipDepth, drawer.StartClip(item.Drawable, item.Matrix, frame)));
                 continue;
+            }
 
             var drawable = item.ColorTransform is { } colorTransform
                 ? item.Drawable.TransformColors(colorTransform)
@@ -20,6 +31,9 @@ public sealed record Frame(Rectangle Bounds, IReadOnlyList<FrameObject> Objects)
 
             drawer.Include(drawable, item.Matrix, frame, item.Filters, item.BlendMode, item.Name);
         }
+
+        for (var i = clips.Count - 1; i >= 0; i--)
+            drawer.EndClip(clips[i].Id);
     }
 
     public Frame TransformColors(ColorTransform colorTransform)

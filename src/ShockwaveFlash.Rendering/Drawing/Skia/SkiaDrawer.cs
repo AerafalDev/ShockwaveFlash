@@ -83,12 +83,22 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     public string StartClip(IDrawable drawable, Matrix matrix, int frame)
     {
-        throw new NotSupportedException("Clipping is not implemented yet.");
+        _canvas.Save();
+
+        using var clip = BuildClipPath(drawable);
+
+        if (clip is not null)
+        {
+            clip.Transform(LocalMatrix(matrix));
+            _canvas.ClipPath(clip, SKClipOperation.Intersect, true);
+        }
+
+        return string.Empty;
     }
 
     public void EndClip(string clipId)
     {
-        throw new NotSupportedException("Clipping is not implemented yet.");
+        _canvas.Restore();
     }
 
     public SKImage Render()
@@ -164,6 +174,12 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
     private static SKPath BuildPath(IReadOnlyList<IEdge> edges)
     {
         var skPath = new SKPath { FillType = SKPathFillType.EvenOdd };
+        AppendEdges(skPath, edges);
+        return skPath;
+    }
+
+    private static void AppendEdges(SKPath skPath, IReadOnlyList<IEdge> edges)
+    {
         var lastX = float.NaN;
         var lastY = float.NaN;
 
@@ -183,6 +199,18 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             lastX = edge.ToX / 20f;
             lastY = edge.ToY / 20f;
         }
+    }
+
+    private static SKPath? BuildClipPath(IDrawable drawable)
+    {
+        if (drawable is not ShapeDefinition definition)
+            return null;
+
+        var skPath = new SKPath { FillType = SKPathFillType.EvenOdd };
+
+        foreach (var path in definition.Shape.Paths)
+            if (path.Style.Fill is not null)
+                AppendEdges(skPath, path.Edges);
 
         return skPath;
     }
