@@ -24,6 +24,7 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         _canvas = new SKCanvas(_bitmap);
         _canvas.Clear(background ?? SKColors.Transparent);
         _canvas.Scale(scale);
+        _canvas.Translate(-bounds.XMin / 20f, -bounds.YMin / 20f);
     }
 
     public static byte[] RenderToPng(IDrawable drawable, float scale = 1f, SKColor? background = null)
@@ -42,13 +43,8 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     public void Shape(Shape shape)
     {
-        _canvas.Save();
-        _canvas.Translate(shape.XOffset / 20f, shape.YOffset / 20f);
-
         foreach (var path in shape.Paths)
             Path(path);
-
-        _canvas.Restore();
     }
 
     public void Path(ShapePath path)
@@ -69,12 +65,20 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     public void Image(IImage image)
     {
-        throw new NotSupportedException("Image rendering is not implemented yet.");
+        using var skImage = SKImage.FromEncodedData(image.ToPng().ToArray());
+
+        if (skImage is not null)
+            _canvas.DrawImage(skImage, 0, 0);
     }
 
     public void Include(IDrawable drawable, Matrix matrix, int frame, IReadOnlyList<Filter> filters, BlendMode blendMode, string? name)
     {
-        throw new NotSupportedException("Nested drawables are not implemented yet.");
+        var local = LocalMatrix(matrix);
+
+        _canvas.Save();
+        _canvas.Concat(ref local);
+        drawable.Draw(this, frame);
+        _canvas.Restore();
     }
 
     public string StartClip(IDrawable drawable, Matrix matrix, int frame)

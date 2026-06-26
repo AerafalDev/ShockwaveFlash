@@ -9,7 +9,7 @@ Render SWF characters — shapes, sprites, timelines, images — parsed by [**Sh
 
 ## Design
 
-A clean layering, [inspired](https://github.com/vincent4vx/Arakne-Swf) by Arakne-Swf but with the rasterization pulled in-process via Skia:
+A clean layering, [inspired](https://github.com/Arakne/ArakneSwf) by Arakne-Swf but with the rasterization pulled in-process via Skia:
 
 ```
 ShockwaveFlash            parser / writer
