@@ -1,3 +1,4 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.DisplayList;
 using ShockwaveFlash.Types.Filter;
@@ -84,7 +85,7 @@ public sealed record PlaceObject3Tag(
             (true, false) => PlaceObjectAction.Modify(),
             (false, true) => PlaceObjectAction.Place(reader.ReadUInt16()),
             (true, true) => PlaceObjectAction.Replace(reader.ReadUInt16()),
-            _ => throw new NotSupportedException("Invalid PlaceObject3Tag action combination.")
+            _ => throw new SwfFormatException("PlaceObject3 has neither a move nor a character; the action combination is invalid.")
         };
 
         Matrix? matrix = flags.HasFlag(PlaceObjectFlags.HasMatrix)

@@ -125,4 +125,51 @@ public sealed class PropertyTests
             return Color.DecodeRgba(new MemoryReader(writer.WrittenMemory)) == color;
         });
     }
+
+    [Fact]
+    public void EncodedU32_round_trips_every_uint()
+    {
+        Gen.UInt.Sample(static value =>
+        {
+            var writer = new MemoryWriter();
+            writer.WriteEncodedU32(value);
+            return new MemoryReader(writer.WrittenMemory).ReadEncodedU32() == value;
+        });
+    }
+
+    [Fact]
+    public void UInt24_round_trips_every_value_in_range()
+    {
+        Gen.UInt[0, 0xFFFFFF].Sample(static value =>
+        {
+            var writer = new MemoryWriter();
+            writer.WriteUInt24(value);
+            return new MemoryReader(writer.WrittenMemory).ReadUInt24() == value;
+        });
+    }
+
+    [Fact]
+    public void FixedPoint2_round_trips_with_exact_fixed_point()
+    {
+        Gen.Int.Array[2].Sample(static raw =>
+        {
+            var point = new FixedPoint2(new Fixed16(raw[0]), new Fixed16(raw[1]));
+
+            var writer = new MemoryWriter();
+            writer.WriteFixedPoint2(point);
+
+            return new MemoryReader(writer.WrittenMemory).ReadFixedPoint2() == point;
+        });
+    }
+
+    [Fact]
+    public void Null_terminated_strings_round_trip()
+    {
+        Gen.String.Where(static value => !value.Contains('\0')).Sample(static value =>
+        {
+            var writer = new MemoryWriter();
+            writer.WriteNullTerminatedString(value);
+            return new MemoryReader(writer.WrittenMemory).ReadNullTerminatedString() == value;
+        });
+    }
 }
