@@ -136,10 +136,17 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         if (style.Fill is { } fill)
         {
             using var fillPath = BuildPath(path.Edges, false);
-            FillPath(fillPath, fill);
+            using var paint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill };
+            DrawWithFill(fillPath, fill, paint);
         }
 
-        if (style.LineColor is { } lineColor)
+        if (style.LineFill is { } lineFill)
+        {
+            using var strokePath = BuildPath(path.Edges, true);
+            using var paint = StrokePaint(style);
+            DrawWithFill(strokePath, lineFill, paint);
+        }
+        else if (style.LineColor is { } lineColor)
         {
             using var strokePath = BuildPath(path.Edges, true);
             StrokePath(strokePath, ToSkColor(lineColor), style);
@@ -352,9 +359,8 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         _bitmap?.Dispose();
     }
 
-    private void FillPath(SKPath skPath, IFillStyle fill)
+    private void DrawWithFill(SKPath skPath, IFillStyle fill, SKPaint paint)
     {
-        using var paint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill };
         SKImage? image = null;
         SKShader? shader = null;
 
@@ -398,18 +404,22 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     private void StrokePath(SKPath skPath, SKColor color, PathStyle style)
     {
-        using var paint = new SKPaint
+        using var paint = StrokePaint(style);
+        paint.Color = color;
+        _canvas.DrawPath(skPath, paint);
+    }
+
+    private static SKPaint StrokePaint(PathStyle style)
+    {
+        return new SKPaint
         {
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
-            Color = color,
             StrokeWidth = Math.Max(style.LineWidth / 20f, 0.05f),
             StrokeCap = MapCap(style.LineCap),
             StrokeJoin = MapJoin(style.LineJoin),
             StrokeMiter = Math.Max(style.MiterLimit, 1f)
         };
-
-        _canvas.DrawPath(skPath, paint);
     }
 
     private static SKStrokeCap MapCap(LineCapStyle cap)
