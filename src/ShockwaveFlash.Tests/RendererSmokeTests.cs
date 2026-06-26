@@ -1,15 +1,54 @@
 using ShockwaveFlash;
 using ShockwaveFlash.Rendering;
 using ShockwaveFlash.Rendering.Drawing.Svg;
+using ShockwaveFlash.Tags.Button;
 using ShockwaveFlash.Tags.Control;
 using ShockwaveFlash.Tags.Shape;
 using ShockwaveFlash.Tags.Sprite;
+using ShockwaveFlash.Types.Button;
 using Shouldly;
 
 namespace ShockwaveFlash.Tests;
 
 public sealed class RendererSmokeTests
 {
+    [Fact]
+    public void Every_button_renders_each_of_its_four_states_without_throwing()
+    {
+        var failures = new List<string>();
+        ButtonStates[] states = [ButtonStates.Up, ButtonStates.Over, ButtonStates.Down, ButtonStates.HitTest];
+
+        foreach (var path in Corpus.Files())
+        {
+            var file = ShockwaveFlashFile.Disassemble(File.ReadAllBytes(path));
+
+            if (!file.Tags.OfType<DefineButton2Tag>().Any())
+                continue;
+
+            var renderer = new SwfRenderer(file);
+
+            foreach (var button2 in file.Tags.OfType<DefineButton2Tag>())
+            {
+                if (renderer.Button(button2.Id) is not { } button)
+                    continue;
+
+                foreach (var state in states)
+                {
+                    try
+                    {
+                        SvgDrawer.RenderToSvg(button.ForState(state)).ShouldStartWith("<svg");
+                    }
+                    catch (Exception ex)
+                    {
+                        failures.Add($"{Path.GetFileName(path)} button {button2.Id} {state}: {ex.GetType().Name}: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        failures.ShouldBeEmpty();
+    }
+
     [Fact]
     public void The_root_movie_renders_at_the_stage_size_with_its_background()
     {

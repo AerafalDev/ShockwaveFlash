@@ -11,6 +11,8 @@ public sealed class ButtonDefinition : IDrawable
 
     private readonly IReadOnlyList<ButtonRecord> _records;
 
+    private readonly ButtonStates _state;
+
     private Frame? _frame;
 
     public Rectangle Bounds => Frame.Bounds;
@@ -18,9 +20,15 @@ public sealed class ButtonDefinition : IDrawable
     private Frame Frame => _frame ??= Build();
 
     public ButtonDefinition(ICharacterResolver characters, IReadOnlyList<ButtonRecord> records)
+        : this(characters, records, ButtonStates.Up)
+    {
+    }
+
+    private ButtonDefinition(ICharacterResolver characters, IReadOnlyList<ButtonRecord> records, ButtonStates state)
     {
         _characters = characters;
         _records = records;
+        _state = state;
     }
 
     public int FrameCount(bool recursive = false)
@@ -36,14 +44,19 @@ public sealed class ButtonDefinition : IDrawable
 
     public IDrawable TransformColors(ColorTransform colorTransform)
     {
-        return new ButtonDefinition(_characters, [.. _records.Select(record => record with { ColorTransform = colorTransform.Merge(record.ColorTransform) })]);
+        return new ButtonDefinition(_characters, [.. _records.Select(record => record with { ColorTransform = colorTransform.Merge(record.ColorTransform) })], _state);
+    }
+
+    public ButtonDefinition ForState(ButtonStates state)
+    {
+        return new ButtonDefinition(_characters, _records, state);
     }
 
     private Frame Build()
     {
         var objects = new List<FrameObject>();
 
-        foreach (var record in _records.Where(static record => record.States.HasFlag(ButtonStates.Up)).OrderBy(static record => record.Depth))
+        foreach (var record in _records.Where(record => record.States.HasFlag(_state)).OrderBy(static record => record.Depth))
         {
             objects.Add(new FrameObject
             {
