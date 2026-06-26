@@ -1,0 +1,6 @@
+[submodule "context/ArakneSwf-master"]
+	path = context/ArakneSwf-master
+	url = https://github.com/Arakne/ArakneSwf
+[submodule "context/ruffle-master"]
+	path = context/ruffle-master
+	url = https://github.com/ruffle-rs/ruffle

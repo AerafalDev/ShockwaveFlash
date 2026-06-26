@@ -27,8 +27,9 @@ php benchmarks/comparison/arakne.php context/ArakneSwf-master data 3
 ## Notes
 
 - The Ankama SWF corpus lives in `data/` (committed). The Ruffle and Arakne source
-  checkouts live in `context/` (gitignored); only the Rust harness is self-contained
-  (it fetches Ruffle's published `swf` crate from crates.io).
+  checkouts are git submodules under `context/` — run `git submodule update --init`
+  before the PHP/oracle steps (the Rust harness is self-contained, fetching Ruffle's
+  published `swf` crate from crates.io).
 - `Errors::ALL` is used for Arakne so all three parse strictly (stop on malformed
   data), matching our reader.
 - Numbers are wall-clock, best-of-N, files pre-listed; disk I/O is warmed by the
