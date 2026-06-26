@@ -7,7 +7,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 {
     private const int HeaderSize = 8;
 
-    public static ShockwaveFlashFile Disassemble(ReadOnlyMemory<byte> data)
+    public static ShockwaveFlashFile Disassemble(ReadOnlyMemory<byte> data, bool lenient = false)
     {
         var reader = new MemoryReader(data);
 
@@ -27,7 +27,7 @@ public sealed record ShockwaveFlashFile(ShockwaveFlashHeader Header, IReadOnlyLi
 
         var header = ShockwaveFlashHeader.Decode(reader, compression, version, fileLength);
 
-        var tags = Tag.DecodeCollection(reader, version);
+        var tags = Tag.DecodeCollection(reader, version, lenient);
 
         return new ShockwaveFlashFile(header, tags);
     }

@@ -1,11 +1,31 @@
 using ShockwaveFlash;
 using ShockwaveFlash.Exceptions;
+using ShockwaveFlash.Tags;
+using ShockwaveFlash.Tags.DisplayList;
 using Shouldly;
 
 namespace ShockwaveFlash.Tests;
 
 public sealed class RobustnessTests
 {
+    [Fact]
+    public void Lenient_mode_keeps_a_corrupt_known_tag_as_unknown_and_continues()
+    {
+        var file = SwfTestData.BuildMovie(
+            (TagCode.SetBackgroundColor, [0x11, 0x22, 0x33, 0x44, 0x55]),
+            (TagCode.ShowFrame, []),
+            (TagCode.End, []));
+
+        Should.Throw<SwfException>(() => ShockwaveFlashFile.Disassemble(file));
+
+        var swf = ShockwaveFlashFile.Disassemble(file, lenient: true);
+
+        var unknown = swf.Tags.OfType<UnknownTag>().ShouldHaveSingleItem();
+        unknown.Metadata.Code.ShouldBe(TagCode.SetBackgroundColor);
+        unknown.Data.ToArray().ShouldBe([0x11, 0x22, 0x33, 0x44, 0x55]);
+        swf.Tags.OfType<ShowFrameTag>().ShouldHaveSingleItem();
+    }
+
     [Fact]
     public void Truncated_movie_throws_a_typed_swf_exception()
     {

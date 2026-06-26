@@ -26,6 +26,9 @@ public abstract record Tag(TagMetadata Metadata)
     [ThreadStatic]
     private static int s_depth;
 
+    [ThreadStatic]
+    private static bool s_lenient;
+
     public abstract void Encode(MemoryWriter writer, byte swfVersion);
 
     public static void EncodeCollection(MemoryWriter writer, IReadOnlyList<Tag> tags, byte swfVersion)
@@ -54,11 +57,13 @@ public abstract record Tag(TagMetadata Metadata)
         }
     }
 
-    public static IReadOnlyList<Tag> DecodeCollection(MemoryReader reader, byte swfVersion)
+    public static IReadOnlyList<Tag> DecodeCollection(MemoryReader reader, byte swfVersion, bool lenient = false)
     {
         if (s_depth >= MaxNestingDepth)
             throw new SwfFormatException($"Tag nesting exceeds the maximum depth of {MaxNestingDepth}.");
 
+        var previousLenient = s_lenient;
+        s_lenient = lenient || s_lenient;
         s_depth++;
 
         try
@@ -76,14 +81,9 @@ public abstract record Tag(TagMetadata Metadata)
 
                 var offset = reader.Position;
                 var metadata = new TagMetadata((TagCode)code, offset, length);
-                var tagReader = new MemoryReader(reader.ReadMemory(length));
+                var tagBody = reader.ReadMemory(length);
 
-                var tag = Decode(tagReader, metadata, swfVersion);
-
-                if (tagReader.Remaining is not 0)
-                    throw new SwfFormatException($"Tag length mismatch for {metadata.Code}. Expected {length} bytes, consumed {tagReader.Position}.");
-
-                tags.Add(tag);
+                tags.Add(DecodeTag(tagBody, metadata, swfVersion));
             }
 
             return tags;
@@ -91,6 +91,26 @@ public abstract record Tag(TagMetadata Metadata)
         finally
         {
             s_depth--;
+            s_lenient = previousLenient;
+        }
+    }
+
+    private static Tag DecodeTag(ReadOnlyMemory<byte> tagBody, TagMetadata metadata, byte swfVersion)
+    {
+        var tagReader = new MemoryReader(tagBody);
+
+        try
+        {
+            var tag = Decode(tagReader, metadata, swfVersion);
+
+            if (tagReader.Remaining is not 0)
+                throw new SwfFormatException($"Tag length mismatch for {metadata.Code}. Expected {tagBody.Length} bytes, consumed {tagReader.Position}.");
+
+            return tag;
+        }
+        catch (SwfException) when (s_lenient)
+        {
+            return new UnknownTag(metadata, tagBody);
         }
     }
 

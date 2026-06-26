@@ -1,9 +1,30 @@
 using System.IO.Compression;
+using ShockwaveFlash.IO.Binary;
+using ShockwaveFlash.Tags;
 
 namespace ShockwaveFlash.Tests;
 
 internal static class SwfTestData
 {
+    public static byte[] BuildMovie(params (TagCode Code, byte[] Body)[] tags)
+    {
+        var body = new MemoryWriter();
+        body.WriteBytes([0x08, 0x00, 0x00, 0x18, 0x01, 0x00]);
+
+        foreach (var (code, tagBody) in tags)
+        {
+            var header = ((ushort)code << 6) | Math.Min(tagBody.Length, 0x3F);
+            body.WriteUInt16((ushort)header);
+
+            if (tagBody.Length >= 0x3F)
+                body.WriteInt32(tagBody.Length);
+
+            body.WriteBytes(tagBody);
+        }
+
+        return WithHeader('F', version: 10, body.WrittenMemory.ToArray());
+    }
+
     public static byte[] ToZlibCompressed(byte[] uncompressedFws)
     {
         var body = uncompressedFws[8..];
