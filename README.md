@@ -7,10 +7,10 @@ A fast, allocation-light toolkit for the **SWF** (Shockwave Flash) binary format
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [**ShockwaveFlash**](src/ShockwaveFlash/README.md) [![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.svg)](https://www.nuget.org/packages/ShockwaveFlash) | The SWF container: disassemble a `.swf` into a strongly-typed tag tree and assemble it back, byte-identical. |
-| [**ShockwaveFlash.Avm1**](src/ShockwaveFlash.Avm1/README.md) [![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.Avm1.svg)](https://www.nuget.org/packages/ShockwaveFlash.Avm1) | AVM1 `DoAction` bytecode: decode actions, evaluate data scripts to a typed value tree, edit, and write back. |
+| Package | Version | Description |
+| --- | --- | --- |
+| [**ShockwaveFlash**](src/ShockwaveFlash/README.md) | [![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.svg)](https://www.nuget.org/packages/ShockwaveFlash) | The SWF container: disassemble a `.swf` into a strongly-typed tag tree and assemble it back, byte-identical. |
+| [**ShockwaveFlash.Avm1**](src/ShockwaveFlash.Avm1/README.md) | [![NuGet](https://img.shields.io/nuget/v/ShockwaveFlash.Avm1.svg)](https://www.nuget.org/packages/ShockwaveFlash.Avm1) | AVM1 `DoAction` bytecode: decode actions, evaluate data scripts to a typed value tree, edit, and write back. |
 
 ## At a glance
 
