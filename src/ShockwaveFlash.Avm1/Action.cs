@@ -7,6 +7,7 @@ using ShockwaveFlash.Avm1.Swf4;
 using ShockwaveFlash.Avm1.Swf5;
 using ShockwaveFlash.Avm1.Swf6;
 using ShockwaveFlash.Avm1.Swf7;
+using ShockwaveFlash.Avm1.Types;
 
 namespace ShockwaveFlash.Avm1;
 
@@ -41,6 +42,195 @@ public abstract record Action(ActionOpcode Opcode)
         }
 
         return actions;
+    }
+
+    public static ReadOnlyMemory<byte> EncodeCollection(IReadOnlyList<Action> actions, byte swfVersion)
+    {
+        var encoding = swfVersion >= 6 ? Encoding.UTF8 : Encoding.GetEncoding("iso-8859-1");
+        var writer = new MemoryWriter();
+        var body = new MemoryWriter();
+
+        foreach (var action in actions)
+        {
+            var opcode = (byte)action.Opcode;
+            writer.WriteUInt8(opcode);
+
+            if (opcode < 128)
+                continue;
+
+            body.Reset();
+            EncodeBody(action, body, encoding);
+            writer.WriteUInt16((ushort)body.Position);
+            writer.WriteMemory(body.WrittenMemory);
+        }
+
+        return writer.WrittenMemory;
+    }
+
+    private static void EncodeBody(Action action, MemoryWriter writer, Encoding encoding)
+    {
+        switch (action)
+        {
+            case ActionGotoFrame x:
+                writer.WriteUInt16(x.Frame);
+                break;
+
+            case ActionGetURL x:
+                writer.WriteNullTerminatedString(x.Url, encoding);
+                writer.WriteNullTerminatedString(x.Target, encoding);
+                break;
+
+            case ActionGetURL2 x:
+                writer.WriteUInt8((byte)x.Flags);
+                break;
+
+            case ActionStoreRegister x:
+                writer.WriteUInt8(x.RegisterNumber);
+                break;
+
+            case ActionWaitForFrame x:
+                writer.WriteUInt16(x.Frame);
+                writer.WriteUInt8(x.SkipCount);
+                break;
+
+            case ActionWaitForFrame2 x:
+                writer.WriteUInt8(x.SkipCount);
+                break;
+
+            case ActionSetTarget x:
+                writer.WriteNullTerminatedString(x.TargetName, encoding);
+                break;
+
+            case ActionGoToLabel x:
+                writer.WriteNullTerminatedString(x.Label, encoding);
+                break;
+
+            case ActionJump x:
+                writer.WriteInt16(x.BranchOffset);
+                break;
+
+            case ActionIf x:
+                writer.WriteInt16(x.BranchOffset);
+                break;
+
+            case ActionGotoFrame2 x:
+                writer.WriteUInt8((byte)((x.Play ? 1 : 0) | (x.HasSceneBias ? 2 : 0)));
+                if (x.HasSceneBias)
+                    writer.WriteUInt16(x.SceneBias);
+                break;
+
+            case ActionWith x:
+                writer.WriteUInt16((ushort)x.CodeSize);
+                break;
+
+            case ActionConstantPool x:
+                writer.WriteUInt16((ushort)x.Constants.Count);
+                foreach (var constant in x.Constants)
+                    writer.WriteNullTerminatedString(constant, encoding);
+                break;
+
+            case ActionPush x:
+                foreach (var value in x.PushValues)
+                    EncodePushValue(writer, value, encoding);
+                break;
+
+            case ActionDefineFunction x:
+                writer.WriteNullTerminatedString(x.Name, encoding);
+                writer.WriteUInt16((ushort)x.Parameters.Count);
+                foreach (var parameter in x.Parameters)
+                    writer.WriteNullTerminatedString(parameter, encoding);
+                writer.WriteUInt16((ushort)x.CodeSize);
+                break;
+
+            case ActionDefineFunction2 x:
+                writer.WriteNullTerminatedString(x.Name, encoding);
+                writer.WriteUInt16((ushort)x.Parameters.Count);
+                writer.WriteUInt8(x.RegisterCount);
+                writer.WriteUInt16((ushort)x.Flags);
+                foreach (var parameter in x.Parameters)
+                {
+                    writer.WriteUInt8(parameter.Register);
+                    writer.WriteNullTerminatedString(parameter.Name, encoding);
+                }
+
+                writer.WriteUInt16((ushort)x.CodeSize);
+                break;
+
+            case ActionTry x:
+                writer.WriteUInt8((byte)x.Flags);
+                writer.WriteUInt16(x.TrySize);
+                writer.WriteUInt16(x.CatchSize);
+                writer.WriteUInt16(x.FinallySize);
+                if (x.Flags.HasFlag(TryFlags.CatchInRegister))
+                    writer.WriteUInt8(x.CatchRegister);
+                else
+                    writer.WriteNullTerminatedString(x.CatchVariable, encoding);
+                break;
+
+            case ActionUnknown x:
+                writer.WriteMemory(x.Data);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private static void EncodePushValue(MemoryWriter writer, PushValue value, Encoding encoding)
+    {
+        switch (value)
+        {
+            case PushValue.PushValueString x:
+                writer.WriteUInt8(0);
+                writer.WriteNullTerminatedString(x.Value, encoding);
+                break;
+
+            case PushValue.PushValueFloat x:
+                writer.WriteUInt8(1);
+                writer.WriteFloat32(x.Value);
+                break;
+
+            case PushValue.PushValueNull:
+                writer.WriteUInt8(2);
+                break;
+
+            case PushValue.PushValueUndefined:
+                writer.WriteUInt8(3);
+                break;
+
+            case PushValue.PushValueRegister x:
+                writer.WriteUInt8(4);
+                writer.WriteUInt8(x.RegisterIndex);
+                break;
+
+            case PushValue.PushValueBoolean x:
+                writer.WriteUInt8(5);
+                writer.WriteBoolean(x.Value);
+                break;
+
+            case PushValue.PushValueDouble x:
+                writer.WriteUInt8(6);
+                Avm1Reader.WriteDouble(writer, x.Value);
+                break;
+
+            case PushValue.PushValueInteger x:
+                writer.WriteUInt8(7);
+                writer.WriteInt32(x.Value);
+                break;
+
+            case PushValue.PushValueConstant8 x:
+                writer.WriteUInt8(8);
+                writer.WriteUInt8(x.ConstantIndex);
+                break;
+
+            case PushValue.PushValueConstant16 x:
+                writer.WriteUInt8(9);
+                writer.WriteUInt16(x.ConstantIndex);
+                break;
+
+            default:
+                break;
+        }
     }
 
     private static Action Decode(MemoryReader reader, ActionOpcode opcode, Encoding encoding)
