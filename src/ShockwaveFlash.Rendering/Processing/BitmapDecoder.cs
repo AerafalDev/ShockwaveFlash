@@ -47,6 +47,11 @@ public static class BitmapDecoder
                 rowStride = (width + 3) & ~3;
                 break;
 
+            case BitmapFormat.BitmapFormatRgb15:
+                tableSize = 0;
+                rowStride = (width * 2 + 3) & ~3;
+                break;
+
             case BitmapFormat.BitmapFormatRgb32:
                 tableSize = 0;
                 rowStride = width * 4;
@@ -80,6 +85,23 @@ public static class BitmapDecoder
                 }
             }
         }
+        else if (format is BitmapFormat.BitmapFormatRgb15)
+        {
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var offset = (y * rowStride) + (x * 2);
+                    var value = (raw[offset] << 8) | raw[offset + 1];
+
+                    pixels[(y * width) + x] = new SKColor(
+                        Expand5((value >> 10) & 31),
+                        Expand5((value >> 5) & 31),
+                        Expand5(value & 31),
+                        255);
+                }
+            }
+        }
         else
         {
             for (var i = 0; i < pixels.Length; i++)
@@ -107,9 +129,36 @@ public static class BitmapDecoder
         return Encode(bitmap, width, height);
     }
 
+    private static byte Expand5(int value)
+    {
+        return (byte)(((value & 31) * 255 + 15) / 31);
+    }
+
+    private static byte[] FixJpeg(ReadOnlyMemory<byte> data)
+    {
+        // Flash JPEG streams frequently carry a stray FF D9 FF D8 (EOI immediately followed by SOI),
+        // which standard decoders reject; Ruffle strips every occurrence before decoding.
+        var bytes = data.Span;
+        var result = new List<byte>(bytes.Length);
+
+        for (var i = 0; i < bytes.Length;)
+        {
+            if (i + 3 < bytes.Length && bytes[i] is 0xFF && bytes[i + 1] is 0xD9 && bytes[i + 2] is 0xFF && bytes[i + 3] is 0xD8)
+            {
+                i += 4;
+                continue;
+            }
+
+            result.Add(bytes[i]);
+            i++;
+        }
+
+        return result.ToArray();
+    }
+
     private static RasterImage DecodeJpeg(ReadOnlyMemory<byte> data, ReadOnlyMemory<byte> alpha)
     {
-        using var decoded = SKBitmap.Decode(data.ToArray())
+        using var decoded = SKBitmap.Decode(FixJpeg(data))
             ?? throw new RenderingException("Failed to decode the embedded JPEG image.");
 
         var plane = alpha.IsEmpty ? null : DecompressAlpha(alpha, decoded.Width * decoded.Height);

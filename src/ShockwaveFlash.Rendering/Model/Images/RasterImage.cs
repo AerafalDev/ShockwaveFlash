@@ -34,26 +34,35 @@ public sealed class RasterImage : IImage
     {
         using var source = SKBitmap.Decode(_png.ToArray());
         using var result = new SKBitmap(source.Width, source.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
-        using var canvas = new SKCanvas(result);
-        using var filter = ColorMatrix(colorTransform);
-        using var paint = new SKPaint { ColorFilter = filter };
 
-        canvas.Clear(SKColors.Transparent);
-        canvas.DrawBitmap(source, 0, 0, paint);
+        for (var y = 0; y < source.Height; y++)
+        {
+            for (var x = 0; x < source.Width; x++)
+            {
+                var pixel = source.GetPixel(x, y);
+
+                if (pixel.Alpha == 0)
+                {
+                    result.SetPixel(x, y, pixel);
+                    continue;
+                }
+
+                result.SetPixel(x, y, new SKColor(
+                    Apply(pixel.Red, colorTransform.RMult, colorTransform.RAdd),
+                    Apply(pixel.Green, colorTransform.GMult, colorTransform.GAdd),
+                    Apply(pixel.Blue, colorTransform.BMult, colorTransform.BAdd),
+                    Apply(pixel.Alpha, colorTransform.AMult, colorTransform.AAdd)));
+            }
+        }
 
         using var image = SKImage.FromBitmap(result);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return new RasterImage(data.ToArray(), _width, _height);
     }
 
-    private static SKColorFilter ColorMatrix(ColorTransform colorTransform)
+    private static byte Apply(byte channel, int multiplier, int addend)
     {
-        return SKColorFilter.CreateColorMatrix(
-        [
-            colorTransform.RMult / 256f, 0, 0, 0, colorTransform.RAdd / 255f,
-            0, colorTransform.GMult / 256f, 0, 0, colorTransform.GAdd / 255f,
-            0, 0, colorTransform.BMult / 256f, 0, colorTransform.BAdd / 255f,
-            0, 0, 0, colorTransform.AMult / 256f, colorTransform.AAdd / 255f
-        ]);
+        var value = (channel * multiplier / 256) + addend;
+        return (byte)(value < 0 ? 0 : value > 255 ? 255 : value);
     }
 }
