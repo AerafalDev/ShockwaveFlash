@@ -63,6 +63,28 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         return RenderToImage(drawable, SKEncodedImageFormat.Png, 100, scale, background);
     }
 
+    public static byte[] RenderToAnimatedGif(IDrawable drawable, int delayMilliseconds = 60, float scale = 1f, SKColor? background = null)
+    {
+        var bounds = drawable.Bounds;
+        var width = Math.Max(1, (int)Math.Ceiling(bounds.Width / 20.0 * scale));
+        var height = Math.Max(1, (int)Math.Ceiling(bounds.Height / 20.0 * scale));
+        var frameCount = Math.Max(1, drawable.FrameCount(recursive: true));
+
+        var frames = new List<SKColor[]>(frameCount);
+
+        for (var frame = 0; frame < frameCount; frame++)
+        {
+            using var drawer = new SkiaDrawer(bounds, scale, background);
+            drawable.Draw(drawer, frame);
+
+            using var image = drawer.Render();
+            using var bitmap = SKBitmap.FromImage(image);
+            frames.Add(bitmap.Pixels);
+        }
+
+        return GifEncoder.Encode(frames, width, height, Math.Max(1, delayMilliseconds / 10));
+    }
+
     public static byte[] RenderToPdf(IDrawable drawable, float scale = 1f, SKColor? background = null, int frame = 0)
     {
         var bounds = drawable.Bounds;
