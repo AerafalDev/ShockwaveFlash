@@ -3,15 +3,19 @@ using ShockwaveFlash.Rendering.Diagnostics;
 using ShockwaveFlash.Rendering.Model.Images;
 using ShockwaveFlash.Rendering.Model.Shapes;
 using ShockwaveFlash.Rendering.Model.Sprites;
+using ShockwaveFlash.Rendering.Model.Text;
 using ShockwaveFlash.Rendering.Processing;
 using ShockwaveFlash.Tags;
 using ShockwaveFlash.Tags.Bitmap;
+using ShockwaveFlash.Tags.Font;
 using ShockwaveFlash.Tags.Shape;
 using ShockwaveFlash.Tags.Sprite;
+using ShockwaveFlash.Tags.Text;
+using ShockwaveFlash.Types.Font;
 
 namespace ShockwaveFlash.Rendering;
 
-public sealed class SwfRenderer : IImageResolver, ICharacterResolver
+public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResolver
 {
     private readonly ShockwaveFlashFile _file;
 
@@ -21,7 +25,11 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver
 
     private readonly TimelineProcessor _timelineProcessor;
 
+    private readonly TextProcessor _textProcessor;
+
     private readonly Dictionary<int, IImage?> _imageCache = new();
+
+    private readonly Dictionary<int, TextDefinition> _textCache = new();
 
     private Dictionary<int, Tag>? _imageTags;
 
@@ -29,12 +37,17 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver
 
     private Dictionary<int, SpriteDefinition>? _sprites;
 
+    private Dictionary<int, Tag>? _textTags;
+
+    private Dictionary<int, ResolvedFont>? _fonts;
+
     public SwfRenderer(ShockwaveFlashFile file, RenderOptions? options = null)
     {
         _file = file;
         _options = options ?? new RenderOptions();
         _shapeProcessor = new ShapeProcessor(this, _options);
         _timelineProcessor = new TimelineProcessor(this, _options);
+        _textProcessor = new TextProcessor(this, _shapeProcessor);
     }
 
     public IDrawable Character(int characterId)
@@ -44,6 +57,9 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver
 
         if (Sprite(characterId) is { } sprite)
             return sprite;
+
+        if (Text(characterId) is { } text)
+            return text;
 
         if (ResolveImage(characterId) is { } image)
             return new ImageDrawable(image);
@@ -61,6 +77,35 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver
     {
         _sprites ??= IndexSprites();
         return _sprites.GetValueOrDefault(characterId);
+    }
+
+    public TextDefinition? Text(int characterId)
+    {
+        if (_textCache.TryGetValue(characterId, out var cached))
+            return cached;
+
+        _textTags ??= IndexTextTags();
+
+        if (!_textTags.TryGetValue(characterId, out var tag))
+            return null;
+
+        var text = tag switch
+        {
+            DefineTextTag text1 => _textProcessor.Process(text1.Bounds, text1.Matrix, text1.Records),
+            DefineText2Tag text2 => _textProcessor.Process(text2.Bounds, text2.Matrix, text2.Records),
+            _ => null
+        };
+
+        if (text is not null)
+            _textCache[characterId] = text;
+
+        return text;
+    }
+
+    public ResolvedFont? ResolveFont(int fontId)
+    {
+        _fonts ??= IndexFonts();
+        return _fonts.GetValueOrDefault(fontId);
     }
 
     public IImage? ResolveImage(int characterId)
@@ -93,6 +138,54 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver
         foreach (var tag in _file.Tags)
             if (tag is DefineSpriteTag sprite)
                 map[sprite.Id] = new SpriteDefinition(_timelineProcessor, sprite);
+
+        return map;
+    }
+
+    private Dictionary<int, Tag> IndexTextTags()
+    {
+        var map = new Dictionary<int, Tag>();
+
+        foreach (var tag in _file.Tags)
+        {
+            switch (tag)
+            {
+                case DefineTextTag text1:
+                    map[text1.Id] = text1;
+                    break;
+
+                case DefineText2Tag text2:
+                    map[text2.Id] = text2;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return map;
+    }
+
+    private Dictionary<int, ResolvedFont> IndexFonts()
+    {
+        var map = new Dictionary<int, ResolvedFont>();
+
+        foreach (var tag in _file.Tags)
+        {
+            switch (tag)
+            {
+                case DefineFont2Tag font2:
+                    map[font2.Id] = new ResolvedFont(font2.Glyphs, 1024f);
+                    break;
+
+                case DefineFont3Tag font3:
+                    map[font3.Id] = new ResolvedFont(font3.Glyphs, 20480f);
+                    break;
+
+                default:
+                    break;
+            }
+        }
 
         return map;
     }

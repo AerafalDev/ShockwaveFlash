@@ -32,6 +32,11 @@ public sealed class ShapeDefinition : IDrawable
         _bounds = bounds;
     }
 
+    public static ShapeDefinition FromShape(Shape shape, Rectangle bounds)
+    {
+        return new ShapeDefinition(shape, bounds);
+    }
+
     public int FrameCount(bool recursive = false)
     {
         return 1;

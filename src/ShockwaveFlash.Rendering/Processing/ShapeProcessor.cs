@@ -28,6 +28,13 @@ public sealed class ShapeProcessor
         return new Shape(bounds.Width, bounds.Height, -bounds.XMin, -bounds.YMin, paths);
     }
 
+    public Shape ProcessGlyph(IReadOnlyList<ShapeRecord> records, Color color)
+    {
+        var paths = ProcessRecords(records, [new FillStyleSolid(color)], []);
+
+        return new Shape(0, 0, 0, 0, paths);
+    }
+
     private IReadOnlyList<ShapePath> ProcessRecords(IReadOnlyList<ShapeRecord> records, FillStyle[] fillStyles, LineStyle[] lineStyles)
     {
         var x = 0;
