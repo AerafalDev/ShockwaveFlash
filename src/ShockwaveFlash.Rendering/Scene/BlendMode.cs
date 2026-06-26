@@ -25,8 +25,8 @@ public static class BlendModeExtensions
         return blendMode switch
         {
             BlendMode.Multiply => "multiply",
-            BlendMode.Screen => "screen",
-            BlendMode.Lighten or BlendMode.Add => "lighten",
+            BlendMode.Screen or BlendMode.Add => "screen",
+            BlendMode.Lighten => "lighten",
             BlendMode.Darken or BlendMode.Subtract => "darken",
             BlendMode.Difference => "difference",
             BlendMode.Overlay => "overlay",

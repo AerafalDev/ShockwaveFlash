@@ -31,3 +31,5 @@ src/ShockwaveFlash/InternalsVisibleTo.cs
 data/
 tests/
 _svg_preview/
+_filter_preview/
+_oracle/

@@ -1,5 +1,6 @@
 using ShockwaveFlash.Rendering.Model.Images;
 using ShockwaveFlash.Rendering.Model.Shapes;
+using ShockwaveFlash.Rendering.Model.Sprites;
 using ShockwaveFlash.Rendering.Scene;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Filter;
@@ -11,6 +12,8 @@ namespace ShockwaveFlash.Rendering.Drawing.Skia;
 public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 {
     private const float GradientSquare = 819.2f;
+
+    private const float SigmaFactor = 0.2886751f;
 
     private readonly SKBitmap _bitmap;
 
@@ -83,11 +86,13 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         _canvas.Save();
         _canvas.Concat(ref local);
 
-        var created = new List<SKImageFilter>();
+        var created = new List<IDisposable>();
         var imageFilter = BuildImageFilter(filters, created);
         var blend = MapBlend(blendMode);
 
-        if (imageFilter is not null || blend != SKBlendMode.SrcOver)
+        // Layer isolates its children into their own group (so Alpha/Erase children only affect
+        // the group, not the whole canvas), which needs a dedicated layer even though it composites Normal.
+        if (imageFilter is not null || blend != SKBlendMode.SrcOver || blendMode is BlendMode.Layer)
         {
             using var layerPaint = new SKPaint { ImageFilter = imageFilter, BlendMode = blend };
             _canvas.SaveLayer(layerPaint);
@@ -110,34 +115,34 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         return blendMode switch
         {
             BlendMode.Multiply => SKBlendMode.Multiply,
-            BlendMode.Screen => SKBlendMode.Screen,
+            BlendMode.Add or BlendMode.Screen => SKBlendMode.Screen,
             BlendMode.Lighten => SKBlendMode.Lighten,
-            BlendMode.Darken => SKBlendMode.Darken,
+            BlendMode.Darken or BlendMode.Subtract => SKBlendMode.Darken,
             BlendMode.Difference => SKBlendMode.Difference,
-            BlendMode.Add => SKBlendMode.Plus,
             BlendMode.Overlay => SKBlendMode.Overlay,
             BlendMode.HardLight => SKBlendMode.HardLight,
+            BlendMode.Alpha => SKBlendMode.DstIn,
+            BlendMode.Erase => SKBlendMode.DstOut,
             _ => SKBlendMode.SrcOver
         };
     }
 
-    private static SKImageFilter? BuildImageFilter(IReadOnlyList<Filter> filters, List<SKImageFilter> created)
+    private static SKImageFilter? BuildImageFilter(IReadOnlyList<Filter> filters, List<IDisposable> created)
     {
         SKImageFilter? current = null;
 
         foreach (var filter in filters)
         {
-            var next = filter switch
+            SKImageFilter? next = filter switch
             {
-                BlurFilter blur => SKImageFilter.CreateBlur(Sigma(blur.Blur.X), Sigma(blur.Blur.Y), current),
-                GlowFilter glow => SKImageFilter.CreateDropShadow(0, 0, Sigma(glow.Blur.X), Sigma(glow.Blur.Y), ToSkColor(glow.Color), current),
-                DropShadowFilter shadow => SKImageFilter.CreateDropShadow(
-                    shadow.Distance.ToSingle() * (float)Math.Cos(shadow.Angle.ToSingle()),
-                    shadow.Distance.ToSingle() * (float)Math.Sin(shadow.Angle.ToSingle()),
-                    Sigma(shadow.Blur.X),
-                    Sigma(shadow.Blur.Y),
-                    ToSkColor(shadow.Color),
-                    current),
+                BlurFilter blur => SKImageFilter.CreateBlur(Sigma(blur.Blur.X, blur.Passes), Sigma(blur.Blur.Y, blur.Passes), current),
+                GlowFilter glow => glow.IsInner
+                    ? InnerShadow(0, 0, Sigma(glow.Blur.X, glow.Passes), ToSkColor(glow.Color), glow.Strength.ToSingle(), current, created)
+                    : SKImageFilter.CreateDropShadow(0, 0, Sigma(glow.Blur.X, glow.Passes), Sigma(glow.Blur.Y, glow.Passes), Strength(glow.Color, glow.Strength), current),
+                DropShadowFilter shadow => shadow.IsInner
+                    ? InnerShadow(Offset(shadow, true), Offset(shadow, false), Sigma(shadow.Blur.X, shadow.Passes), ToSkColor(shadow.Color), shadow.Strength.ToSingle(), current, created)
+                    : SKImageFilter.CreateDropShadow(Offset(shadow, true), Offset(shadow, false), Sigma(shadow.Blur.X, shadow.Passes), Sigma(shadow.Blur.Y, shadow.Passes), Strength(shadow.Color, shadow.Strength), current),
+                ColorMatrixFilter matrix when !matrix.Impotent => ColorMatrix(matrix.Matrix, current, created),
                 _ => null
             };
 
@@ -151,10 +156,93 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         return current;
     }
 
-    private static float Sigma(Fixed16 blur)
+    private static SKImageFilter ColorMatrix(float[] matrix, SKImageFilter? input, List<IDisposable> created)
     {
-        return Math.Max(0f, blur.ToSingle() * 0.5f);
+        // SWF stores the offset column in 0-255; Skia's colour matrix expects it in 0-1.
+        var values = (float[])matrix.Clone();
+        values[4] /= 255f;
+        values[9] /= 255f;
+        values[14] /= 255f;
+        values[19] /= 255f;
+
+        var colorFilter = SKColorFilter.CreateColorMatrix(values);
+        created.Add(colorFilter);
+
+        return SKImageFilter.CreateColorFilter(colorFilter, input);
     }
+
+    private static float Offset(DropShadowFilter shadow, bool horizontal)
+    {
+        var distance = shadow.Distance.ToSingle();
+        var angle = shadow.Angle.ToSingle();
+        return distance * (horizontal ? (float)Math.Cos(angle) : (float)Math.Sin(angle));
+    }
+
+    private static SKImageFilter InnerShadow(float dx, float dy, float sigma, SKColor color, float strength, SKImageFilter? source, List<IDisposable> created)
+    {
+        var moved = source;
+
+        if (sigma > 0)
+        {
+            moved = SKImageFilter.CreateBlur(sigma, sigma, source);
+            created.Add(moved);
+        }
+
+        if (dx != 0 || dy != 0)
+        {
+            moved = SKImageFilter.CreateOffset(dx, dy, moved);
+            created.Add(moved);
+        }
+
+        // Ruffle glow.wgsl (inner): the rim is the filter colour where the blurred source
+        // alpha is absent -> colour * (1 - blur). SrcOut(colour, blurredSource) gives exactly that.
+        var floodFilter = SKColorFilter.CreateBlendMode(color, SKBlendMode.SrcOut);
+        created.Add(floodFilter);
+
+        var flood = SKImageFilter.CreateColorFilter(floodFilter, moved);
+        created.Add(flood);
+
+        // strength: alpha = saturate((1 - blur) * strength). A gain on the alpha channel,
+        // Skia clamps the colour-matrix result to [0,1] (the saturate), so a strength of 1.93
+        // drives the inner edge to a solid rim.
+        if (strength is not 1f)
+        {
+            var gain = SKColorFilter.CreateColorMatrix(
+            [
+                1, 0, 0, 0, 0,
+                0, 1, 0, 0, 0,
+                0, 0, 1, 0, 0,
+                0, 0, 0, strength, 0
+            ]);
+            created.Add(gain);
+
+            flood = SKImageFilter.CreateColorFilter(gain, flood);
+            created.Add(flood);
+        }
+
+        // confine the rim to the source shape
+        var rim = SKImageFilter.CreateBlendMode(SKBlendMode.SrcIn, source, flood);
+        created.Add(rim);
+
+        // composite_source: colour*alpha + dest*(1 - alpha) == rim drawn over the source
+        return SKImageFilter.CreateBlendMode(SKBlendMode.SrcOver, source, rim);
+    }
+
+    private static float Sigma(Fixed16 blur, int passes)
+    {
+        var width = blur.ToSingle();
+
+        return width <= 1f || passes <= 0
+            ? 0f
+            : width * SigmaFactor * MathF.Sqrt(passes);
+    }
+
+    private static SKColor Strength(Color color, Fixed8 strength)
+    {
+        var alpha = (int)Math.Round(color.A * strength.ToSingle());
+        return new SKColor(color.R, color.G, color.B, (byte)Math.Clamp(alpha, 0, 255));
+    }
+
 
     public string StartClip(IDrawable drawable, Matrix matrix, int frame)
     {
@@ -311,16 +399,47 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     private static SKPath? BuildClipPath(IDrawable drawable)
     {
-        if (drawable is not ShapeDefinition definition)
-            return null;
+        // Flash unions a mask's fills (nonzero winding) and a masker can be any display object,
+        // including a sprite — flatten its whole sub-tree into one clip path.
+        var skPath = new SKPath { FillType = SKPathFillType.Winding };
+        AppendClip(skPath, drawable, SKMatrix.CreateIdentity(), 0);
 
-        var skPath = new SKPath { FillType = SKPathFillType.EvenOdd };
+        return skPath.IsEmpty ? null : skPath;
+    }
 
-        foreach (var path in definition.Shape.Paths)
-            if (path.Style.Fill is not null)
-                AppendEdges(skPath, path.Edges);
+    private static void AppendClip(SKPath skPath, IDrawable drawable, SKMatrix matrix, int depth)
+    {
+        if (depth > 8)
+            return;
 
-        return skPath;
+        switch (drawable)
+        {
+            case ShapeDefinition definition:
+                using (var sub = new SKPath())
+                {
+                    foreach (var path in definition.Shape.Paths)
+                        if (path.Style.Fill is not null)
+                            AppendEdges(sub, path.Edges);
+
+                    sub.Transform(matrix);
+                    skPath.AddPath(sub);
+                }
+
+                break;
+
+            case SpriteDefinition sprite:
+                var frames = sprite.Timeline.Frames;
+
+                if (frames.Count > 0)
+                    foreach (var item in frames[0].Objects)
+                        if (item.ClipDepth is null)
+                            AppendClip(skPath, item.Drawable, SKMatrix.Concat(matrix, LocalMatrix(item.Matrix)), depth + 1);
+
+                break;
+
+            default:
+                break;
+        }
     }
 
     private static SKShader LinearShader(LinearGradientFill fill)
@@ -332,7 +451,7 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             new SKPoint(GradientSquare, 0),
             colors,
             positions,
-            SKShaderTileMode.Clamp,
+            TileMode(fill.Gradient.Spread),
             LocalMatrix(fill.Matrix));
     }
 
@@ -340,17 +459,18 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
     {
         var (colors, positions) = Stops(fill.Gradient);
         var matrix = LocalMatrix(fill.Matrix);
+        var tile = TileMode(fill.Gradient.Spread);
 
         if (fill.Gradient.FocalPoint is { } focal)
         {
             return SKShader.CreateTwoPointConicalGradient(
-                new SKPoint(0, focal * GradientSquare),
+                new SKPoint(focal * GradientSquare, 0),
                 0,
                 new SKPoint(0, 0),
                 GradientSquare,
                 colors,
                 positions,
-                SKShaderTileMode.Clamp,
+                tile,
                 matrix);
         }
 
@@ -359,12 +479,40 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             GradientSquare,
             colors,
             positions,
-            SKShaderTileMode.Clamp,
+            tile,
             matrix);
+    }
+
+    private static SKShaderTileMode TileMode(GradientSpread spread)
+    {
+        return spread switch
+        {
+            GradientSpread.Reflect => SKShaderTileMode.Mirror,
+            GradientSpread.Repeat => SKShaderTileMode.Repeat,
+            _ => SKShaderTileMode.Clamp
+        };
     }
 
     private static (SKColor[] Colors, float[] Positions) Stops(Gradient gradient)
     {
+        // Flash interpolates LinearRGB gradients in linear light (gradient.wgsl); Skia interpolates
+        // in the surface's gamma space, so bake a dense ramp sampled in linear light for that mode.
+        if (gradient.Interpolation is GradientInterpolation.LinearRgb && gradient.Stops.Count > 1)
+        {
+            const int samples = 64;
+            var rampColors = new SKColor[samples];
+            var rampPositions = new float[samples];
+
+            for (var i = 0; i < samples; i++)
+            {
+                var t = i / (float)(samples - 1);
+                rampPositions[i] = t;
+                rampColors[i] = SampleLinear(gradient.Stops, t);
+            }
+
+            return (rampColors, rampPositions);
+        }
+
         var colors = new SKColor[gradient.Stops.Count];
         var positions = new float[gradient.Stops.Count];
 
@@ -375,6 +523,58 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         }
 
         return (colors, positions);
+    }
+
+    private static SKColor SampleLinear(IReadOnlyList<GradientStop> stops, float t)
+    {
+        var lo = stops[0];
+        var hi = stops[^1];
+
+        for (var i = 0; i < stops.Count - 1; i++)
+        {
+            var a = stops[i].Ratio / 255f;
+            var b = stops[i + 1].Ratio / 255f;
+
+            if (t <= a)
+            {
+                return ToSkColor(stops[i].Color);
+            }
+
+            if (t < b)
+            {
+                lo = stops[i];
+                hi = stops[i + 1];
+                break;
+            }
+        }
+
+        if (t >= stops[^1].Ratio / 255f)
+            return ToSkColor(stops[^1].Color);
+
+        var span = (hi.Ratio - lo.Ratio) / 255f;
+        var k = span <= 0 ? 0f : (t - lo.Ratio / 255f) / span;
+
+        return new SKColor(
+            LerpLinear(lo.Color.R, hi.Color.R, k),
+            LerpLinear(lo.Color.G, hi.Color.G, k),
+            LerpLinear(lo.Color.B, hi.Color.B, k),
+            (byte)Math.Clamp((int)Math.Round(lo.Color.A + (hi.Color.A - lo.Color.A) * k), 0, 255));
+    }
+
+    private static byte LerpLinear(byte a, byte b, float k)
+    {
+        var linear = SrgbToLinear(a / 255f) + (SrgbToLinear(b / 255f) - SrgbToLinear(a / 255f)) * k;
+        return (byte)Math.Clamp((int)Math.Round(LinearToSrgb(linear) * 255f), 0, 255);
+    }
+
+    private static float SrgbToLinear(float c)
+    {
+        return c <= 0.04045f ? c / 12.92f : MathF.Pow((c + 0.055f) / 1.055f, 2.4f);
+    }
+
+    private static float LinearToSrgb(float c)
+    {
+        return c <= 0.0031308f ? c * 12.92f : (1.055f * MathF.Pow(c, 1f / 2.4f)) - 0.055f;
     }
 
     private static SKMatrix LocalMatrix(Matrix matrix)

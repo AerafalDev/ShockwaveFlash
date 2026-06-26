@@ -182,7 +182,11 @@ public sealed class ShapeProcessor
     private static Gradient MapGradient(CoreGradient gradient, float? focalPoint)
     {
         var stops = gradient.Records.Select(record => new GradientStop(record.Ratio, record.Color)).ToList();
-        return new Gradient(GradientSpread.Pad, GradientInterpolation.Rgb, stops, focalPoint);
+        var spread = (GradientSpread)(int)gradient.Spread;
+        var interpolation = (GradientInterpolation)(int)gradient.Interpolation;
+        var focal = focalPoint is { } value ? Math.Clamp(value, -0.98f, 0.98f) : (float?)null;
+
+        return new Gradient(spread, interpolation, stops, focal);
     }
 
     private void Report(string message)
