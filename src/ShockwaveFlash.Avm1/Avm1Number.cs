@@ -1,6 +1,6 @@
 namespace ShockwaveFlash.Avm1;
 
-internal static class Avm1Reader
+internal static class Avm1Number
 {
     public static double ReadDouble(MemoryReader reader)
     {

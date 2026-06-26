@@ -8,6 +8,7 @@ using ShockwaveFlash.Avm1.Swf5;
 using ShockwaveFlash.Avm1.Swf6;
 using ShockwaveFlash.Avm1.Swf7;
 using ShockwaveFlash.Avm1.Types;
+using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Avm1;
 
@@ -60,6 +61,10 @@ public abstract record Action(ActionOpcode Opcode)
 
             body.Reset();
             EncodeBody(action, body, encoding);
+
+            if (body.Position > ushort.MaxValue)
+                throw new SwfFormatException($"AVM1 action {action.Opcode} body of {body.Position} bytes exceeds the 65535-byte action limit.");
+
             writer.WriteUInt16((ushort)body.Position);
             writer.WriteMemory(body.WrittenMemory);
         }
@@ -210,7 +215,7 @@ public abstract record Action(ActionOpcode Opcode)
 
             case PushValue.PushValueDouble x:
                 writer.WriteUInt8(6);
-                Avm1Reader.WriteDouble(writer, x.Value);
+                Avm1Number.WriteDouble(writer, x.Value);
                 break;
 
             case PushValue.PushValueInteger x:

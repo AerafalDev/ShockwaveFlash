@@ -21,7 +21,7 @@ public sealed record ActionPush(IReadOnlyList<PushValue> PushValues) : Action(Ac
                 PushValueType.Undefined => PushValue.Undefined(),
                 PushValueType.Register => PushValue.Register(reader.ReadUInt8()),
                 PushValueType.Boolean => PushValue.Boolean(reader.ReadBoolean()),
-                PushValueType.Double => PushValue.Double(Avm1Reader.ReadDouble(reader)),
+                PushValueType.Double => PushValue.Double(Avm1Number.ReadDouble(reader)),
                 PushValueType.Integer => PushValue.Integer(reader.ReadInt32()),
                 PushValueType.Constant8 => PushValue.Constant8(reader.ReadUInt8()),
                 PushValueType.Constant16 => PushValue.Constant16(reader.ReadUInt16()),
