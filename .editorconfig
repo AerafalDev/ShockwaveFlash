@@ -35,6 +35,7 @@ tab_width = 4
 # Analyzer suppressions: rules that clash with this library's deliberate design
 dotnet_diagnostic.CA1711.severity = none
 dotnet_diagnostic.CA1708.severity = none
+dotnet_diagnostic.CA1720.severity = none
 
 [*.{g.cs,generated.cs}]
 generated_code = true
