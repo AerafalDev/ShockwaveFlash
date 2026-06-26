@@ -7,6 +7,9 @@ namespace ShockwaveFlash.Tags.DisplayList;
 
 public sealed class PlaceObject3Tag : Tag
 {
+    private const PlaceObjectFlags PreservedFlags =
+        PlaceObjectFlags.HasImage | PlaceObjectFlags.HasClassName | (PlaceObjectFlags)0x8000;
+
     public PlaceObjectAction Action { get; set; }
 
     public ushort Depth { get; set; }
@@ -38,37 +41,37 @@ public sealed class PlaceObject3Tag : Tag
     public IReadOnlyList<ClipAction>? ClipActions { get; set; }
 
     public bool Move =>
-        Flags.HasFlag(PlaceObjectFlags.Move);
+        Action is PlaceObjectAction.PlaceObjectActionModify or PlaceObjectAction.PlaceObjectActionReplace;
 
     public bool HasCharacter =>
-        Flags.HasFlag(PlaceObjectFlags.HasCharacter);
+        Action is PlaceObjectAction.PlaceObjectActionPlace or PlaceObjectAction.PlaceObjectActionReplace;
 
     public bool HasMatrix =>
-        Flags.HasFlag(PlaceObjectFlags.HasMatrix);
+        Matrix is not null;
 
     public bool HasColorTransform =>
-        Flags.HasFlag(PlaceObjectFlags.HasColorTransform);
+        ColorTransform is not null;
 
     public bool HasRatio =>
-        Flags.HasFlag(PlaceObjectFlags.HasRatio);
+        Ratio is not null;
 
     public bool HasName =>
-        Flags.HasFlag(PlaceObjectFlags.HasName);
+        Name is not null;
 
     public bool HasClipDepth =>
-        Flags.HasFlag(PlaceObjectFlags.HasClipDepth);
+        ClipDepth is not null;
 
     public bool HasClipActions =>
-        Flags.HasFlag(PlaceObjectFlags.HasClipActions);
+        ClipActions is not null;
 
     public bool HasFilterList =>
-        Flags.HasFlag(PlaceObjectFlags.HasFilterList);
+        Filters is not null;
 
     public bool HasBlendMode =>
-        Flags.HasFlag(PlaceObjectFlags.HasBlendMode);
+        BlendMode is not null;
 
     public bool HasCacheAsBitmap =>
-        Flags.HasFlag(PlaceObjectFlags.HasCacheAsBitmap);
+        IsBitmapCached is not null;
 
     public bool HasClassName =>
         Flags.HasFlag(PlaceObjectFlags.HasClassName);
@@ -77,10 +80,10 @@ public sealed class PlaceObject3Tag : Tag
         Flags.HasFlag(PlaceObjectFlags.HasImage);
 
     public bool HasVisible =>
-        Flags.HasFlag(PlaceObjectFlags.HasVisible);
+        IsVisible is not null;
 
     public bool OpaqueBackground =>
-        Flags.HasFlag(PlaceObjectFlags.OpaqueBackground);
+        BackgroundColor is not null;
 
     public PlaceObject3Tag(TagMetadata metadata, PlaceObjectAction action, ushort depth, string? className, Matrix? matrix, ColorTransform? colorTransform, PlaceObjectFlags flags, ushort? ratio, string? name, ushort? clipDepth, Filter[]? filters, BlendMode? blendMode, bool? isBitmapCached, bool? isVisible, Color? backgroundColor, IReadOnlyList<ClipAction>? clipActions) : base(metadata)
     {
@@ -178,10 +181,12 @@ public sealed class PlaceObject3Tag : Tag
 
     public override void Encode(MemoryWriter writer, byte swfVersion)
     {
-        writer.WriteUInt16((ushort)Flags);
+        var flags = ComputeFlags();
+
+        writer.WriteUInt16((ushort)flags);
         writer.WriteUInt16(Depth);
 
-        var hasClassName = HasClassName || (HasImage && !HasCharacter);
+        var hasClassName = flags.HasFlag(PlaceObjectFlags.HasClassName) || (flags.HasFlag(PlaceObjectFlags.HasImage) && !flags.HasFlag(PlaceObjectFlags.HasCharacter));
 
         if (hasClassName && ClassName is { } className)
             writer.WriteNullTerminatedString(className);
@@ -198,22 +203,22 @@ public sealed class PlaceObject3Tag : Tag
             writer.WriteUInt16(id);
         }
 
-        if (HasMatrix && Matrix is { } matrix)
+        if (Matrix is { } matrix)
             matrix.Encode(writer);
 
-        if (HasColorTransform && ColorTransform is { } colorTransform)
+        if (ColorTransform is { } colorTransform)
             colorTransform.EncodeRgba(writer);
 
-        if (HasRatio && Ratio is { } ratio)
+        if (Ratio is { } ratio)
             writer.WriteUInt16(ratio);
 
-        if (HasName && Name is { } name)
+        if (Name is { } name)
             writer.WriteNullTerminatedString(name);
 
-        if (HasClipDepth && ClipDepth is { } clipDepth)
+        if (ClipDepth is { } clipDepth)
             writer.WriteUInt16(clipDepth);
 
-        if (HasFilterList && Filters is { } filters)
+        if (Filters is { } filters)
         {
             writer.WriteUInt8((byte)filters.Length);
 
@@ -221,19 +226,65 @@ public sealed class PlaceObject3Tag : Tag
                 filters[i].Encode(writer);
         }
 
-        if (HasBlendMode && BlendMode is { } blendMode)
+        if (BlendMode is { } blendMode)
             writer.WriteUInt8((byte)blendMode);
 
-        if (HasCacheAsBitmap && IsBitmapCached is { } isBitmapCached)
+        if (IsBitmapCached is { } isBitmapCached)
             writer.WriteBoolean(isBitmapCached);
 
-        if (HasVisible && IsVisible is { } isVisible)
+        if (IsVisible is { } isVisible)
             writer.WriteBoolean(isVisible);
 
-        if (OpaqueBackground && BackgroundColor is { } backgroundColor)
+        if (BackgroundColor is { } backgroundColor)
             backgroundColor.EncodeRgba(writer);
 
-        if (HasClipActions && ClipActions is { } clipActions)
+        if (ClipActions is { } clipActions)
             ClipAction.EncodeCollection(writer, clipActions, swfVersion);
+    }
+
+    private PlaceObjectFlags ComputeFlags()
+    {
+        var flags = Flags & PreservedFlags;
+
+        if (Move)
+            flags |= PlaceObjectFlags.Move;
+
+        if (HasCharacter)
+            flags |= PlaceObjectFlags.HasCharacter;
+
+        if (HasMatrix)
+            flags |= PlaceObjectFlags.HasMatrix;
+
+        if (HasColorTransform)
+            flags |= PlaceObjectFlags.HasColorTransform;
+
+        if (HasRatio)
+            flags |= PlaceObjectFlags.HasRatio;
+
+        if (HasName)
+            flags |= PlaceObjectFlags.HasName;
+
+        if (HasClipDepth)
+            flags |= PlaceObjectFlags.HasClipDepth;
+
+        if (HasClipActions)
+            flags |= PlaceObjectFlags.HasClipActions;
+
+        if (HasFilterList)
+            flags |= PlaceObjectFlags.HasFilterList;
+
+        if (HasBlendMode)
+            flags |= PlaceObjectFlags.HasBlendMode;
+
+        if (HasCacheAsBitmap)
+            flags |= PlaceObjectFlags.HasCacheAsBitmap;
+
+        if (HasVisible)
+            flags |= PlaceObjectFlags.HasVisible;
+
+        if (OpaqueBackground)
+            flags |= PlaceObjectFlags.OpaqueBackground;
+
+        return flags;
     }
 }

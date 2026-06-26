@@ -14,8 +14,6 @@ public sealed class PlaceObject2Tag : Tag
 
     public ColorTransform? ColorTransform { get; set; }
 
-    public PlaceObjectFlags Flags { get; set; }
-
     public ushort? Ratio { get; set; }
 
     public string? Name { get; set; }
@@ -25,36 +23,38 @@ public sealed class PlaceObject2Tag : Tag
     public IReadOnlyList<ClipAction>? ClipActions { get; set; }
 
     public bool Move =>
-        Flags.HasFlag(PlaceObjectFlags.Move);
+        Action is PlaceObjectAction.PlaceObjectActionModify or PlaceObjectAction.PlaceObjectActionReplace;
 
     public bool HasCharacter =>
-        Flags.HasFlag(PlaceObjectFlags.HasCharacter);
+        Action is PlaceObjectAction.PlaceObjectActionPlace or PlaceObjectAction.PlaceObjectActionReplace;
 
     public bool HasMatrix =>
-        Flags.HasFlag(PlaceObjectFlags.HasMatrix);
+        Matrix is not null;
 
     public bool HasColorTransform =>
-        Flags.HasFlag(PlaceObjectFlags.HasColorTransform);
+        ColorTransform is not null;
 
     public bool HasRatio =>
-        Flags.HasFlag(PlaceObjectFlags.HasRatio);
+        Ratio is not null;
 
     public bool HasName =>
-        Flags.HasFlag(PlaceObjectFlags.HasName);
+        Name is not null;
 
     public bool HasClipDepth =>
-        Flags.HasFlag(PlaceObjectFlags.HasClipDepth);
+        ClipDepth is not null;
 
     public bool HasClipActions =>
-        Flags.HasFlag(PlaceObjectFlags.HasClipActions);
+        ClipActions is not null;
 
-    public PlaceObject2Tag(TagMetadata metadata, PlaceObjectAction action, ushort depth, Matrix? matrix, ColorTransform? colorTransform, PlaceObjectFlags flags, ushort? ratio, string? name, ushort? clipDepth, IReadOnlyList<ClipAction>? clipActions) : base(metadata)
+    public PlaceObjectFlags Flags =>
+        ComputeFlags();
+
+    public PlaceObject2Tag(TagMetadata metadata, PlaceObjectAction action, ushort depth, Matrix? matrix, ColorTransform? colorTransform, ushort? ratio, string? name, ushort? clipDepth, IReadOnlyList<ClipAction>? clipActions) : base(metadata)
     {
         Action = action;
         Depth = depth;
         Matrix = matrix;
         ColorTransform = colorTransform;
-        Flags = flags;
         Ratio = ratio;
         Name = name;
         ClipDepth = clipDepth;
@@ -101,12 +101,12 @@ public sealed class PlaceObject2Tag : Tag
             ? ClipAction.DecodeCollection(reader, swfVersion)
             : null;
 
-        return new PlaceObject2Tag(metadata, action, depth, matrix, colorTransform, flags, ratio, name, clipDepth, clipActions);
+        return new PlaceObject2Tag(metadata, action, depth, matrix, colorTransform, ratio, name, clipDepth, clipActions);
     }
 
     public override void Encode(MemoryWriter writer, byte swfVersion)
     {
-        writer.WriteUInt8((byte)Flags);
+        writer.WriteUInt8((byte)ComputeFlags());
         writer.WriteUInt16(Depth);
 
         if (HasCharacter)
@@ -121,22 +121,53 @@ public sealed class PlaceObject2Tag : Tag
             writer.WriteUInt16(id);
         }
 
-        if (HasMatrix && Matrix is { } matrix)
+        if (Matrix is { } matrix)
             matrix.Encode(writer);
 
-        if (HasColorTransform && ColorTransform is { } colorTransform)
+        if (ColorTransform is { } colorTransform)
             colorTransform.EncodeRgba(writer);
 
-        if (HasRatio && Ratio is { } ratio)
+        if (Ratio is { } ratio)
             writer.WriteUInt16(ratio);
 
-        if (HasName && Name is { } name)
+        if (Name is { } name)
             writer.WriteNullTerminatedString(name);
 
-        if (HasClipDepth && ClipDepth is { } clipDepth)
+        if (ClipDepth is { } clipDepth)
             writer.WriteUInt16(clipDepth);
 
-        if (HasClipActions && ClipActions is { } clipActions)
+        if (ClipActions is { } clipActions)
             ClipAction.EncodeCollection(writer, clipActions, swfVersion);
+    }
+
+    private PlaceObjectFlags ComputeFlags()
+    {
+        var flags = (PlaceObjectFlags)0;
+
+        if (Move)
+            flags |= PlaceObjectFlags.Move;
+
+        if (HasCharacter)
+            flags |= PlaceObjectFlags.HasCharacter;
+
+        if (HasMatrix)
+            flags |= PlaceObjectFlags.HasMatrix;
+
+        if (HasColorTransform)
+            flags |= PlaceObjectFlags.HasColorTransform;
+
+        if (HasRatio)
+            flags |= PlaceObjectFlags.HasRatio;
+
+        if (HasName)
+            flags |= PlaceObjectFlags.HasName;
+
+        if (HasClipDepth)
+            flags |= PlaceObjectFlags.HasClipDepth;
+
+        if (HasClipActions)
+            flags |= PlaceObjectFlags.HasClipActions;
+
+        return flags;
     }
 }
