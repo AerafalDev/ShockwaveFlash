@@ -79,10 +79,6 @@ catch (SwfFormatException)    { /* not a valid SWF */ }
 - **Compression** — `FWS` (uncompressed) and `CWS` (zlib), read and write. `ZWS` (LZMA) throws `SwfUnsupportedException` (the .NET BCL has no LZMA codec; plug one in to enable it).
 - **No `unsafe`, no `Span` plumbing** — the public surface works over `ReadOnlyMemory<byte>`.
 
-## ActionScript (AVM1)
-
-Working with AVM1 `DoAction` bytecode — decoding, evaluating data scripts, editing and writing back — lives in the companion package **[ShockwaveFlash.Avm1](https://www.nuget.org/packages/ShockwaveFlash.Avm1)**.
-
 ---
 
 Part of the [ShockwaveFlash](https://github.com/AerafalDev/ShockwaveFlash) project · [MIT](https://github.com/AerafalDev/ShockwaveFlash/blob/main/LICENSE) © Aerafal
