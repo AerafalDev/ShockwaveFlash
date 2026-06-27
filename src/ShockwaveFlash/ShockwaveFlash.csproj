@@ -38,6 +38,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ShockwaveFlash.Avm1" />
+    <InternalsVisibleTo Include="ShockwaveFlash.Rendering" />
     <InternalsVisibleTo Include="ShockwaveFlash.Tests" />
   </ItemGroup>
 

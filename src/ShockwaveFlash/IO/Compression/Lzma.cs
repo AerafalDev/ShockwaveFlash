@@ -4,7 +4,7 @@ using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.IO.Compression;
 
-public static class Lzma
+internal static class Lzma
 {
     private const int HeaderSize = 9;
 

@@ -3,7 +3,7 @@ using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.IO.Compression;
 
-public static class ZLib
+internal static class ZLib
 {
     private const int MaxDecompressedSize = 512 * 1024 * 1024;
 
