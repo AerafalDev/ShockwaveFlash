@@ -4,6 +4,7 @@ using ShockwaveFlash.Avm1.Exceptions;
 using ShockwaveFlash.Avm1.Special;
 using ShockwaveFlash.Avm1.Swf4;
 using ShockwaveFlash.Avm1.Swf5;
+using ShockwaveFlash.Avm1.Swf6;
 using ShockwaveFlash.Avm1.Types;
 
 namespace ShockwaveFlash.Avm1;
@@ -15,6 +16,8 @@ public sealed class Avm1Machine
     private readonly Stack<Avm1Value> _stack = new();
 
     private readonly Avm1Object _globals = new();
+
+    private readonly Avm1Value[] _registers = CreateRegisters();
 
     private readonly HashSet<ActionOpcode> _unsupported = [];
 
@@ -153,6 +156,258 @@ public sealed class Avm1Machine
                     Pop();
                     break;
 
+                case ActionAdd:
+                    {
+                        var right = ToNum(Pop());
+                        var left = ToNum(Pop());
+                        _stack.Push(left + right);
+                        break;
+                    }
+
+                case ActionSubtract:
+                    {
+                        var right = ToNum(Pop());
+                        var left = ToNum(Pop());
+                        _stack.Push(left - right);
+                        break;
+                    }
+
+                case ActionMultiply:
+                    {
+                        var right = ToNum(Pop());
+                        var left = ToNum(Pop());
+                        _stack.Push(left * right);
+                        break;
+                    }
+
+                case ActionDivide:
+                    {
+                        var right = ToNum(Pop());
+                        var left = ToNum(Pop());
+                        _stack.Push(right == 0.0 && _version < 5 ? "#ERROR#" : left / right);
+                        break;
+                    }
+
+                case ActionModulo:
+                    {
+                        var right = ToNum(Pop());
+                        var left = ToNum(Pop());
+                        _stack.Push(left % right);
+                        break;
+                    }
+
+                case ActionNot:
+                    _stack.Push(!ToBool(Pop()));
+                    break;
+
+                case ActionAnd:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(ToBool(left) && ToBool(right));
+                        break;
+                    }
+
+                case ActionOr:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(ToBool(left) || ToBool(right));
+                        break;
+                    }
+
+                case ActionBitAnd:
+                    {
+                        var right = ToInt32(Pop());
+                        var left = ToInt32(Pop());
+                        _stack.Push((double)(left & right));
+                        break;
+                    }
+
+                case ActionBitOr:
+                    {
+                        var right = ToInt32(Pop());
+                        var left = ToInt32(Pop());
+                        _stack.Push((double)(left | right));
+                        break;
+                    }
+
+                case ActionBitXor:
+                    {
+                        var right = ToInt32(Pop());
+                        var left = ToInt32(Pop());
+                        _stack.Push((double)(left ^ right));
+                        break;
+                    }
+
+                case ActionBitLShift:
+                    {
+                        var count = (int)(ToUint32(Pop()) & 31);
+                        var left = ToInt32(Pop());
+                        _stack.Push((double)(left << count));
+                        break;
+                    }
+
+                case ActionBitRShift:
+                    {
+                        var count = (int)(ToUint32(Pop()) & 31);
+                        var left = ToInt32(Pop());
+                        _stack.Push((double)(left >> count));
+                        break;
+                    }
+
+                case ActionBitURShift:
+                    {
+                        var count = (int)(ToUint32(Pop()) & 31);
+                        var left = ToUint32(Pop());
+                        _stack.Push((double)(left >> count));
+                        break;
+                    }
+
+                case ActionEquals:
+                    {
+                        var right = ToNum(Pop());
+                        var left = ToNum(Pop());
+                        _stack.Push(left == right);
+                        break;
+                    }
+
+                case ActionLess:
+                    {
+                        var right = ToNum(Pop());
+                        var left = ToNum(Pop());
+                        _stack.Push(left < right);
+                        break;
+                    }
+
+                case ActionEquals2:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(AbstractEquals(left, right));
+                        break;
+                    }
+
+                case ActionLess2:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(AbstractLess(left, right));
+                        break;
+                    }
+
+                case ActionGreater:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(AbstractLess(right, left));
+                        break;
+                    }
+
+                case ActionStrictEquals:
+                    {
+                        var right = Pop();
+                        var left = Pop();
+                        _stack.Push(StrictEquals(left, right));
+                        break;
+                    }
+
+                case ActionStringEquals:
+                    {
+                        var right = ToStr(Pop());
+                        var left = ToStr(Pop());
+                        _stack.Push(string.Equals(left, right, StringComparison.Ordinal));
+                        break;
+                    }
+
+                case ActionStringLength:
+                case ActionMBStringLength:
+                    _stack.Push((double)ToStr(Pop()).Length);
+                    break;
+
+                case ActionStringExtract:
+                case ActionMBStringExtract:
+                    {
+                        var count = ToInt32(Pop());
+                        var index = ToInt32(Pop());
+                        var text = ToStr(Pop());
+                        _stack.Push(StringExtract(text, index, count));
+                        break;
+                    }
+
+                case ActionStringLess:
+                    {
+                        var right = ToStr(Pop());
+                        var left = ToStr(Pop());
+                        _stack.Push(string.CompareOrdinal(left, right) < 0);
+                        break;
+                    }
+
+                case ActionStringGreater:
+                    {
+                        var right = ToStr(Pop());
+                        var left = ToStr(Pop());
+                        _stack.Push(string.CompareOrdinal(left, right) > 0);
+                        break;
+                    }
+
+                case ActionCharToAscii:
+                case ActionMBCharToAscii:
+                    {
+                        var text = ToStr(Pop());
+                        _stack.Push((double)(text.Length > 0 ? text[0] : 0));
+                        break;
+                    }
+
+                case ActionAsciiToChar:
+                case ActionMBAsciiToChar:
+                    {
+                        var code = (char)(ushort)ToInt32(Pop());
+                        _stack.Push(code == '\0' ? string.Empty : code.ToString());
+                        break;
+                    }
+
+                case ActionToInteger:
+                    _stack.Push((double)ToInt32(Pop()));
+                    break;
+
+                case ActionToNumber:
+                    _stack.Push(ToNum(Pop()));
+                    break;
+
+                case ActionToString:
+                    _stack.Push(ToStr(Pop()));
+                    break;
+
+                case ActionTypeOf:
+                    _stack.Push(TypeOf(Pop()));
+                    break;
+
+                case ActionPushDuplicate:
+                    {
+                        var value = Pop();
+                        _stack.Push(value);
+                        _stack.Push(value);
+                        break;
+                    }
+
+                case ActionStackSwap:
+                    {
+                        var top = Pop();
+                        var under = Pop();
+                        _stack.Push(top);
+                        _stack.Push(under);
+                        break;
+                    }
+
+                case ActionStoreRegister storeRegister:
+                    {
+                        var value = _stack.Count > 0 ? _stack.Peek() : Avm1Value.Undefined;
+                        if (storeRegister.RegisterNumber < _registers.Length)
+                            _registers[storeRegister.RegisterNumber] = value;
+                        break;
+                    }
+
                 case ActionEnd:
                     return;
 
@@ -175,10 +430,16 @@ public sealed class Avm1Machine
             PushValue.PushValueDouble item => item.Value,
             PushValue.PushValueBoolean item => item.Value,
             PushValue.PushValueNull => Avm1Value.Null,
+            PushValue.PushValueRegister item => Register(item.RegisterIndex),
             PushValue.PushValueConstant8 item => Constant(item.ConstantIndex),
             PushValue.PushValueConstant16 item => Constant(item.ConstantIndex),
             _ => Avm1Value.Undefined
         };
+    }
+
+    private Avm1Value Register(int index)
+    {
+        return index >= 0 && index < _registers.Length ? _registers[index] : Avm1Value.Undefined;
     }
 
     private Avm1Value Constant(int index)
@@ -398,6 +659,123 @@ public sealed class Avm1Machine
         for (var i = start; i < buf.Count; i++)
             sb.Append(buf[i]);
         return sb.ToString();
+    }
+
+    internal bool ToBool(Avm1Value value)
+    {
+        return value switch
+        {
+            Avm1Boolean flag => flag.Value,
+            Avm1Number number => !double.IsNaN(number.Value) && number.Value != 0.0,
+            Avm1String text => ToBoolString(text.Value),
+            Avm1Object => true,
+            Avm1Array => true,
+            _ => false
+        };
+    }
+
+    internal int ToInt32(Avm1Value value)
+    {
+        return unchecked((int)ToUint32(value));
+    }
+
+    internal uint ToUint32(Avm1Value value)
+    {
+        var number = ToNum(value);
+        if (!double.IsFinite(number))
+            return 0;
+
+        var truncated = Math.Truncate(number);
+        var wrapped = truncated % 4294967296.0;
+        if (wrapped < 0.0)
+            wrapped += 4294967296.0;
+
+        return (uint)wrapped;
+    }
+
+    internal static string TypeOf(Avm1Value value)
+    {
+        return value switch
+        {
+            Avm1Undefined => "undefined",
+            Avm1Null => "null",
+            Avm1Number => "number",
+            Avm1Boolean => "boolean",
+            Avm1String => "string",
+            _ => "object"
+        };
+    }
+
+    internal bool AbstractEquals(Avm1Value left, Avm1Value right)
+    {
+        if (left is Avm1Object or Avm1Array || right is Avm1Object or Avm1Array)
+            return ReferenceEquals(left, right);
+
+        var leftNull = left is Avm1Null or Avm1Undefined;
+        var rightNull = right is Avm1Null or Avm1Undefined;
+        if (leftNull || rightNull)
+            return leftNull && rightNull;
+
+        if (left is Avm1String leftString && right is Avm1String rightString)
+            return string.Equals(leftString.Value, rightString.Value, StringComparison.Ordinal);
+
+        if (left is Avm1Boolean && right is Avm1Boolean)
+            return ToBool(left) == ToBool(right);
+
+        return ToNum(left) == ToNum(right);
+    }
+
+    internal Avm1Value AbstractLess(Avm1Value left, Avm1Value right)
+    {
+        if (left is Avm1Object or Avm1Array || right is Avm1Object or Avm1Array)
+            return false;
+
+        if (left is Avm1String leftString && right is Avm1String rightString)
+            return string.CompareOrdinal(leftString.Value, rightString.Value) < 0;
+
+        var leftNumber = ToNum(left);
+        var rightNumber = ToNum(right);
+        if (double.IsNaN(leftNumber) || double.IsNaN(rightNumber))
+            return Avm1Value.Undefined;
+
+        return leftNumber < rightNumber;
+    }
+
+    internal static bool StrictEquals(Avm1Value left, Avm1Value right)
+    {
+        if (left is Avm1Object or Avm1Array || right is Avm1Object or Avm1Array)
+            return ReferenceEquals(left, right);
+
+        return left == right;
+    }
+
+    internal static string StringExtract(string text, int index, int count)
+    {
+        var start = index >= 1 ? index - 1 : 0;
+        if (start > text.Length)
+            start = text.Length;
+
+        var end = count >= 0 && (long)start + count <= text.Length ? start + count : text.Length;
+        if (end < start)
+            end = start;
+
+        return text.Substring(start, end - start);
+    }
+
+    private static Avm1Value[] CreateRegisters()
+    {
+        var registers = new Avm1Value[256];
+        Array.Fill(registers, Avm1Value.Undefined);
+        return registers;
+    }
+
+    private bool ToBoolString(string text)
+    {
+        if (_version >= 7)
+            return text.Length != 0;
+
+        var number = StringToNumber(text);
+        return !double.IsNaN(number) && number != 0.0;
     }
 
     private static double DecimalShift(double value, int exp)
