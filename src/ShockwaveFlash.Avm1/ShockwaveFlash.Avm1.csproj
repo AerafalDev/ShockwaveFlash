@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ShockwaveFlash.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ShockwaveFlash\ShockwaveFlash.csproj" />
   </ItemGroup>
 
