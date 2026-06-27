@@ -16,7 +16,7 @@ public abstract record Action(ActionOpcode Opcode)
 {
     public static IReadOnlyList<Action> DecodeCollection(ReadOnlyMemory<byte> buffer, byte swfVersion)
     {
-        var encoding = swfVersion >= 6 ? Encoding.UTF8 : Encoding.GetEncoding("iso-8859-1");
+        var encoding = swfVersion >= 6 ? Encoding.UTF8 : Encoding.Latin1;
         var actions = new List<Action>(capacity: 64);
         var reader = new MemoryReader(buffer);
 
@@ -47,7 +47,7 @@ public abstract record Action(ActionOpcode Opcode)
 
     public static ReadOnlyMemory<byte> EncodeCollection(IReadOnlyList<Action> actions, byte swfVersion)
     {
-        var encoding = swfVersion >= 6 ? Encoding.UTF8 : Encoding.GetEncoding("iso-8859-1");
+        var encoding = swfVersion >= 6 ? Encoding.UTF8 : Encoding.Latin1;
         var writer = new MemoryWriter();
         var body = new MemoryWriter();
 
