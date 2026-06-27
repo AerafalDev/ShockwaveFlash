@@ -69,7 +69,6 @@ public sealed class CorpusRoundTripTests
             foreach (var tag in ShockwaveFlashFile.Disassemble(File.ReadAllBytes(path)).Tags)
                 seen.Add(tag.GetType().Name);
 
-        // A guard so coverage cannot silently shrink: these tag types are known to occur in the corpus.
         string[] expected =
         [
             "DefineSpriteTag",

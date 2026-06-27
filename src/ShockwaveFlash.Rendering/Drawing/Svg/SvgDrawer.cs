@@ -165,8 +165,6 @@ public sealed class SvgDrawer : IDrawer<string>
 
     private static void AppendInnerGlow(StringBuilder primitives, string input, string result, float deviation, Color color)
     {
-        // Inner glow: invert the source alpha, blur it, clip to the source, flood with the glow colour
-        // and composite the rim back over the source (mirrors the Skia inner-shadow path).
         primitives.Append(CultureInfo.InvariantCulture, $"<feComponentTransfer in=\"{input}\" result=\"{result}_i\"><feFuncA type=\"table\" tableValues=\"1 0\"/></feComponentTransfer>");
         primitives.Append(CultureInfo.InvariantCulture, $"<feGaussianBlur in=\"{result}_i\" stdDeviation=\"{deviation}\" result=\"{result}_b\"/>");
         primitives.Append(CultureInfo.InvariantCulture, $"<feFlood flood-color=\"{Hex(color)}\" flood-opacity=\"{Opacity(color)}\" result=\"{result}_f\"/>");
@@ -395,8 +393,6 @@ public sealed class SvgDrawer : IDrawer<string>
 
     private void AppendStops(Gradient gradient)
     {
-        // Flash interpolates LinearRGB gradients in linear light; SVG interpolates in sRGB, so bake a
-        // dense ramp sampled in linear light for that mode (mirrors the Skia backend for parity).
         if (gradient.Interpolation is GradientInterpolation.LinearRgb && gradient.Stops.Count > 1)
         {
             const int samples = 64;

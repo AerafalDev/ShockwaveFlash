@@ -6,10 +6,10 @@ public sealed class ColorMatrixFilter : Filter
 
     public static ColorMatrixFilter Identity =>
         new([
-            1f, 0f, 0f, 0f, 0f, // r
-            0f, 1f, 0f, 0f, 0f, // g
-            0f, 0f, 1f, 0f, 0f, // b
-            0f, 0f, 0f, 1f, 0f, // a
+            1f, 0f, 0f, 0f, 0f,
+            0f, 1f, 0f, 0f, 0f,
+            0f, 0f, 1f, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f,
         ]);
 
     public bool Impotent =>

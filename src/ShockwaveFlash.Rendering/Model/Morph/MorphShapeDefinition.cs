@@ -9,8 +9,6 @@ using CoreMorphShape = ShockwaveFlash.Types.Morph.MorphShape;
 
 namespace ShockwaveFlash.Rendering.Model.Morph;
 
-// Ports Ruffle's MorphShapeShared::build_morph_frame: interpolate the start/end fills, lines and
-// shape records at a ratio, then tessellate the resulting static shape.
 public sealed class MorphShapeDefinition : IDrawable
 {
     private const int MaxRatio = 65535;

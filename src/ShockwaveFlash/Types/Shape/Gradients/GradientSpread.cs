@@ -13,8 +13,6 @@ public static class GradientSpreadExtensions
     {
         public static GradientSpread Parse(byte bits)
         {
-            // Per SWF19 p. 136, SpreadMode 3 is reserved.
-            // Flash treats it as pad mode.
             if (bits is 3)
                 bits = 0;
 

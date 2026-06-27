@@ -12,8 +12,6 @@ public static class GradientInterpolationExtensions
     {
         public static GradientInterpolation Parse(byte bits)
         {
-            // Per SWF19 p. 136, InterpolationMode 2 and 3 are reserved.
-            // Flash treats them as normal RGB mode interpolation.
             if (bits is 2 or 3)
                 bits = 0;
 

@@ -148,8 +148,6 @@ public static class BitmapDecoder
 
     private static byte[] FixJpeg(ReadOnlyMemory<byte> data)
     {
-        // Flash JPEG streams frequently carry a stray FF D9 FF D8 (EOI immediately followed by SOI),
-        // which standard decoders reject; Ruffle strips every occurrence before decoding.
         var bytes = data.Span;
         var result = new List<byte>(bytes.Length);
 
@@ -178,7 +176,6 @@ public static class BitmapDecoder
         if (plane is null)
             return Encode(decoded, decoded.Width, decoded.Height);
 
-        // The JPEG decodes to an opaque bitmap; copy it into an unpremultiplied one so the alpha plane survives encoding.
         var source = decoded.Pixels;
         var pixels = new SKColor[source.Length];
 

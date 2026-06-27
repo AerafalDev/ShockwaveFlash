@@ -172,8 +172,6 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         var imageFilter = BuildImageFilter(filters, created);
         var blend = MapBlend(blendMode);
 
-        // Layer isolates its children into their own group (so Alpha/Erase children only affect
-        // the group, not the whole canvas), which needs a dedicated layer even though it composites Normal.
         if (imageFilter is not null || blend != SKBlendMode.SrcOver || blendMode is BlendMode.Layer)
         {
             using var layerPaint = new SKPaint { ImageFilter = imageFilter, BlendMode = blend };
@@ -240,7 +238,6 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     private static SKImageFilter ColorMatrix(float[] matrix, SKImageFilter? input, List<IDisposable> created)
     {
-        // SWF stores the offset column in 0-255; Skia's colour matrix expects it in 0-1.
         var values = (float[])matrix.Clone();
         values[4] /= 255f;
         values[9] /= 255f;
@@ -276,17 +273,12 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             created.Add(moved);
         }
 
-        // Ruffle glow.wgsl (inner): the rim is the filter colour where the blurred source
-        // alpha is absent -> colour * (1 - blur). SrcOut(colour, blurredSource) gives exactly that.
         var floodFilter = SKColorFilter.CreateBlendMode(color, SKBlendMode.SrcOut);
         created.Add(floodFilter);
 
         var flood = SKImageFilter.CreateColorFilter(floodFilter, moved);
         created.Add(flood);
 
-        // strength: alpha = saturate((1 - blur) * strength). A gain on the alpha channel,
-        // Skia clamps the colour-matrix result to [0,1] (the saturate), so a strength of 1.93
-        // drives the inner edge to a solid rim.
         if (strength is not 1f)
         {
             var gain = SKColorFilter.CreateColorMatrix(
@@ -302,11 +294,9 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             created.Add(flood);
         }
 
-        // confine the rim to the source shape
         var rim = SKImageFilter.CreateBlendMode(SKBlendMode.SrcIn, source, flood);
         created.Add(rim);
 
-        // composite_source: colour*alpha + dest*(1 - alpha) == rim drawn over the source
         return SKImageFilter.CreateBlendMode(SKBlendMode.SrcOver, source, rim);
     }
 
@@ -486,8 +476,6 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     private static SKPath? BuildClipPath(IDrawable drawable)
     {
-        // Flash unions a mask's fills (nonzero winding) and a masker can be any display object,
-        // including a sprite — flatten its whole sub-tree into one clip path.
         var skPath = new SKPath { FillType = SKPathFillType.Winding };
         AppendClip(skPath, drawable, SKMatrix.CreateIdentity(), 0);
 
@@ -582,8 +570,6 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     private static (SKColor[] Colors, float[] Positions) Stops(Gradient gradient)
     {
-        // Flash interpolates LinearRGB gradients in linear light (gradient.wgsl); Skia interpolates
-        // in the surface's gamma space, so bake a dense ramp sampled in linear light for that mode.
         if (gradient.Interpolation is GradientInterpolation.LinearRgb && gradient.Stops.Count > 1)
         {
             const int samples = 64;
