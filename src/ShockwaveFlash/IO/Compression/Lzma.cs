@@ -8,10 +8,15 @@ public static class Lzma
 {
     private const int HeaderSize = 9;
 
+    private const int MaxDecompressedSize = 512 * 1024 * 1024;
+
     public static ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> compressed, int uncompressedLength)
     {
         if (uncompressedLength < 0)
             throw new SwfCompressionException($"Invalid uncompressed length {uncompressedLength} for an LZMA (ZWS) SWF.");
+
+        if (uncompressedLength > MaxDecompressedSize)
+            throw new SwfCompressionException($"Uncompressed length {uncompressedLength} exceeds the {MaxDecompressedSize}-byte limit.");
 
         if (compressed.Length < HeaderSize)
             throw new SwfCompressionException("The ZWS body is too small to contain an LZMA header.");

@@ -1,10 +1,24 @@
 using ShockwaveFlash;
+using ShockwaveFlash.Exceptions;
 using Shouldly;
 
 namespace ShockwaveFlash.Tests;
 
 public sealed class CompressionTests
 {
+    [Fact]
+    public void Lzma_with_an_oversized_declared_length_is_capped_instead_of_allocating()
+    {
+        byte[] file =
+        [
+            (byte)'Z', (byte)'W', (byte)'S', 13,
+            0xFF, 0xFF, 0xFF, 0x7F,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+
+        Should.Throw<SwfCompressionException>(() => ShockwaveFlashFile.Disassemble(file));
+    }
+
     [Fact]
     public void Lzma_compressed_movie_round_trips_to_an_equal_model()
     {
