@@ -65,4 +65,38 @@ public sealed class Avm1DisassemblerTests
 
         text.ShouldBe("With {\n  Play\n  Pop\n}");
     }
+
+    [Fact]
+    public void As2_renders_a_named_function_with_its_body()
+    {
+        var body = Avm1Action.EncodeCollection(
+        [
+            new ActionPush([PushValue.String("hi")]),
+            new ActionTrace(),
+        ], swfVersion: 6);
+
+        IReadOnlyList<Avm1Action> actions = [new ActionDefineFunction("f", ["a"], body)];
+
+        var text = Avm1Disassembler.Disassemble(actions, swfVersion: 6, Avm1DisassemblyKind.As2);
+
+        text.ShouldBe("function f(a) {\n  trace(\"hi\");\n}");
+    }
+
+    [Fact]
+    public void As2_resolves_a_stored_register()
+    {
+        IReadOnlyList<Avm1Action> actions =
+        [
+            new ActionPush([PushValue.String("hi")]),
+            new ActionStoreRegister(0),
+            new ActionPop(),
+            new ActionPush([PushValue.String("name")]),
+            new ActionPush([PushValue.Register(0)]),
+            new ActionSetVariable(),
+        ];
+
+        var text = Avm1Disassembler.Disassemble(actions, swfVersion: 6, Avm1DisassemblyKind.As2);
+
+        text.ShouldBe("\"hi\";\nname = \"hi\";");
+    }
 }

@@ -24,7 +24,7 @@ public static class Avm1Disassembler
 
         if (kind is Avm1DisassemblyKind.As2)
         {
-            WriteAs2(builder, actions, swfVersion);
+            WriteAs2(builder, actions, swfVersion, 0, []);
         }
         else
         {
@@ -133,10 +133,11 @@ public static class Avm1Disassembler
         };
     }
 
-    private static void WriteAs2(StringBuilder builder, IReadOnlyList<Action> actions, byte swfVersion)
+    private static void WriteAs2(StringBuilder builder, IReadOnlyList<Action> actions, byte swfVersion, int indent, IReadOnlyList<string> pool)
     {
         var stack = new Stack<string>();
-        IReadOnlyList<string> pool = [];
+        var registers = new Dictionary<int, string>();
+        var pad = new string(' ', indent * 2);
 
         foreach (var action in actions)
         {
@@ -158,8 +159,40 @@ public static class Avm1Disassembler
 
                 case ActionPush push:
                     foreach (var value in push.PushValues)
-                        stack.Push(FormatResolved(value, pool));
+                        stack.Push(value is PushValue.PushValueRegister register
+                            ? registers.GetValueOrDefault(register.RegisterIndex, $"r{register.RegisterIndex}")
+                            : FormatResolved(value, pool));
                     continue;
+
+                case ActionStoreRegister store:
+                    registers[store.RegisterNumber] = stack.Count > 0 ? stack.Peek() : "undefined";
+                    continue;
+
+                case ActionDefineFunction function:
+                {
+                    var signature = string.Join(", ", function.Parameters);
+                    var body = RenderAs2Body(function.Body, swfVersion, indent, pool);
+
+                    if (function.Name.Length is 0)
+                        stack.Push($"function({signature}) {body}");
+                    else
+                        builder.Append(pad).Append("function ").Append(function.Name).Append('(').Append(signature).Append(") ").Append(body).Append('\n');
+
+                    continue;
+                }
+
+                case ActionDefineFunction2 function:
+                {
+                    var signature = string.Join(", ", function.Parameters.Select(parameter => parameter.Name));
+                    var body = RenderAs2Body(function.Body, swfVersion, indent, pool);
+
+                    if (function.Name.Length is 0)
+                        stack.Push($"function({signature}) {body}");
+                    else
+                        builder.Append(pad).Append("function ").Append(function.Name).Append('(').Append(signature).Append(") ").Append(body).Append('\n');
+
+                    continue;
+                }
 
                 case ActionGetVariable:
                     stack.Push(Identifier(Pop(stack)));
@@ -169,7 +202,7 @@ public static class Avm1Disassembler
                 {
                     var value = Pop(stack);
                     var name = Identifier(Pop(stack));
-                    builder.Append(name).Append(" = ").Append(value).Append(";\n");
+                    builder.Append(pad).Append(name).Append(" = ").Append(value).Append(";\n");
                     continue;
                 }
 
@@ -186,7 +219,7 @@ public static class Avm1Disassembler
                     var value = Pop(stack);
                     var name = Pop(stack);
                     var member = Member(Pop(stack), name);
-                    builder.Append(member).Append(" = ").Append(value).Append(";\n");
+                    builder.Append(pad).Append(member).Append(" = ").Append(value).Append(";\n");
                     continue;
                 }
 
@@ -258,22 +291,31 @@ public static class Avm1Disassembler
                     continue;
 
                 case ActionTrace:
-                    builder.Append("trace(").Append(Pop(stack)).Append(");\n");
+                    builder.Append(pad).Append("trace(").Append(Pop(stack)).Append(");\n");
                     continue;
 
                 case ActionPop:
-                    builder.Append(Pop(stack)).Append(";\n");
+                    builder.Append(pad).Append(Pop(stack)).Append(";\n");
                     continue;
 
                 case ActionEnd:
                     continue;
             }
 
-            Flush(builder, stack);
-            builder.Append(PcodeHead(action)).Append('\n');
+            Flush(builder, stack, pad);
+            builder.Append(pad).Append(PcodeHead(action)).Append('\n');
         }
 
-        Flush(builder, stack);
+        Flush(builder, stack, pad);
+    }
+
+    private static string RenderAs2Body(ReadOnlyMemory<byte> body, byte swfVersion, int indent, IReadOnlyList<string> pool)
+    {
+        var inner = new StringBuilder();
+        WriteAs2(inner, Action.DecodeCollection(body, swfVersion), swfVersion, indent + 1, pool);
+        var text = inner.ToString().TrimEnd('\n');
+
+        return text.Length is 0 ? "{}" : "{\n" + text + "\n" + new string(' ', indent * 2) + "}";
     }
 
     private static string? BinaryOperator(Action action)
@@ -297,10 +339,10 @@ public static class Avm1Disassembler
         };
     }
 
-    private static void Flush(StringBuilder builder, Stack<string> stack)
+    private static void Flush(StringBuilder builder, Stack<string> stack, string pad)
     {
         while (stack.Count > 0)
-            builder.Append(stack.Pop()).Append(";\n");
+            builder.Append(pad).Append(stack.Pop()).Append(";\n");
     }
 
     private static string Pop(Stack<string> stack)
