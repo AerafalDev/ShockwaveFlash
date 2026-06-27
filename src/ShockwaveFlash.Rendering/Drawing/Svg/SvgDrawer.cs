@@ -430,13 +430,24 @@ public sealed class SvgDrawer : IDrawer<string>
     private static string BuildData(IReadOnlyList<IEdge> edges)
     {
         var builder = new StringBuilder();
+        var startX = int.MinValue;
+        var startY = int.MinValue;
         var lastX = int.MinValue;
         var lastY = int.MinValue;
+        var open = false;
 
         foreach (var edge in edges)
         {
             if (edge.FromX != lastX || edge.FromY != lastY)
+            {
+                if (open && startX == lastX && startY == lastY)
+                    builder.Append('Z');
+
                 builder.Append(CultureInfo.InvariantCulture, $"M{Px(edge.FromX)} {Px(edge.FromY)}");
+                startX = edge.FromX;
+                startY = edge.FromY;
+                open = true;
+            }
 
             if (edge is CurvedEdge curve)
                 builder.Append(CultureInfo.InvariantCulture, $"Q{Px(curve.ControlX)} {Px(curve.ControlY)} {Px(curve.ToX)} {Px(curve.ToY)}");
@@ -446,6 +457,9 @@ public sealed class SvgDrawer : IDrawer<string>
             lastX = edge.ToX;
             lastY = edge.ToY;
         }
+
+        if (open && startX == lastX && startY == lastY)
+            builder.Append('Z');
 
         return builder.ToString();
     }
