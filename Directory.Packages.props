@@ -10,6 +10,17 @@
     <PackageVersion Include="MinVer" Version="6.0.0" />
     <PackageVersion Include="SharpCompress" Version="0.39.0" />
     <PackageVersion Include="SkiaSharp" Version="2.88.8" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="CsCheck" Version="4.2.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 
 </Project>

@@ -3,37 +3,11 @@
   <PropertyGroup>
     <PackageId>ShockwaveFlash.Avm1</PackageId>
     <Description>AVM1 (ActionScript 1/2 bytecode) decoder, encoder and data evaluator for the ShockwaveFlash SWF library. Disassemble DoAction bytecode to a typed action model, evaluate data scripts to a value tree, and write edits back.</Description>
-    <Authors>Aerafal</Authors>
-    <Copyright>Copyright (c) 2026 Aerafal</Copyright>
     <PackageTags>swf;shockwave;flash;avm1;actionscript;bytecode;disassembler</PackageTags>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinVerTagPrefix>v</MinVerTagPrefix>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageProjectUrl>https://github.com/AerafalDev/ShockwaveFlash</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/AerafalDev/ShockwaveFlash.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" Visible="false" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
-    <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

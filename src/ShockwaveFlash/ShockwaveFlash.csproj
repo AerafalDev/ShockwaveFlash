@@ -2,29 +2,8 @@
 
   <PropertyGroup>
     <PackageId>ShockwaveFlash</PackageId>
-    <Description>A fast, allocation-light reader and writer for the SWF (Shockwave Flash) binary format. Disassemble a .swf into a strongly-typed tag tree and assemble it back byte-for-byte.</Description>
-    <Authors>Aerafal</Authors>
-    <Copyright>Copyright (c) 2026 Aerafal</Copyright>
+    <Description>A fast, allocation-light reader and writer for the SWF (Shockwave Flash) binary format. Disassemble a .swf into a strongly-typed, mutable tag tree and assemble it back losslessly.</Description>
     <PackageTags>swf;shockwave;flash;adobe;flash-player;binary;parser;serialization</PackageTags>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinVerTagPrefix>v</MinVerTagPrefix>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageProjectUrl>https://github.com/AerafalDev/ShockwaveFlash</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/AerafalDev/ShockwaveFlash.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,8 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
-    <PackageReference Include="MinVer" PrivateAssets="all" />
     <PackageReference Include="SharpCompress" />
   </ItemGroup>
 

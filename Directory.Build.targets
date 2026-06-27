@@ -1,1 +1,8 @@
-<Project/>
+<Project>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
