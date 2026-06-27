@@ -6,7 +6,7 @@
 
 A fast, allocation-light reader and writer for the **SWF** (Shockwave Flash) binary format, for .NET 10.
 
-Disassemble a `.swf` into a strongly-typed tag tree, inspect or edit it in code, then assemble it back — re-assembly is **byte-identical** to the parsed input, validated on a real corpus of production files.
+Disassemble a `.swf` into a strongly-typed tag tree, inspect or edit it in code, then assemble it back — the round-trip is **lossless**: byte-identical for canonically-encoded SWFs and byte-stable on re-encode, validated on a real corpus of production files.
 
 ## Install
 
@@ -32,7 +32,7 @@ foreach (var tag in swf.Tags)
 
 ## Edit & write
 
-`ShockwaveFlashFile` is an immutable record, so edits go through `with`:
+The movie and its tags are mutable, so edit them in place — `Tags` is a `List<Tag>` and every tag exposes settable properties:
 
 ```csharp
 using ShockwaveFlash;
@@ -40,12 +40,9 @@ using ShockwaveFlash.Tags;
 
 var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
 
-var trimmed = swf with
-{
-    Tags = swf.Tags.Where(tag => tag.Metadata.Code is not TagCode.Metadata).ToList()
-};
+swf.Tags.RemoveAll(tag => tag.Metadata.Code is TagCode.Metadata);
 
-File.WriteAllBytes("movie.trimmed.swf", trimmed.Assemble().ToArray());
+File.WriteAllBytes("movie.trimmed.swf", swf.Assemble().ToArray());
 ```
 
 ## Round-trip
@@ -54,7 +51,8 @@ File.WriteAllBytes("movie.trimmed.swf", trimmed.Assemble().ToArray());
 var original = File.ReadAllBytes("movie.swf");
 var rebuilt = ShockwaveFlashFile.Disassemble(original).Assemble();
 
-bool identical = rebuilt.Span.SequenceEqual(original); // true
+// true for canonically-encoded SWFs; always byte-stable on a second pass.
+bool identical = rebuilt.Span.SequenceEqual(original);
 ```
 
 ## Error handling
@@ -76,7 +74,7 @@ catch (SwfFormatException)    { /* not a valid SWF */ }
 
 - **Coverage** — shapes, fonts, text, sounds, bitmaps, sprites, buttons, morph shapes, video, ABC, filters and control tags. Unknown tags are preserved verbatim, so nothing is lost on round-trip.
 - **Exact wire model** — fixed-point types (`Fixed16` 16.16, `Fixed8` 8.8); no lossy `float` conversions.
-- **Compression** — `FWS` (uncompressed) and `CWS` (zlib), read and write. `ZWS` (LZMA) throws `SwfUnsupportedException` (the .NET BCL has no LZMA codec; plug one in to enable it).
+- **Compression** — `FWS` (uncompressed), `CWS` (zlib) and `ZWS` (LZMA), all read and write.
 - **No `unsafe`, no `Span` plumbing** — the public surface works over `ReadOnlyMemory<byte>`.
 
 ---
