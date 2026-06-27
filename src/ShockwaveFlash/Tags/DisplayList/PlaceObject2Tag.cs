@@ -115,7 +115,7 @@ public sealed class PlaceObject2Tag : Tag
             {
                 PlaceObjectAction.PlaceObjectActionPlace place => place.Id,
                 PlaceObjectAction.PlaceObjectActionReplace replace => replace.Id,
-                _ => throw new NotSupportedException("Invalid PlaceObject2Tag action combination.")
+                _ => throw new SwfFormatException("Invalid PlaceObject2Tag action combination.")
             };
 
             writer.WriteUInt16(id);

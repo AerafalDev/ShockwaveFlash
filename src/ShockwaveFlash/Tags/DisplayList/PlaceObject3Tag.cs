@@ -197,7 +197,7 @@ public sealed class PlaceObject3Tag : Tag
             {
                 PlaceObjectAction.PlaceObjectActionPlace place => place.Id,
                 PlaceObjectAction.PlaceObjectActionReplace replace => replace.Id,
-                _ => throw new NotSupportedException("Invalid PlaceObject3Tag action combination.")
+                _ => throw new SwfFormatException("Invalid PlaceObject3Tag action combination.")
             };
 
             writer.WriteUInt16(id);

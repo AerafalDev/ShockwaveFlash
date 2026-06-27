@@ -1,3 +1,5 @@
+using ShockwaveFlash.Exceptions;
+
 namespace ShockwaveFlash.Types.Shape;
 
 public abstract class ShapeRecord
@@ -210,7 +212,7 @@ public abstract class ShapeRecord
                 }
 
             default:
-                throw new NotSupportedException($"Shape record {this} is not supported.");
+                throw new SwfUnsupportedException($"Shape record {this} is not supported.");
         }
     }
 }

@@ -55,7 +55,7 @@ public abstract class Filter
                 colorMatrixFilter.EncodeBody(writer);
                 break;
             default:
-                throw new NotSupportedException($"Filter type {GetType()} is not supported.");
+                throw new SwfUnsupportedException($"Filter type {GetType()} is not supported.");
         }
     }
 }

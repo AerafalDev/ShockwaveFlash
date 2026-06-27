@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Types.Shape;
 
@@ -36,7 +37,7 @@ public sealed class LineStyle
             LineStyleFlags.Round => new LineJoinStyleRound(),
             LineStyleFlags.Bevel => new LineJoinStyleBevel(),
             LineStyleFlags.Miter => new LineJoinStyleMiter(MiterLimit),
-            _ => throw new NotSupportedException($"Line join style {Flags & LineStyleFlags.JoinStyle} is not supported.")
+            _ => throw new SwfFormatException($"Line join style {Flags & LineStyleFlags.JoinStyle} is not supported.")
         };
 
     public LineStyle()

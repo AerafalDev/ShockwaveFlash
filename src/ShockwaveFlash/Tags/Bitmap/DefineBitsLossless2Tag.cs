@@ -50,7 +50,7 @@ public sealed class DefineBitsLossless2Tag : Tag
             BitmapFormat.BitmapFormatColorMap8 => (byte)3,
             BitmapFormat.BitmapFormatRgb15 => (byte)4,
             BitmapFormat.BitmapFormatRgb32 => (byte)5,
-            _ => throw new NotSupportedException("Invalid bitmap format.")
+            _ => throw new SwfUnsupportedException("Invalid bitmap format.")
         };
 
         writer.WriteUInt8(formatFlags);

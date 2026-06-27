@@ -1,3 +1,4 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Shape;
 
@@ -58,7 +59,7 @@ public class DefineShapeTag : Tag
             2 => new DefineShape2Tag(metadata, shapeId, shapeBounds, styles, records),
             3 => new DefineShape3Tag(metadata, shapeId, shapeBounds, styles, records),
             4 => new DefineShape4Tag(metadata, shapeId, shapeBounds, edgeBounds, flags, styles, records),
-            _ => throw new NotSupportedException($"Shape version {shapeVersion} is not supported.")
+            _ => throw new SwfFormatException($"Shape version {shapeVersion} is not supported.")
         };
     }
 

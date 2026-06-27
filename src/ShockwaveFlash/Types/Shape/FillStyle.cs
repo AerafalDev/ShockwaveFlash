@@ -69,7 +69,7 @@ public abstract class FillStyle
                 break;
 
             default:
-                throw new NotSupportedException($"FillStyle {this} is not supported.");
+                throw new SwfUnsupportedException($"FillStyle {this} is not supported.");
         }
     }
 
@@ -147,7 +147,7 @@ public abstract class FillStyle
                 break;
 
             default:
-                throw new NotSupportedException($"FillStyle {start} is not supported.");
+                throw new SwfUnsupportedException($"FillStyle {start} is not supported.");
         }
     }
 }
