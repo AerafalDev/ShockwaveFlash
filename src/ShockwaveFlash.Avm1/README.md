@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/ShockwaveFlash.Avm1.svg)](https://www.nuget.org/packages/ShockwaveFlash.Avm1)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/AerafalDev/ShockwaveFlash/blob/main/LICENSE)
 
-AVM1 (ActionScript 1/2 bytecode) support for [**ShockwaveFlash**](https://www.nuget.org/packages/ShockwaveFlash) — decode `DoAction` bytecode to a typed action model, evaluate data scripts to a typed value tree, edit, and write the bytecode back.
+AVM1 (ActionScript 1/2 bytecode) support for [**ShockwaveFlash**](https://www.nuget.org/packages/ShockwaveFlash). Disassemble `DoAction` bytecode to a mutable, strongly-typed action tree and assemble it back losslessly; dump it as **p-code** or best-effort **AS2**; and evaluate linear data scripts to a typed value tree you can edit and write back.
 
 ## Install
 
@@ -12,16 +12,51 @@ AVM1 (ActionScript 1/2 bytecode) support for [**ShockwaveFlash**](https://www.nu
 dotnet add package ShockwaveFlash.Avm1
 ```
 
-## Read a data table
-
-Linear data scripts (localization / config tables, common in older games) are replayed to their global variables:
+## Disassemble to p-code or AS2
 
 ```csharp
 using ShockwaveFlash;
-using ShockwaveFlash.Avm1;
+using ShockwaveFlash.Avm1.Text;
 using ShockwaveFlash.Tags.Action;
 
-var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("emotes.swf"));
+var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+var version = swf.Header.Version;
+var tag = swf.Tags.OfType<DoActionTag>().First();
+
+string pcode = Avm1Disassembler.Disassemble(tag.Data, version, Avm1DisassemblyKind.Pcode);
+string as2 = Avm1Disassembler.Disassemble(tag.Data, version, Avm1DisassemblyKind.As2);
+```
+
+**P-code** is a faithful, complete listing — every opcode with its operands, constant-pool references resolved, and function/with/try bodies decoded and indented:
+
+```text
+ConstantPool "VERSION", "DU", "Object", "n", "m", ...
+Push "VERSION"
+Push 1258
+SetVariable
+Push "DU"
+Push 0
+Push "Object"
+NewObject
+SetVariable
+```
+
+**AS2** is a best-effort reconstruction over the linear subset (push literals, get/set variable and member, object/array literals, operators, `new`/calls, function bodies). It is *not* a full decompiler: control flow and registers holding complex expressions fall back to their p-code line.
+
+```as2
+VERSION = 1258;
+DU = new Object();
+DU[1] = {n: "Donjon Bouftou", m: new Object()};
+DU[1].m[2073] = {x: 0, y: 0, z: 0, n: "Salle 1", i: 900};
+```
+
+## Evaluate a data table
+
+Linear data scripts (localization / config tables, common in older games) are replayed to their global variables, with version-accurate value coercion:
+
+```csharp
+using ShockwaveFlash.Avm1.Types;
+
 var version = swf.Header.Version;
 var tag = swf.Tags.OfType<DoActionTag>().First();
 
@@ -46,22 +81,22 @@ File.WriteAllBytes("emotes.swf", output.ToArray());
 
 ## Raw actions
 
-For surgical edits that preserve everything else byte-for-byte, go through the action list instead of the value tree:
+For surgical edits that preserve everything else, go through the mutable action tree instead of the value tree. Every action is a mutable class with settable properties; function/with/try bodies are owned, so editing one action never corrupts another:
 
 ```csharp
 var actions = tag.DecodeActions(version);       // IReadOnlyList<Action>
-// ... inspect or modify actions ...
+// ... inspect or mutate actions in place ...
 var newTag = tag.WithActions(actions, version); // re-encoded; byte-identical when unchanged
 ```
 
-## Value model
+`Action.DecodeCollection(bytes, version)` decodes leniently by default — unknown opcodes are kept as `ActionUnknown`, an unknown push type stops that push, and a length mismatch is tolerated. Pass `strict: true` to promote all of these to a typed `SwfFormatException` (and to reject malformed SWF6+ UTF-8 strings).
 
-`Evaluate` returns an `Avm1Object` whose members are `Avm1Value`s — `Avm1String`, `Avm1Number`, `Avm1Boolean`, `Avm1Null`, `Avm1Undefined`, `Avm1Object`, `Avm1Array`. Read them with `AsObject` / `AsArray` / `AsString` / `AsNumber` / `AsBoolean`.
+## What it is — and isn't
 
-## Notes
-
-- The decoder and encoder cover the documented AVM1 opcode set (SWF 1–7) and round-trip **byte-for-byte**.
-- `Avm1Machine` is a focused evaluator for **linear data scripts** — no control-flow or function execution. Opcodes outside the supported subset are collected in `UnsupportedOpcodes`; pass `strict: true` to throw `Avm1UnsupportedActionException` instead of skipping them.
+- **Faithful disassembler + assembler.** The documented opcode set (SWF 1–7) round-trips **byte-for-byte**; the action tree is mutable, and unknown tags/opcodes are preserved.
+- **Version-accurate evaluator.** `Avm1Machine` runs the pure (branch-free) operators — arithmetic, bitwise, comparison, logic, string, type and stack ops, plus a register file — over value coercion ported faithfully from Flash (number formatting included).
+- **Linear only.** The evaluator is a data-script interpreter: no control flow, no function calls, no host/display objects. Opcodes outside that subset are recorded in `UnsupportedOpcodes` (or throw `Avm1UnsupportedActionException` when `strict`). The AS2 listing is best-effort, not a decompiler.
+- **AVM2 (`DoABC`)** is out of scope — its bytecode is kept raw by the core package.
 
 ---
 
