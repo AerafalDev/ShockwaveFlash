@@ -197,6 +197,40 @@ public static class Avm1Disassembler
                     continue;
                 }
 
+                case ActionNewObject:
+                {
+                    var name = Identifier(Pop(stack));
+                    var arguments = PopArguments(stack);
+                    stack.Push($"new {name}({arguments})");
+                    continue;
+                }
+
+                case ActionNewMethod:
+                {
+                    var name = Pop(stack);
+                    var target = Pop(stack);
+                    var arguments = PopArguments(stack);
+                    stack.Push($"new {Member(target, name)}({arguments})");
+                    continue;
+                }
+
+                case ActionCallFunction:
+                {
+                    var name = Identifier(Pop(stack));
+                    var arguments = PopArguments(stack);
+                    stack.Push($"{name}({arguments})");
+                    continue;
+                }
+
+                case ActionCallMethod:
+                {
+                    var name = Pop(stack);
+                    var target = Pop(stack);
+                    var arguments = PopArguments(stack);
+                    stack.Push(Identifier(name).Length is 0 || name is "undefined" ? $"{target}({arguments})" : $"{Member(target, name)}({arguments})");
+                    continue;
+                }
+
                 case ActionNot:
                     stack.Push("!" + Pop(stack));
                     continue;
@@ -262,6 +296,17 @@ public static class Avm1Disassembler
     private static int ParseCount(string value)
     {
         return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) ? count : 0;
+    }
+
+    private static string PopArguments(Stack<string> stack)
+    {
+        var count = ParseCount(Pop(stack));
+        var arguments = new List<string>();
+
+        for (var i = 0; i < count; i++)
+            arguments.Add(Pop(stack));
+
+        return string.Join(", ", arguments);
     }
 
     private static string FormatAs2Value(PushValue value, IReadOnlyList<string> pool)
