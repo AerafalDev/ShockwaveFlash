@@ -21,4 +21,11 @@ public sealed record Gradient(
     GradientSpread Spread,
     GradientInterpolation Interpolation,
     IReadOnlyList<GradientStop> Stops,
-    float? FocalPoint = null);
+    float? FocalPoint = null)
+{
+    public Gradient TransformColors(ColorTransform colorTransform)
+    {
+        var stops = Stops.Select(stop => stop with { Color = colorTransform.Transform(stop.Color) }).ToList();
+        return this with { Stops = stops };
+    }
+}

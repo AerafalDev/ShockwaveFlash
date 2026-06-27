@@ -177,94 +177,53 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         return image;
     }
 
-    private Dictionary<int, ShapeDefinition> IndexShapes()
+    private Dictionary<int, T> Index<T>(Func<Tag, (int Id, T Value)?> select)
     {
-        var map = new Dictionary<int, ShapeDefinition>();
+        var map = new Dictionary<int, T>();
 
         foreach (var tag in _file.Tags)
-            if (tag is DefineShapeTag shape)
-                map[shape.ShapeId] = new ShapeDefinition(_shapeProcessor, shape);
+            if (select(tag) is { } entry)
+                map[entry.Id] = entry.Value;
 
         return map;
+    }
+
+    private Dictionary<int, ShapeDefinition> IndexShapes()
+    {
+        return Index<ShapeDefinition>(tag =>
+            tag is DefineShapeTag shape ? (shape.ShapeId, new ShapeDefinition(_shapeProcessor, shape)) : null);
     }
 
     private Dictionary<int, SpriteDefinition> IndexSprites()
     {
-        var map = new Dictionary<int, SpriteDefinition>();
-
-        foreach (var tag in _file.Tags)
-            if (tag is DefineSpriteTag sprite)
-                map[sprite.Id] = new SpriteDefinition(_timelineProcessor, sprite);
-
-        return map;
-    }
-
-    private Dictionary<int, Tag> IndexTextTags()
-    {
-        var map = new Dictionary<int, Tag>();
-
-        foreach (var tag in _file.Tags)
-        {
-            switch (tag)
-            {
-                case DefineTextTag text1:
-                    map[text1.Id] = text1;
-                    break;
-
-                case DefineEditTextTag editText:
-                    map[editText.Id] = editText;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        return map;
-    }
-
-    private Dictionary<int, Tag> IndexButtonTags()
-    {
-        var map = new Dictionary<int, Tag>();
-
-        foreach (var tag in _file.Tags)
-        {
-            switch (tag)
-            {
-                case DefineButtonTag button1:
-                    map[button1.Id] = button1;
-                    break;
-
-                case DefineButton2Tag button2:
-                    map[button2.Id] = button2;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        return map;
+        return Index<SpriteDefinition>(tag =>
+            tag is DefineSpriteTag sprite ? (sprite.Id, new SpriteDefinition(_timelineProcessor, sprite)) : null);
     }
 
     private Dictionary<int, MorphShapeDefinition> IndexMorphs()
     {
-        var map = new Dictionary<int, MorphShapeDefinition>();
+        return Index<MorphShapeDefinition>(tag =>
+            tag is DefineMorphShapeTag morph ? (morph.Id, new MorphShapeDefinition(_shapeProcessor, morph.Start, morph.End)) : null);
+    }
 
-        foreach (var tag in _file.Tags)
+    private Dictionary<int, Tag> IndexTextTags()
+    {
+        return Index<Tag>(static tag => tag switch
         {
-            switch (tag)
-            {
-                case DefineMorphShapeTag morph1:
-                    map[morph1.Id] = new MorphShapeDefinition(_shapeProcessor, morph1.Start, morph1.End);
-                    break;
+            DefineTextTag text => (text.Id, (Tag)text),
+            DefineEditTextTag editText => (editText.Id, editText),
+            _ => null
+        });
+    }
 
-                default:
-                    break;
-            }
-        }
-
-        return map;
+    private Dictionary<int, Tag> IndexButtonTags()
+    {
+        return Index<Tag>(static tag => tag switch
+        {
+            DefineButtonTag button1 => (button1.Id, (Tag)button1),
+            DefineButton2Tag button2 => (button2.Id, button2),
+            _ => null
+        });
     }
 
     private Dictionary<int, ResolvedFont> IndexFonts()
@@ -336,38 +295,15 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
     private Dictionary<int, Tag> IndexImageTags()
     {
-        var map = new Dictionary<int, Tag>();
-
-        foreach (var tag in _file.Tags)
+        return Index<Tag>(static tag => tag switch
         {
-            switch (tag)
-            {
-                case DefineBitsLosslessTag lossless:
-                    map[lossless.Id] = lossless;
-                    break;
-
-                case DefineBitsLossless2Tag lossless2:
-                    map[lossless2.Id] = lossless2;
-                    break;
-
-                case DefineBitsJpeg2Tag jpeg2:
-                    map[jpeg2.Id] = jpeg2;
-                    break;
-
-                case DefineBitsJpeg3Tag jpeg3:
-                    map[jpeg3.Id] = jpeg3;
-                    break;
-
-                case DefineBitsJpeg4Tag jpeg4:
-                    map[jpeg4.Id] = jpeg4;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        return map;
+            DefineBitsLosslessTag lossless => (lossless.Id, (Tag)lossless),
+            DefineBitsLossless2Tag lossless2 => (lossless2.Id, lossless2),
+            DefineBitsJpeg2Tag jpeg2 => (jpeg2.Id, jpeg2),
+            DefineBitsJpeg3Tag jpeg3 => (jpeg3.Id, jpeg3),
+            DefineBitsJpeg4Tag jpeg4 => (jpeg4.Id, jpeg4),
+            _ => null
+        });
     }
 
     private IImage? Decode(Tag tag)
