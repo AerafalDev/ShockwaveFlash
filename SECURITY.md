@@ -25,7 +25,7 @@ Report privately through either channel:
 
 - **GitHub Security Advisories** — open the repository's **Security → Report a
   vulnerability** tab to start a private advisory (preferred).
-- **Email** — <sf.diogo29@gmail.com>.
+- **Email** — <aerafal.github@gmail.com>.
 
 Please include:
 
