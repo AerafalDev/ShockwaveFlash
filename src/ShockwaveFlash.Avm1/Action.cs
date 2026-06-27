@@ -29,7 +29,7 @@ public abstract record Action(ActionOpcode Opcode)
                 payloadLength = reader.ReadUInt16();
 
             var actionReader = new MemoryReader(reader.ReadMemory(payloadLength));
-            var action = Decode(actionReader, opcode, context);
+            var action = Decode(actionReader, reader, opcode, context);
 
             if (actionReader.Remaining > 0)
                 throw new SwfFormatException($"AVM1 action {opcode} declared {payloadLength} bytes but consumed {actionReader.Position}.");
@@ -65,6 +65,7 @@ public abstract record Action(ActionOpcode Opcode)
 
             writer.WriteUInt16((ushort)body.Position);
             writer.WriteMemory(body.WrittenMemory);
+            action.EncodeTrailer(writer);
         }
 
         return writer.WrittenMemory;
@@ -74,7 +75,11 @@ public abstract record Action(ActionOpcode Opcode)
     {
     }
 
-    private static Action Decode(MemoryReader reader, ActionOpcode opcode, Avm1Context context)
+    public virtual void EncodeTrailer(MemoryWriter writer)
+    {
+    }
+
+    private static Action Decode(MemoryReader reader, MemoryReader outer, ActionOpcode opcode, Avm1Context context)
     {
         return opcode switch
         {
@@ -174,10 +179,10 @@ public abstract record Action(ActionOpcode Opcode)
             ActionOpcode.If => ActionIf.Decode(reader),
             ActionOpcode.Call => new ActionCall(),
             ActionOpcode.GotoFrame2 => ActionGotoFrame2.Decode(reader),
-            ActionOpcode.With => ActionWith.Decode(reader),
-            ActionOpcode.DefineFunction => ActionDefineFunction.Decode(reader, context.Encoding),
-            ActionOpcode.DefineFunction2 => ActionDefineFunction2.Decode(reader, context.Encoding),
-            ActionOpcode.Try => ActionTry.Decode(reader, context.Encoding),
+            ActionOpcode.With => ActionWith.Decode(reader, outer),
+            ActionOpcode.DefineFunction => ActionDefineFunction.Decode(reader, outer, context),
+            ActionOpcode.DefineFunction2 => ActionDefineFunction2.Decode(reader, outer, context),
+            ActionOpcode.Try => ActionTry.Decode(reader, outer, context),
             _ => ActionUnknown.Decode(reader, opcode)
         };
     }

@@ -1,9 +1,8 @@
-using System.Text;
 using ShockwaveFlash.Avm1.Types;
 
 namespace ShockwaveFlash.Avm1.Swf7;
 
-public sealed record ActionDefineFunction2(string Name, byte RegisterCount, FunctionFlags Flags, IReadOnlyList<FunctionParameter> Parameters, int CodeSize)
+public sealed record ActionDefineFunction2(string Name, byte RegisterCount, FunctionFlags Flags, IReadOnlyList<FunctionParameter> Parameters, ReadOnlyMemory<byte> Body)
     : Action(ActionOpcode.DefineFunction2)
 {
     public bool PreloadThis =>
@@ -33,21 +32,21 @@ public sealed record ActionDefineFunction2(string Name, byte RegisterCount, Func
     public bool PreloadGlobal =>
         Flags.HasFlag(FunctionFlags.PreloadGlobal);
 
-    public static ActionDefineFunction2 Decode(MemoryReader reader, Encoding encoding)
+    public static ActionDefineFunction2 Decode(MemoryReader header, MemoryReader outer, Avm1Context context)
     {
-        var name = reader.ReadNullTerminatedString(encoding);
-        var numParams = reader.ReadUInt16();
-        var registerCount = reader.ReadUInt8();
-        var flags = (FunctionFlags)reader.ReadUInt16();
+        var name = header.ReadNullTerminatedString(context.Encoding);
+        var numParams = header.ReadUInt16();
+        var registerCount = header.ReadUInt8();
+        var flags = (FunctionFlags)header.ReadUInt16();
 
         var parameters = new FunctionParameter[numParams];
 
         for (var i = 0; i < numParams; i++)
-            parameters[i] = new FunctionParameter(reader.ReadUInt8(), reader.ReadNullTerminatedString(encoding));
+            parameters[i] = new FunctionParameter(header.ReadUInt8(), header.ReadNullTerminatedString(context.Encoding));
 
-        var codeSize = reader.ReadUInt16();
+        var codeSize = header.ReadUInt16();
 
-        return new ActionDefineFunction2(name, registerCount, flags, parameters, codeSize);
+        return new ActionDefineFunction2(name, registerCount, flags, parameters, outer.ReadMemory(codeSize));
     }
 
     public override void Encode(MemoryWriter writer, Avm1Context context)
@@ -62,6 +61,11 @@ public sealed record ActionDefineFunction2(string Name, byte RegisterCount, Func
             writer.WriteNullTerminatedString(parameter.Name, context.Encoding);
         }
 
-        writer.WriteUInt16((ushort)CodeSize);
+        writer.WriteUInt16((ushort)Body.Length);
+    }
+
+    public override void EncodeTrailer(MemoryWriter writer)
+    {
+        writer.WriteMemory(Body);
     }
 }
