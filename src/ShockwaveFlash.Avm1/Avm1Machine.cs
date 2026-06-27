@@ -94,7 +94,6 @@ public sealed class Avm1Machine
                         for (var i = 0; i < count; i++)
                             items.Items.Add(Pop());
 
-                        items.Items.Reverse();
                         _stack.Push(items);
                         break;
                     }

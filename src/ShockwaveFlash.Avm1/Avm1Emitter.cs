@@ -101,8 +101,8 @@ public static class Avm1Emitter
                 break;
 
             case Avm1Array list:
-                foreach (var item in list.Items)
-                    EmitValue(item, actions, indexByString);
+                for (var i = list.Items.Count - 1; i >= 0; i--)
+                    EmitValue(list.Items[i], actions, indexByString);
 
                 actions.Add(PushInteger(list.Items.Count));
                 actions.Add(new ActionInitArray());
