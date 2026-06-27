@@ -17,10 +17,9 @@ ShockwaveFlash            parser / writer
         ├─ Model/      immutable drawable data (Shapes, Images, …)
         ├─ Processing/ tags → model (ShapeProcessor, TimelineProcessor, …)
         ├─ Scene/      display list (Frame, FrameObject), blend modes
-        ├─ Drawing/    IDrawer visitor + backends
-        │     ├─ Skia   raster (default)
-        │     └─ Svg    vector export
-        └─ Output/     PNG/JPEG/WebP/GIF encoders + animation
+        └─ Drawing/    IDrawer visitor + backends
+              ├─ Skia   raster: PNG/JPEG/WebP/PDF + GIF/animation encoders
+              └─ Svg    vector export
 ```
 
 Key choices:
