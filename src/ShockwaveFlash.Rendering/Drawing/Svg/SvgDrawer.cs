@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using ShockwaveFlash.Rendering.Model.Images;
 using ShockwaveFlash.Rendering.Model.Shapes;
+using ShockwaveFlash.Rendering.Model.Sprites;
 using ShockwaveFlash.Rendering.Scene;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Filter;
@@ -202,15 +203,71 @@ public sealed class SvgDrawer : IDrawer<string>
 
         _defs.Append(CultureInfo.InvariantCulture, $"<clipPath id=\"{id}\">");
 
-        if (drawable is ShapeDefinition definition)
-            foreach (var path in definition.Shape.Paths)
-                if (path.Style.Fill is not null)
-                    _defs.Append(CultureInfo.InvariantCulture, $"<path d=\"{BuildData(path.Edges)}\" transform=\"{Transform(matrix)}\"/>");
+        AppendClip(
+            drawable,
+            matrix.Scale.X.ToSingle(),
+            matrix.Rotation.X.ToSingle(),
+            matrix.Rotation.Y.ToSingle(),
+            matrix.Scale.Y.ToSingle(),
+            matrix.Translation.X / 20.0,
+            matrix.Translation.Y / 20.0,
+            0);
 
         _defs.Append("</clipPath>");
         _body.Append(CultureInfo.InvariantCulture, $"<g clip-path=\"url(#{id})\">");
 
         return id;
+    }
+
+    private void AppendClip(IDrawable drawable, float a, float b, float c, float d, double e, double f, int depth)
+    {
+        if (depth > 8)
+            return;
+
+        switch (drawable)
+        {
+            case ShapeDefinition definition:
+                foreach (var path in definition.Shape.Paths)
+                    if (path.Style.Fill is not null)
+                        _defs.Append(CultureInfo.InvariantCulture, $"<path d=\"{BuildData(path.Edges)}\" transform=\"matrix({a} {b} {c} {d} {e} {f})\"/>");
+
+                break;
+
+            case SpriteDefinition sprite:
+                var frames = sprite.Timeline.Frames;
+
+                if (frames.Count is 0)
+                    break;
+
+                foreach (var item in frames[0].Objects)
+                {
+                    if (item.ClipDepth is not null)
+                        continue;
+
+                    var m = item.Matrix;
+                    var ca = m.Scale.X.ToSingle();
+                    var cb = m.Rotation.X.ToSingle();
+                    var cc = m.Rotation.Y.ToSingle();
+                    var cd = m.Scale.Y.ToSingle();
+                    var ce = m.Translation.X / 20.0;
+                    var cf = m.Translation.Y / 20.0;
+
+                    AppendClip(
+                        item.Drawable,
+                        (a * ca) + (c * cb),
+                        (b * ca) + (d * cb),
+                        (a * cc) + (c * cd),
+                        (b * cc) + (d * cd),
+                        (a * ce) + (c * cf) + e,
+                        (b * ce) + (d * cf) + f,
+                        depth + 1);
+                }
+
+                break;
+
+            default:
+                break;
+        }
     }
 
     public void EndClip(string clipId)
