@@ -32,3 +32,6 @@ BenchmarkDotNet.Artifacts/
 _svg_preview/
 _filter_preview/
 _oracle/
+
+# Local render validation artifacts
+render-samples/
