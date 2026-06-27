@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionBitAnd() : Action(ActionOpcode.BitAnd);
+public sealed class ActionBitAnd : Action
+{
+    public ActionBitAnd() : base(ActionOpcode.BitAnd)
+    {
+    }
+}

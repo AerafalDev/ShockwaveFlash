@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionCallFunction() : Action(ActionOpcode.CallFunction);
+public sealed class ActionCallFunction : Action
+{
+    public ActionCallFunction() : base(ActionOpcode.CallFunction)
+    {
+    }
+}

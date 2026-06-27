@@ -2,8 +2,15 @@ using System.Text;
 
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionConstantPool(IReadOnlyList<string> Constants) : Action(ActionOpcode.ConstantPool)
+public sealed class ActionConstantPool : Action
 {
+    public IReadOnlyList<string> Constants { get; set; }
+
+    public ActionConstantPool(IReadOnlyList<string> constants) : base(ActionOpcode.ConstantPool)
+    {
+        Constants = constants;
+    }
+
     public static ActionConstantPool Decode(MemoryReader reader, Encoding encoding)
     {
         var count = reader.ReadUInt16();

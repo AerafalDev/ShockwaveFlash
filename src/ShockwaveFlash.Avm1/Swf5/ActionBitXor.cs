@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionBitXor() : Action(ActionOpcode.BitXor);
+public sealed class ActionBitXor : Action
+{
+    public ActionBitXor() : base(ActionOpcode.BitXor)
+    {
+    }
+}

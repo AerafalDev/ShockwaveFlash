@@ -4,8 +4,15 @@ using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionPush(IReadOnlyList<PushValue> PushValues) : Action(ActionOpcode.Push)
+public sealed class ActionPush : Action
 {
+    public IReadOnlyList<PushValue> PushValues { get; set; }
+
+    public ActionPush(IReadOnlyList<PushValue> pushValues) : base(ActionOpcode.Push)
+    {
+        PushValues = pushValues;
+    }
+
     public static ActionPush Decode(MemoryReader reader, Encoding encoding)
     {
         var pushValues = new List<PushValue>();

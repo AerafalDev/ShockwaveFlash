@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionJump(short BranchOffset) : Action(ActionOpcode.Jump)
+public sealed class ActionJump : Action
 {
+    public short BranchOffset { get; set; }
+
+    public ActionJump(short branchOffset) : base(ActionOpcode.Jump)
+    {
+        BranchOffset = branchOffset;
+    }
+
     public static ActionJump Decode(MemoryReader reader)
     {
         return new ActionJump(reader.ReadInt16());

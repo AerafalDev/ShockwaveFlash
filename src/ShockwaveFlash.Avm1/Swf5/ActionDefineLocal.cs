@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionDefineLocal() : Action(ActionOpcode.DefineLocal);
+public sealed class ActionDefineLocal : Action
+{
+    public ActionDefineLocal() : base(ActionOpcode.DefineLocal)
+    {
+    }
+}

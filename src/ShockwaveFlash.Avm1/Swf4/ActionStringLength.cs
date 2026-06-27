@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionStringLength() : Action(ActionOpcode.StringLength);
+public sealed class ActionStringLength : Action
+{
+    public ActionStringLength() : base(ActionOpcode.StringLength)
+    {
+    }
+}

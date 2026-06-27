@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf1;
 
-public sealed record ActionPlay() : Action(ActionOpcode.Play);
+public sealed class ActionPlay : Action
+{
+    public ActionPlay() : base(ActionOpcode.Play)
+    {
+    }
+}

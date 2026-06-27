@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionBitRShift() : Action(ActionOpcode.BitRShift);
+public sealed class ActionBitRShift : Action
+{
+    public ActionBitRShift() : base(ActionOpcode.BitRShift)
+    {
+    }
+}

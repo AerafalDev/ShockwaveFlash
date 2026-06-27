@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf6;
 
-public sealed record ActionInstanceOf() : Action(ActionOpcode.InstanceOf);
+public sealed class ActionInstanceOf : Action
+{
+    public ActionInstanceOf() : base(ActionOpcode.InstanceOf)
+    {
+    }
+}

@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionNewObject() : Action(ActionOpcode.NewObject);
+public sealed class ActionNewObject : Action
+{
+    public ActionNewObject() : base(ActionOpcode.NewObject)
+    {
+    }
+}

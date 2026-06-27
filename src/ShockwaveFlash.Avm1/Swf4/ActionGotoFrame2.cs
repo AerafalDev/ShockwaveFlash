@@ -1,7 +1,20 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionGotoFrame2(bool Play, bool HasSceneBias, ushort SceneBias) : Action(ActionOpcode.GotoFrame2)
+public sealed class ActionGotoFrame2 : Action
 {
+    public bool Play { get; set; }
+
+    public bool HasSceneBias { get; set; }
+
+    public ushort SceneBias { get; set; }
+
+    public ActionGotoFrame2(bool play, bool hasSceneBias, ushort sceneBias) : base(ActionOpcode.GotoFrame2)
+    {
+        Play = play;
+        HasSceneBias = hasSceneBias;
+        SceneBias = sceneBias;
+    }
+
     public static ActionGotoFrame2 Decode(MemoryReader reader)
     {
         var flags = reader.ReadUInt8();

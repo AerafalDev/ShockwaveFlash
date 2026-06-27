@@ -2,8 +2,30 @@ using ShockwaveFlash.Avm1.Types;
 
 namespace ShockwaveFlash.Avm1.Swf7;
 
-public sealed record ActionTry(TryFlags Flags, byte CatchRegister, string CatchVariable, ReadOnlyMemory<byte> TryBody, ReadOnlyMemory<byte> CatchBody, ReadOnlyMemory<byte> FinallyBody) : Action(ActionOpcode.Try)
+public sealed class ActionTry : Action
 {
+    public TryFlags Flags { get; set; }
+
+    public byte CatchRegister { get; set; }
+
+    public string CatchVariable { get; set; }
+
+    public ReadOnlyMemory<byte> TryBody { get; set; }
+
+    public ReadOnlyMemory<byte> CatchBody { get; set; }
+
+    public ReadOnlyMemory<byte> FinallyBody { get; set; }
+
+    public ActionTry(TryFlags flags, byte catchRegister, string catchVariable, ReadOnlyMemory<byte> tryBody, ReadOnlyMemory<byte> catchBody, ReadOnlyMemory<byte> finallyBody) : base(ActionOpcode.Try)
+    {
+        Flags = flags;
+        CatchRegister = catchRegister;
+        CatchVariable = catchVariable;
+        TryBody = tryBody;
+        CatchBody = catchBody;
+        FinallyBody = finallyBody;
+    }
+
     public static ActionTry Decode(MemoryReader header, MemoryReader outer, Avm1Context context)
     {
         var flags = (TryFlags)header.ReadUInt8();

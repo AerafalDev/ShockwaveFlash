@@ -10,8 +10,15 @@ using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Avm1;
 
-public abstract record Action(ActionOpcode Opcode)
+public abstract class Action
 {
+    public ActionOpcode Opcode { get; }
+
+    protected Action(ActionOpcode opcode)
+    {
+        Opcode = opcode;
+    }
+
     public static IReadOnlyList<Action> DecodeCollection(ReadOnlyMemory<byte> buffer, byte swfVersion)
     {
         var context = new Avm1Context(swfVersion);

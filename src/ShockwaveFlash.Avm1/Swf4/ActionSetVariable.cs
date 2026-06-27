@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionSetVariable() : Action(ActionOpcode.SetVariable);
+public sealed class ActionSetVariable : Action
+{
+    public ActionSetVariable() : base(ActionOpcode.SetVariable)
+    {
+    }
+}

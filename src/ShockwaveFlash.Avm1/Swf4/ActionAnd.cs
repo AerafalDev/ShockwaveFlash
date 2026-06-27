@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionAnd() : Action(ActionOpcode.And);
+public sealed class ActionAnd : Action
+{
+    public ActionAnd() : base(ActionOpcode.And)
+    {
+    }
+}

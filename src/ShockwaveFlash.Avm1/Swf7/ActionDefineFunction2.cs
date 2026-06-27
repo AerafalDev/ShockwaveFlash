@@ -2,9 +2,18 @@ using ShockwaveFlash.Avm1.Types;
 
 namespace ShockwaveFlash.Avm1.Swf7;
 
-public sealed record ActionDefineFunction2(string Name, byte RegisterCount, FunctionFlags Flags, IReadOnlyList<FunctionParameter> Parameters, ReadOnlyMemory<byte> Body)
-    : Action(ActionOpcode.DefineFunction2)
+public sealed class ActionDefineFunction2 : Action
 {
+    public string Name { get; set; }
+
+    public byte RegisterCount { get; set; }
+
+    public FunctionFlags Flags { get; set; }
+
+    public IReadOnlyList<FunctionParameter> Parameters { get; set; }
+
+    public ReadOnlyMemory<byte> Body { get; set; }
+
     public bool PreloadThis =>
         Flags.HasFlag(FunctionFlags.PreloadThis);
 
@@ -31,6 +40,15 @@ public sealed record ActionDefineFunction2(string Name, byte RegisterCount, Func
 
     public bool PreloadGlobal =>
         Flags.HasFlag(FunctionFlags.PreloadGlobal);
+
+    public ActionDefineFunction2(string name, byte registerCount, FunctionFlags flags, IReadOnlyList<FunctionParameter> parameters, ReadOnlyMemory<byte> body) : base(ActionOpcode.DefineFunction2)
+    {
+        Name = name;
+        RegisterCount = registerCount;
+        Flags = flags;
+        Parameters = parameters;
+        Body = body;
+    }
 
     public static ActionDefineFunction2 Decode(MemoryReader header, MemoryReader outer, Avm1Context context)
     {

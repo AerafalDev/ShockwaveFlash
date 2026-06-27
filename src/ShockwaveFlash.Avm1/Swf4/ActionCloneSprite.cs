@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionCloneSprite() : Action(ActionOpcode.CloneSprite);
+public sealed class ActionCloneSprite : Action
+{
+    public ActionCloneSprite() : base(ActionOpcode.CloneSprite)
+    {
+    }
+}

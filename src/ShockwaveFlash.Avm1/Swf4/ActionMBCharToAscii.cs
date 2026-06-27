@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionMBCharToAscii() : Action(ActionOpcode.MBCharToAscii);
+public sealed class ActionMBCharToAscii : Action
+{
+    public ActionMBCharToAscii() : base(ActionOpcode.MBCharToAscii)
+    {
+    }
+}

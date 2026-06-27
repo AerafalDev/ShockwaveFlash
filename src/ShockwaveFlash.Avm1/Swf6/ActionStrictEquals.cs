@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf6;
 
-public sealed record ActionStrictEquals() : Action(ActionOpcode.StrictEquals);
+public sealed class ActionStrictEquals : Action
+{
+    public ActionStrictEquals() : base(ActionOpcode.StrictEquals)
+    {
+    }
+}

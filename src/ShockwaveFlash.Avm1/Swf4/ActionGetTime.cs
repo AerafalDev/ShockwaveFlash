@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionGetTime() : Action(ActionOpcode.GetTime);
+public sealed class ActionGetTime : Action
+{
+    public ActionGetTime() : base(ActionOpcode.GetTime)
+    {
+    }
+}

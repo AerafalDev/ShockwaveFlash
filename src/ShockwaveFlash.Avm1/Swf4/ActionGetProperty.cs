@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionGetProperty() : Action(ActionOpcode.GetProperty);
+public sealed class ActionGetProperty : Action
+{
+    public ActionGetProperty() : base(ActionOpcode.GetProperty)
+    {
+    }
+}

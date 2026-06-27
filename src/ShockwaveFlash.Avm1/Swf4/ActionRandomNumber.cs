@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionRandomNumber() : Action(ActionOpcode.RandomNumber);
+public sealed class ActionRandomNumber : Action
+{
+    public ActionRandomNumber() : base(ActionOpcode.RandomNumber)
+    {
+    }
+}

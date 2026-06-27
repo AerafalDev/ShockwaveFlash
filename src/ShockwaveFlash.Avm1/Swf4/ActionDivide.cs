@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionDivide() : Action(ActionOpcode.Divide);
+public sealed class ActionDivide : Action
+{
+    public ActionDivide() : base(ActionOpcode.Divide)
+    {
+    }
+}

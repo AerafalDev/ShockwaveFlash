@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionRemoveSprite() : Action(ActionOpcode.RemoveSprite);
+public sealed class ActionRemoveSprite : Action
+{
+    public ActionRemoveSprite() : base(ActionOpcode.RemoveSprite)
+    {
+    }
+}

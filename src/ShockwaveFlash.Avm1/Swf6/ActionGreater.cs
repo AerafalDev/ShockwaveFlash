@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf6;
 
-public sealed record ActionGreater() : Action(ActionOpcode.Greater);
+public sealed class ActionGreater : Action
+{
+    public ActionGreater() : base(ActionOpcode.Greater)
+    {
+    }
+}

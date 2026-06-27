@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionDelete() : Action(ActionOpcode.Delete);
+public sealed class ActionDelete : Action
+{
+    public ActionDelete() : base(ActionOpcode.Delete)
+    {
+    }
+}

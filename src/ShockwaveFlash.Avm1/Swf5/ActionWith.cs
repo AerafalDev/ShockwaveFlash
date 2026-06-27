@@ -1,7 +1,14 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionWith(ReadOnlyMemory<byte> Body) : Action(ActionOpcode.With)
+public sealed class ActionWith : Action
 {
+    public ReadOnlyMemory<byte> Body { get; set; }
+
+    public ActionWith(ReadOnlyMemory<byte> body) : base(ActionOpcode.With)
+    {
+        Body = body;
+    }
+
     public static ActionWith Decode(MemoryReader header, MemoryReader outer)
     {
         var codeSize = header.ReadUInt16();

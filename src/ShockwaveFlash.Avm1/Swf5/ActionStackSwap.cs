@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionStackSwap() : Action(ActionOpcode.StackSwap);
+public sealed class ActionStackSwap : Action
+{
+    public ActionStackSwap() : base(ActionOpcode.StackSwap)
+    {
+    }
+}

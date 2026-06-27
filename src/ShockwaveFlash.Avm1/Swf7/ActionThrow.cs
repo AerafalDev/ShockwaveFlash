@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf7;
 
-public sealed record ActionThrow() : Action(ActionOpcode.Throw);
+public sealed class ActionThrow : Action
+{
+    public ActionThrow() : base(ActionOpcode.Throw)
+    {
+    }
+}

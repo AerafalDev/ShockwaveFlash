@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionSetMember() : Action(ActionOpcode.SetMember);
+public sealed class ActionSetMember : Action
+{
+    public ActionSetMember() : base(ActionOpcode.SetMember)
+    {
+    }
+}

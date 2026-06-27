@@ -1,7 +1,20 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionDefineFunction(string Name, IReadOnlyList<string> Parameters, ReadOnlyMemory<byte> Body) : Action(ActionOpcode.DefineFunction)
+public sealed class ActionDefineFunction : Action
 {
+    public string Name { get; set; }
+
+    public IReadOnlyList<string> Parameters { get; set; }
+
+    public ReadOnlyMemory<byte> Body { get; set; }
+
+    public ActionDefineFunction(string name, IReadOnlyList<string> parameters, ReadOnlyMemory<byte> body) : base(ActionOpcode.DefineFunction)
+    {
+        Name = name;
+        Parameters = parameters;
+        Body = body;
+    }
+
     public static ActionDefineFunction Decode(MemoryReader header, MemoryReader outer, Avm1Context context)
     {
         var name = header.ReadNullTerminatedString(context.Encoding);

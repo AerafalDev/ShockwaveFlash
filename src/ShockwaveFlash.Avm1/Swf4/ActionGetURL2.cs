@@ -2,8 +2,10 @@ using ShockwaveFlash.Avm1.Types;
 
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionGetURL2(GetUrlFlags Flags) : Action(ActionOpcode.GetURL2)
+public sealed class ActionGetURL2 : Action
 {
+    public GetUrlFlags Flags { get; set; }
+
     public bool MethodNone =>
         Flags.HasFlag(GetUrlFlags.MethodNone);
 
@@ -21,6 +23,11 @@ public sealed record ActionGetURL2(GetUrlFlags Flags) : Action(ActionOpcode.GetU
 
     public SendVarsMethod SendVarsMethod =>
         (SendVarsMethod)(byte)(Flags & GetUrlFlags.MethodMask);
+
+    public ActionGetURL2(GetUrlFlags flags) : base(ActionOpcode.GetURL2)
+    {
+        Flags = flags;
+    }
 
     public static ActionGetURL2 Decode(MemoryReader reader)
     {

@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionEquals() : Action(ActionOpcode.Equals);
+public sealed class ActionEquals : Action
+{
+    public ActionEquals() : base(ActionOpcode.Equals)
+    {
+    }
+}

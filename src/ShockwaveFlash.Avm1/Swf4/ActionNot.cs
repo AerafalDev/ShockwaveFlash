@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionNot() : Action(ActionOpcode.Not);
+public sealed class ActionNot : Action
+{
+    public ActionNot() : base(ActionOpcode.Not)
+    {
+    }
+}

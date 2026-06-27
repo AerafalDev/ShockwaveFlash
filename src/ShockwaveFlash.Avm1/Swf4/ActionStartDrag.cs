@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionStartDrag() : Action(ActionOpcode.StartDrag);
+public sealed class ActionStartDrag : Action
+{
+    public ActionStartDrag() : base(ActionOpcode.StartDrag)
+    {
+    }
+}

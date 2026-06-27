@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf4;
 
-public sealed record ActionPop() : Action(ActionOpcode.Pop);
+public sealed class ActionPop : Action
+{
+    public ActionPop() : base(ActionOpcode.Pop)
+    {
+    }
+}

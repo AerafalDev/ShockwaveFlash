@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Special;
 
-public sealed record ActionEnd() : Action(ActionOpcode.End);
+public sealed class ActionEnd : Action
+{
+    public ActionEnd() : base(ActionOpcode.End)
+    {
+    }
+}

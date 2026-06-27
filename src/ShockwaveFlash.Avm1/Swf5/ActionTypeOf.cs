@@ -1,3 +1,8 @@
 namespace ShockwaveFlash.Avm1.Swf5;
 
-public sealed record ActionTypeOf() : Action(ActionOpcode.TypeOf);
+public sealed class ActionTypeOf : Action
+{
+    public ActionTypeOf() : base(ActionOpcode.TypeOf)
+    {
+    }
+}
