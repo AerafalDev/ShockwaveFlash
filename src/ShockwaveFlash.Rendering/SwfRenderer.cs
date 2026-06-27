@@ -1,5 +1,6 @@
 using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Rendering.Diagnostics;
+using ShockwaveFlash.Rendering.Exceptions;
 using ShockwaveFlash.Rendering.Model;
 using ShockwaveFlash.Rendering.Model.Buttons;
 using ShockwaveFlash.Rendering.Model.Images;
@@ -86,7 +87,34 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         if (ResolveImage(characterId) is { } image)
             return new ImageDrawable(image);
 
+        Report(RenderSeverity.Warning, $"Character {characterId} is not defined.");
+
+        if (_options.Strict)
+            throw new RenderingException($"Character {characterId} is not defined.");
+
         return MissingCharacter.Instance;
+    }
+
+    private void Report(RenderSeverity severity, string message)
+    {
+        _options.Diagnostics?.Report(new RenderDiagnostic(severity, message));
+    }
+
+    private T? Guard<T>(Func<T?> build, string what) where T : class
+    {
+        try
+        {
+            return build();
+        }
+        catch (SwfException exception)
+        {
+            Report(RenderSeverity.Warning, $"Failed to resolve {what}: {exception.Message}");
+
+            if (_options.Strict)
+                throw new RenderingException($"Failed to resolve {what}.", exception);
+
+            return null;
+        }
     }
 
     public MovieDefinition Movie()
@@ -110,12 +138,12 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         _buttonTags ??= IndexButtonTags();
 
         var button = _buttonTags.TryGetValue(characterId, out var tag)
-            ? tag switch
+            ? Guard(() => tag switch
             {
                 DefineButtonTag button1 => new ButtonDefinition(this, button1.Records),
                 DefineButton2Tag button2 => new ButtonDefinition(this, button2.Records),
                 _ => null
-            }
+            }, $"button character {characterId}")
             : null;
 
         if (button is not null)
@@ -146,12 +174,12 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         if (!_textTags.TryGetValue(characterId, out var tag))
             return null;
 
-        var text = tag switch
+        var text = Guard(() => tag switch
         {
             DefineTextTag text1 => _textProcessor.Process(text1.Bounds, text1.Matrix, text1.Records),
             DefineEditTextTag editText => _editTextProcessor.Process(editText),
             _ => null
-        };
+        }, $"text character {characterId}");
 
         if (text is not null)
             _textCache[characterId] = text;
@@ -322,7 +350,11 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         }
         catch (SwfException exception)
         {
-            _options.Diagnostics?.Report(new RenderDiagnostic(RenderSeverity.Warning, $"Failed to decode image character: {exception.Message}"));
+            Report(RenderSeverity.Warning, $"Failed to decode image character: {exception.Message}");
+
+            if (_options.Strict)
+                throw new RenderingException("Failed to decode image character.", exception);
+
             return null;
         }
     }
