@@ -18,4 +18,16 @@ public sealed record ActionTry(TryFlags Flags, byte CatchRegister, string CatchV
 
         return new ActionTry(flags, catchRegister, catchVariable, trySize, catchSize, finallySize);
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteUInt8((byte)Flags);
+        writer.WriteUInt16(TrySize);
+        writer.WriteUInt16(CatchSize);
+        writer.WriteUInt16(FinallySize);
+        if (Flags.HasFlag(TryFlags.CatchInRegister))
+            writer.WriteUInt8(CatchRegister);
+        else
+            writer.WriteNullTerminatedString(CatchVariable, context.Encoding);
+    }
 }

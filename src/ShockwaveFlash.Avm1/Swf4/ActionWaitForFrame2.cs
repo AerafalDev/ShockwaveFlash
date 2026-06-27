@@ -6,4 +6,9 @@ public sealed record ActionWaitForFrame2(byte SkipCount) : Action(ActionOpcode.W
     {
         return new ActionWaitForFrame2(reader.ReadUInt8());
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteUInt8(SkipCount);
+    }
 }

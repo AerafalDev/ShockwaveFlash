@@ -6,4 +6,9 @@ public sealed record ActionUnknown(ActionOpcode Opcode, ReadOnlyMemory<byte> Dat
     {
         return new ActionUnknown(opcode, reader.ReadMemoryToEnd());
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteMemory(Data);
+    }
 }

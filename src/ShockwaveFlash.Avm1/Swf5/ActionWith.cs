@@ -6,4 +6,9 @@ public sealed record ActionWith(int CodeSize) : Action(ActionOpcode.With)
     {
         return new ActionWith(reader.ReadUInt16());
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteUInt16((ushort)CodeSize);
+    }
 }

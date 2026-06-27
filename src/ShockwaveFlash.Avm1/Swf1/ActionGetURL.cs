@@ -8,4 +8,10 @@ public sealed record ActionGetURL(string Url, string Target) : Action(ActionOpco
     {
         return new ActionGetURL(reader.ReadNullTerminatedString(encoding), reader.ReadNullTerminatedString(encoding));
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteNullTerminatedString(Url, context.Encoding);
+        writer.WriteNullTerminatedString(Target, context.Encoding);
+    }
 }

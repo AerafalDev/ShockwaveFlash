@@ -6,4 +6,9 @@ public sealed record ActionGotoFrame(ushort Frame) : Action(ActionOpcode.GotoFra
     {
         return new ActionGotoFrame(reader.ReadUInt16());
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteUInt16(Frame);
+    }
 }

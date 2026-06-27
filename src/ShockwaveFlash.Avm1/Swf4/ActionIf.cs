@@ -6,4 +6,9 @@ public sealed record ActionIf(short BranchOffset) : Action(ActionOpcode.If)
     {
         return new ActionIf(reader.ReadInt16());
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteInt16(BranchOffset);
+    }
 }

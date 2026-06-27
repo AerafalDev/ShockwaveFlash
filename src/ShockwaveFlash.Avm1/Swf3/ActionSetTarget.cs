@@ -8,4 +8,9 @@ public sealed record ActionSetTarget(string TargetName) : Action(ActionOpcode.Se
     {
         return new ActionSetTarget(reader.ReadNullTerminatedString(encoding));
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteNullTerminatedString(TargetName, context.Encoding);
+    }
 }

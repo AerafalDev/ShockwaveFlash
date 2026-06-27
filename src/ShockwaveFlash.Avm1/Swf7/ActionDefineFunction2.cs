@@ -49,4 +49,19 @@ public sealed record ActionDefineFunction2(string Name, byte RegisterCount, Func
 
         return new ActionDefineFunction2(name, registerCount, flags, parameters, codeSize);
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteNullTerminatedString(Name, context.Encoding);
+        writer.WriteUInt16((ushort)Parameters.Count);
+        writer.WriteUInt8(RegisterCount);
+        writer.WriteUInt16((ushort)Flags);
+        foreach (var parameter in Parameters)
+        {
+            writer.WriteUInt8(parameter.Register);
+            writer.WriteNullTerminatedString(parameter.Name, context.Encoding);
+        }
+
+        writer.WriteUInt16((ushort)CodeSize);
+    }
 }

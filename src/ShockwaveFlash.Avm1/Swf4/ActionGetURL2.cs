@@ -26,4 +26,9 @@ public sealed record ActionGetURL2(GetUrlFlags Flags) : Action(ActionOpcode.GetU
     {
         return new ActionGetURL2((GetUrlFlags)reader.ReadUInt8());
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteUInt8((byte)Flags);
+    }
 }

@@ -14,4 +14,11 @@ public sealed record ActionConstantPool(IReadOnlyList<string> Constants) : Actio
 
         return new ActionConstantPool(constants);
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteUInt16((ushort)Constants.Count);
+        foreach (var constant in Constants)
+            writer.WriteNullTerminatedString(constant, context.Encoding);
+    }
 }

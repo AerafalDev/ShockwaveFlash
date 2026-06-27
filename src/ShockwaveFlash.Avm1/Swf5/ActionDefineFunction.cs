@@ -17,4 +17,13 @@ public sealed record ActionDefineFunction(string Name, IReadOnlyList<string> Par
 
         return new ActionDefineFunction(name, parameters, codeSize);
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteNullTerminatedString(Name, context.Encoding);
+        writer.WriteUInt16((ushort)Parameters.Count);
+        foreach (var parameter in Parameters)
+            writer.WriteNullTerminatedString(parameter, context.Encoding);
+        writer.WriteUInt16((ushort)CodeSize);
+    }
 }

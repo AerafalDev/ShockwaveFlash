@@ -8,4 +8,9 @@ public sealed record ActionGoToLabel(string Label) : Action(ActionOpcode.GoToLab
     {
         return new ActionGoToLabel(reader.ReadNullTerminatedString(encoding));
     }
+
+    public override void Encode(MemoryWriter writer, Avm1Context context)
+    {
+        writer.WriteNullTerminatedString(Label, context.Encoding);
+    }
 }
