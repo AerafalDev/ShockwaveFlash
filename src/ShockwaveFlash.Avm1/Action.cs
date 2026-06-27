@@ -16,7 +16,7 @@ public abstract record Action(ActionOpcode Opcode)
 {
     public static IReadOnlyList<Action> DecodeCollection(ReadOnlyMemory<byte> buffer, byte swfVersion)
     {
-        var encoding = swfVersion >= 6 ? Encoding.UTF8 : Encoding.Latin1;
+        var context = new Avm1Context(swfVersion);
         var actions = new List<Action>(capacity: 64);
         var reader = new MemoryReader(buffer);
 
@@ -31,7 +31,7 @@ public abstract record Action(ActionOpcode Opcode)
                 payloadLength = reader.ReadUInt16();
 
             var actionReader = new MemoryReader(reader.ReadMemory(payloadLength));
-            var action = Decode(actionReader, opcode, encoding);
+            var action = Decode(actionReader, opcode, context);
 
             if (actionReader.Remaining > 0)
                 throw new SwfFormatException($"AVM1 action {opcode} declared {payloadLength} bytes but consumed {actionReader.Position}.");
@@ -47,7 +47,7 @@ public abstract record Action(ActionOpcode Opcode)
 
     public static ReadOnlyMemory<byte> EncodeCollection(IReadOnlyList<Action> actions, byte swfVersion)
     {
-        var encoding = swfVersion >= 6 ? Encoding.UTF8 : Encoding.Latin1;
+        var context = new Avm1Context(swfVersion);
         var writer = new MemoryWriter();
         var body = new MemoryWriter();
 
@@ -60,7 +60,7 @@ public abstract record Action(ActionOpcode Opcode)
                 continue;
 
             body.Reset();
-            EncodeBody(action, body, encoding);
+            EncodeBody(action, body, context.Encoding);
 
             if (body.Position > ushort.MaxValue)
                 throw new SwfFormatException($"AVM1 action {action.Opcode} body of {body.Position} bytes exceeds the 65535-byte action limit.");
@@ -238,7 +238,7 @@ public abstract record Action(ActionOpcode Opcode)
         }
     }
 
-    private static Action Decode(MemoryReader reader, ActionOpcode opcode, Encoding encoding)
+    private static Action Decode(MemoryReader reader, ActionOpcode opcode, Avm1Context context)
     {
         return opcode switch
         {
@@ -325,23 +325,23 @@ public abstract record Action(ActionOpcode Opcode)
             ActionOpcode.StringGreater => new ActionStringGreater(),
             ActionOpcode.Extends => new ActionExtends(),
             ActionOpcode.GotoFrame => ActionGotoFrame.Decode(reader),
-            ActionOpcode.GetURL => ActionGetURL.Decode(reader, encoding),
+            ActionOpcode.GetURL => ActionGetURL.Decode(reader, context.Encoding),
             ActionOpcode.GetURL2 => ActionGetURL2.Decode(reader),
             ActionOpcode.StoreRegister => ActionStoreRegister.Decode(reader),
-            ActionOpcode.ConstantPool => ActionConstantPool.Decode(reader, encoding),
+            ActionOpcode.ConstantPool => ActionConstantPool.Decode(reader, context.Encoding),
             ActionOpcode.WaitForFrame => ActionWaitForFrame.Decode(reader),
             ActionOpcode.WaitForFrame2 => ActionWaitForFrame2.Decode(reader),
-            ActionOpcode.SetTarget => ActionSetTarget.Decode(reader, encoding),
-            ActionOpcode.GoToLabel => ActionGoToLabel.Decode(reader, encoding),
-            ActionOpcode.Push => ActionPush.Decode(reader, encoding),
+            ActionOpcode.SetTarget => ActionSetTarget.Decode(reader, context.Encoding),
+            ActionOpcode.GoToLabel => ActionGoToLabel.Decode(reader, context.Encoding),
+            ActionOpcode.Push => ActionPush.Decode(reader, context.Encoding),
             ActionOpcode.Jump => ActionJump.Decode(reader),
             ActionOpcode.If => ActionIf.Decode(reader),
             ActionOpcode.Call => new ActionCall(),
             ActionOpcode.GotoFrame2 => ActionGotoFrame2.Decode(reader),
             ActionOpcode.With => ActionWith.Decode(reader),
-            ActionOpcode.DefineFunction => ActionDefineFunction.Decode(reader, encoding),
-            ActionOpcode.DefineFunction2 => ActionDefineFunction2.Decode(reader, encoding),
-            ActionOpcode.Try => ActionTry.Decode(reader, encoding),
+            ActionOpcode.DefineFunction => ActionDefineFunction.Decode(reader, context.Encoding),
+            ActionOpcode.DefineFunction2 => ActionDefineFunction2.Decode(reader, context.Encoding),
+            ActionOpcode.Try => ActionTry.Decode(reader, context.Encoding),
             _ => ActionUnknown.Decode(reader, opcode)
         };
     }
