@@ -41,7 +41,7 @@ public class DefineFont2Tag : Tag
         Flags.HasFlag(FontFlags.IsShiftJis);
 
     public bool HasLayout =>
-        Flags.HasFlag(FontFlags.HasLayout);
+        Layout is not null;
 
     public DefineFont2Tag(TagMetadata metadata, ushort id, string name, Language language, FontLayout? layout, FontGlyph[] glyphs, FontFlags flags) : base(metadata)
     {
@@ -152,7 +152,7 @@ public class DefineFont2Tag : Tag
     public override void Encode(MemoryWriter writer, byte swfVersion)
     {
         writer.WriteUInt16(Id);
-        writer.WriteUInt8((byte)Flags);
+        writer.WriteUInt8((byte)ComputeFlags());
         writer.WriteUInt8((byte)Language);
         writer.WriteLengthPrefixedString(Name);
 
@@ -211,7 +211,7 @@ public class DefineFont2Tag : Tag
                 writer.WriteUInt8((byte)Glyphs[i].Code);
         }
 
-        if (HasLayout && Layout is { } layout)
+        if (Layout is { } layout)
         {
             writer.WriteUInt16(layout.Ascent);
             writer.WriteUInt16(layout.Descent);
@@ -266,5 +266,15 @@ public class DefineFont2Tag : Tag
         bits.Flush(glyphWriter);
 
         return glyphWriter.WrittenMemory;
+    }
+
+    private FontFlags ComputeFlags()
+    {
+        var flags = Flags & ~FontFlags.HasLayout;
+
+        if (Layout is not null)
+            flags |= FontFlags.HasLayout;
+
+        return flags;
     }
 }

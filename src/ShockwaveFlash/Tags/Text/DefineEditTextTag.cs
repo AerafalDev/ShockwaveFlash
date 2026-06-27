@@ -31,21 +31,20 @@ public sealed class DefineEditTextTag : Tag
     public bool HasVariableName =>
         !string.IsNullOrEmpty(VariableName);
 
-    [MemberNotNullWhen(true, nameof(Height))]
     public bool HasHeight =>
-        (Flags & (EditTextFlags.HasFont | EditTextFlags.HasFontClass)) is not 0;
+        HasFont || HasFontClass;
 
     [MemberNotNullWhen(true, nameof(FontId))]
     public bool HasFont =>
-        Flags.HasFlag(EditTextFlags.HasFont);
+        FontId is not null;
 
     [MemberNotNullWhen(true, nameof(MaxLength))]
     public bool HasMaxLength =>
-        Flags.HasFlag(EditTextFlags.HasMaxLength);
+        MaxLength is not null;
 
     [MemberNotNullWhen(true, nameof(Color))]
     public bool HasTextColor =>
-        Flags.HasFlag(EditTextFlags.HasTextColor);
+        Color is not null;
 
     public bool ReadOnly =>
         Flags.HasFlag(EditTextFlags.ReadOnly);
@@ -61,7 +60,7 @@ public sealed class DefineEditTextTag : Tag
 
     [MemberNotNullWhen(true, nameof(InitialText))]
     public bool HasText =>
-        Flags.HasFlag(EditTextFlags.HasText);
+        InitialText is not null;
 
     public bool UseOutlines =>
         Flags.HasFlag(EditTextFlags.UseOutlines);
@@ -80,14 +79,14 @@ public sealed class DefineEditTextTag : Tag
 
     [MemberNotNullWhen(true, nameof(Layout))]
     public bool HasLayout =>
-        Flags.HasFlag(EditTextFlags.HasLayout);
+        Layout is not null;
 
     public bool AutoSize =>
         Flags.HasFlag(EditTextFlags.AutoSize);
 
     [MemberNotNullWhen(true, nameof(FontClass))]
     public bool HasFontClass =>
-        Flags.HasFlag(EditTextFlags.HasFontClass);
+        FontClass is not null;
 
     public DefineEditTextTag(TagMetadata metadata, ushort id, Rectangle bounds, ushort? fontId, string? fontClass, ushort? height, Color? color, ushort? maxLength, TextLayout? layout, string variableName, string? initialText, EditTextFlags flags) : base(metadata)
     {
@@ -125,29 +124,58 @@ public sealed class DefineEditTextTag : Tag
     {
         writer.WriteUInt16(Id);
         Bounds.Encode(writer);
-        writer.WriteUInt16((ushort)Flags);
+        writer.WriteUInt16((ushort)ComputeFlags());
 
-        if (HasFont && FontId is { } fontId)
+        if (FontId is { } fontId)
             writer.WriteUInt16(fontId);
 
-        if (HasFontClass && FontClass is { } fontClass)
+        if (FontClass is { } fontClass)
             writer.WriteNullTerminatedString(fontClass);
 
-        if (HasHeight && Height is { } height)
-            writer.WriteUInt16(height);
+        if (HasHeight)
+            writer.WriteUInt16(Height ?? (ushort)0);
 
-        if (HasTextColor && Color is { } color)
+        if (Color is { } color)
             color.EncodeRgba(writer);
 
-        if (HasMaxLength && MaxLength is { } maxLength)
+        if (MaxLength is { } maxLength)
             writer.WriteUInt16(maxLength);
 
-        if (HasLayout && Layout is { } layout)
+        if (Layout is { } layout)
             layout.Encode(writer);
 
         writer.WriteNullTerminatedString(VariableName);
 
-        if (HasText && InitialText is { } initialText)
+        if (InitialText is { } initialText)
             writer.WriteNullTerminatedString(initialText);
+    }
+
+    private EditTextFlags ComputeFlags()
+    {
+        const EditTextFlags presence =
+            EditTextFlags.HasFont | EditTextFlags.HasFontClass | EditTextFlags.HasMaxLength |
+            EditTextFlags.HasTextColor | EditTextFlags.HasText | EditTextFlags.HasLayout;
+
+        var flags = Flags & ~presence;
+
+        if (HasFont)
+            flags |= EditTextFlags.HasFont;
+
+        if (HasFontClass)
+            flags |= EditTextFlags.HasFontClass;
+
+        if (HasMaxLength)
+            flags |= EditTextFlags.HasMaxLength;
+
+        if (HasTextColor)
+            flags |= EditTextFlags.HasTextColor;
+
+        if (HasText)
+            flags |= EditTextFlags.HasText;
+
+        if (HasLayout)
+            flags |= EditTextFlags.HasLayout;
+
+        return flags;
     }
 }
