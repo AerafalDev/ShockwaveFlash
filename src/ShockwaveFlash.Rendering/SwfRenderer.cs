@@ -57,6 +57,10 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
 
     private Dictionary<int, ResolvedFont>? _fonts;
 
+    private JpegTablesTag? _jpegTables;
+
+    private bool _jpegTablesResolved;
+
     public SwfRenderer(ShockwaveFlashFile file, RenderOptions? options = null)
     {
         _file = file;
@@ -325,7 +329,8 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
     {
         return Index<Tag>(static tag => tag switch
         {
-            DefineBitsLosslessTag lossless => (lossless.Id, (Tag)lossless),
+            DefineBitsTag bits => (bits.Id, bits),
+            DefineBitsLosslessTag lossless => (lossless.Id, lossless),
             DefineBitsLossless2Tag lossless2 => (lossless2.Id, lossless2),
             DefineBitsJpeg2Tag jpeg2 => (jpeg2.Id, jpeg2),
             DefineBitsJpeg3Tag jpeg3 => (jpeg3.Id, jpeg3),
@@ -334,12 +339,24 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         });
     }
 
+    private JpegTablesTag? JpegTables()
+    {
+        if (!_jpegTablesResolved)
+        {
+            _jpegTables = _file.Tags.OfType<JpegTablesTag>().FirstOrDefault();
+            _jpegTablesResolved = true;
+        }
+
+        return _jpegTables;
+    }
+
     private IImage? Decode(Tag tag)
     {
         try
         {
             return tag switch
             {
+                DefineBitsTag bits => BitmapDecoder.Decode(bits, JpegTables()),
                 DefineBitsLosslessTag lossless => BitmapDecoder.Decode(lossless),
                 DefineBitsLossless2Tag lossless2 => BitmapDecoder.Decode(lossless2),
                 DefineBitsJpeg2Tag jpeg2 => BitmapDecoder.Decode(jpeg2),

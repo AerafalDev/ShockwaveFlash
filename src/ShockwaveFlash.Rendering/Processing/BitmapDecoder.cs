@@ -20,6 +20,18 @@ public static class BitmapDecoder
         return DecodeLossless(tag.Width, tag.Height, tag.Format, tag.ZLibBitmapData, true);
     }
 
+    public static IImage Decode(DefineBitsTag tag, JpegTablesTag? tables)
+    {
+        if (tables is null || tables.Data.IsEmpty)
+            return DecodeJpeg(tag.ImageData, default);
+
+        var combined = new byte[tables.Data.Length + tag.ImageData.Length];
+        tables.Data.Span.CopyTo(combined);
+        tag.ImageData.Span.CopyTo(combined.AsSpan(tables.Data.Length));
+
+        return DecodeJpeg(combined, default);
+    }
+
     public static IImage Decode(DefineBitsJpeg2Tag tag)
     {
         return DecodeJpeg(tag.Data, default);
