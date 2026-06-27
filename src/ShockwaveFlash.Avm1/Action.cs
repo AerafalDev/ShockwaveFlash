@@ -34,7 +34,7 @@ public abstract record Action(ActionOpcode Opcode)
             var action = Decode(actionReader, opcode, encoding);
 
             if (actionReader.Remaining > 0)
-                throw new InvalidOperationException($"Action length mismatch. Expected {payloadLength} bytes, got {actionReader.Position}.");
+                throw new SwfFormatException($"AVM1 action {opcode} declared {payloadLength} bytes but consumed {actionReader.Position}.");
 
             actions.Add(action);
 

@@ -1,5 +1,6 @@
 using System.Text;
 using ShockwaveFlash.Avm1.Types;
+using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Avm1.Swf4;
 
@@ -25,7 +26,7 @@ public sealed record ActionPush(IReadOnlyList<PushValue> PushValues) : Action(Ac
                 PushValueType.Integer => PushValue.Integer(reader.ReadInt32()),
                 PushValueType.Constant8 => PushValue.Constant8(reader.ReadUInt8()),
                 PushValueType.Constant16 => PushValue.Constant16(reader.ReadUInt16()),
-                _ => throw new ArgumentOutOfRangeException($"Push type 0x{type:X2} is not supported.")
+                _ => throw new SwfFormatException($"Unknown AVM1 push value type 0x{type:X2}.")
             };
 
             pushValues.Add(pushValue);
