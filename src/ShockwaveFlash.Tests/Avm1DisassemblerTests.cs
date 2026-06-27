@@ -1,5 +1,6 @@
 using ShockwaveFlash.Avm1.Special;
 using ShockwaveFlash.Avm1.Swf4;
+using ShockwaveFlash.Avm1.Swf5;
 using ShockwaveFlash.Avm1.Text;
 using ShockwaveFlash.Avm1.Types;
 using Shouldly;
@@ -39,6 +40,20 @@ public sealed class Avm1DisassemblerTests
         var text = Avm1Disassembler.Disassemble(actions, swfVersion: 6, Avm1DisassemblyKind.As2);
 
         text.ShouldBe("name = \"value\";");
+    }
+
+    [Fact]
+    public void Pcode_resolves_constant_pool_references()
+    {
+        IReadOnlyList<Avm1Action> actions =
+        [
+            new ActionConstantPool(["greeting"]),
+            new ActionPush([PushValue.Constant8(0)]),
+        ];
+
+        var text = Avm1Disassembler.Disassemble(actions, swfVersion: 6, Avm1DisassemblyKind.Pcode);
+
+        text.ShouldBe("ConstantPool \"greeting\"\nPush \"greeting\"");
     }
 
     [Fact]

@@ -23,36 +23,60 @@ public static class Avm1Disassembler
         var builder = new StringBuilder();
 
         if (kind is Avm1DisassemblyKind.As2)
+        {
             WriteAs2(builder, actions, swfVersion);
+        }
         else
-            WritePcode(builder, actions, swfVersion, 0);
+        {
+            IReadOnlyList<string> pool = [];
+            WritePcode(builder, actions, swfVersion, 0, ref pool);
+        }
 
         return builder.ToString().TrimEnd('\n');
     }
 
-    private static void WritePcode(StringBuilder builder, IReadOnlyList<Action> actions, byte swfVersion, int indent)
+    private static void WritePcode(StringBuilder builder, IReadOnlyList<Action> actions, byte swfVersion, int indent, ref IReadOnlyList<string> pool)
     {
         foreach (var action in actions)
         {
+            if (action is ActionConstantPool constantPool)
+            {
+                pool = constantPool.Constants;
+                Indent(builder, indent);
+                builder.Append("ConstantPool ").Append(string.Join(", ", constantPool.Constants.Select(Quote))).Append('\n');
+                continue;
+            }
+
+            if (action is ActionPush push)
+            {
+                foreach (var value in push.PushValues)
+                {
+                    Indent(builder, indent);
+                    builder.Append("Push ").Append(FormatResolved(value, pool)).Append('\n');
+                }
+
+                continue;
+            }
+
             Indent(builder, indent);
             builder.Append(PcodeHead(action));
 
             switch (action)
             {
                 case ActionWith with:
-                    WriteBlock(builder, with.Body, swfVersion, indent);
+                    WriteBlock(builder, with.Body, swfVersion, indent, ref pool);
                     break;
 
                 case ActionDefineFunction function:
-                    WriteBlock(builder, function.Body, swfVersion, indent);
+                    WriteBlock(builder, function.Body, swfVersion, indent, ref pool);
                     break;
 
                 case ActionDefineFunction2 function:
-                    WriteBlock(builder, function.Body, swfVersion, indent);
+                    WriteBlock(builder, function.Body, swfVersion, indent, ref pool);
                     break;
 
                 case ActionTry tryAction:
-                    WriteTryBlocks(builder, tryAction, swfVersion, indent);
+                    WriteTryBlocks(builder, tryAction, swfVersion, indent, ref pool);
                     break;
             }
 
@@ -60,29 +84,29 @@ public static class Avm1Disassembler
         }
     }
 
-    private static void WriteBlock(StringBuilder builder, ReadOnlyMemory<byte> body, byte swfVersion, int indent)
+    private static void WriteBlock(StringBuilder builder, ReadOnlyMemory<byte> body, byte swfVersion, int indent, ref IReadOnlyList<string> pool)
     {
         builder.Append(" {\n");
-        WritePcode(builder, Action.DecodeCollection(body, swfVersion), swfVersion, indent + 1);
+        WritePcode(builder, Action.DecodeCollection(body, swfVersion), swfVersion, indent + 1, ref pool);
         Indent(builder, indent);
         builder.Append('}');
     }
 
-    private static void WriteTryBlocks(StringBuilder builder, ActionTry action, byte swfVersion, int indent)
+    private static void WriteTryBlocks(StringBuilder builder, ActionTry action, byte swfVersion, int indent, ref IReadOnlyList<string> pool)
     {
-        WriteBlock(builder, action.TryBody, swfVersion, indent);
+        WriteBlock(builder, action.TryBody, swfVersion, indent, ref pool);
 
         if (action.CatchBody.Length > 0)
         {
             var name = action.Flags.HasFlag(TryFlags.CatchInRegister) ? $"r{action.CatchRegister}" : action.CatchVariable;
             builder.Append(" Catch(").Append(name).Append(')');
-            WriteBlock(builder, action.CatchBody, swfVersion, indent);
+            WriteBlock(builder, action.CatchBody, swfVersion, indent, ref pool);
         }
 
         if (action.FinallyBody.Length > 0)
         {
             builder.Append(" Finally");
-            WriteBlock(builder, action.FinallyBody, swfVersion, indent);
+            WriteBlock(builder, action.FinallyBody, swfVersion, indent, ref pool);
         }
     }
 
@@ -93,12 +117,10 @@ public static class Avm1Disassembler
             ActionGotoFrame a => $"GotoFrame {a.Frame}",
             ActionGetURL a => $"GetURL {Quote(a.Url)}, {Quote(a.Target)}",
             ActionStoreRegister a => $"StoreRegister {a.RegisterNumber}",
-            ActionConstantPool a => $"ConstantPool {string.Join(", ", a.Constants.Select(Quote))}",
             ActionWaitForFrame a => $"WaitForFrame {a.Frame}, {a.SkipCount}",
             ActionWaitForFrame2 a => $"WaitForFrame2 {a.SkipCount}",
             ActionSetTarget a => $"SetTarget {Quote(a.TargetName)}",
             ActionGoToLabel a => $"GoToLabel {Quote(a.Label)}",
-            ActionPush a => $"Push {string.Join(", ", a.PushValues.Select(FormatValue))}",
             ActionJump a => $"Jump {a.BranchOffset}",
             ActionIf a => $"If {a.BranchOffset}",
             ActionGotoFrame2 a => a.HasSceneBias ? $"GotoFrame2 {(a.Play ? "play" : "stop")}, {a.SceneBias}" : $"GotoFrame2 {(a.Play ? "play" : "stop")}",
@@ -136,7 +158,7 @@ public static class Avm1Disassembler
 
                 case ActionPush push:
                     foreach (var value in push.PushValues)
-                        stack.Push(FormatAs2Value(value, pool));
+                        stack.Push(FormatResolved(value, pool));
                     continue;
 
                 case ActionGetVariable:
@@ -309,7 +331,7 @@ public static class Avm1Disassembler
         return string.Join(", ", arguments);
     }
 
-    private static string FormatAs2Value(PushValue value, IReadOnlyList<string> pool)
+    private static string FormatResolved(PushValue value, IReadOnlyList<string> pool)
     {
         return value switch
         {
