@@ -79,7 +79,7 @@ public sealed class ActionDefineFunction2 : Action
             writer.WriteNullTerminatedString(parameter.Name, context.Encoding);
         }
 
-        writer.WriteUInt16((ushort)Body.Length);
+        writer.WriteUInt16(CheckedBodySize(Body.Length));
     }
 
     public override void EncodeTrailer(MemoryWriter writer)

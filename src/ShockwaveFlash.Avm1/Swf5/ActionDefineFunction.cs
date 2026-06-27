@@ -35,7 +35,7 @@ public sealed class ActionDefineFunction : Action
         writer.WriteUInt16((ushort)Parameters.Count);
         foreach (var parameter in Parameters)
             writer.WriteNullTerminatedString(parameter, context.Encoding);
-        writer.WriteUInt16((ushort)Body.Length);
+        writer.WriteUInt16(CheckedBodySize(Body.Length));
     }
 
     public override void EncodeTrailer(MemoryWriter writer)

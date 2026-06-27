@@ -18,7 +18,7 @@ public sealed class ActionWith : Action
 
     public override void Encode(MemoryWriter writer, Avm1Context context)
     {
-        writer.WriteUInt16((ushort)Body.Length);
+        writer.WriteUInt16(CheckedBodySize(Body.Length));
     }
 
     public override void EncodeTrailer(MemoryWriter writer)

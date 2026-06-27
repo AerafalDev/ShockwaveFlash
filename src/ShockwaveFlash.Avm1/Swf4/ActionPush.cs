@@ -1,4 +1,3 @@
-using System.Text;
 using ShockwaveFlash.Avm1.Types;
 using ShockwaveFlash.Exceptions;
 
@@ -13,7 +12,7 @@ public sealed class ActionPush : Action
         PushValues = pushValues;
     }
 
-    public static ActionPush Decode(MemoryReader reader, Encoding encoding)
+    public static ActionPush Decode(MemoryReader reader, Avm1Context context)
     {
         var pushValues = new List<PushValue>();
 
@@ -23,7 +22,7 @@ public sealed class ActionPush : Action
 
             var pushValue = (PushValueType)type switch
             {
-                PushValueType.String => PushValue.String(reader.ReadNullTerminatedString(encoding)),
+                PushValueType.String => PushValue.String(reader.ReadNullTerminatedString(context.Encoding)),
                 PushValueType.Float => PushValue.Float(reader.ReadFloat32()),
                 PushValueType.Null => PushValue.Null(),
                 PushValueType.Undefined => PushValue.Undefined(),
@@ -33,8 +32,16 @@ public sealed class ActionPush : Action
                 PushValueType.Integer => PushValue.Integer(reader.ReadInt32()),
                 PushValueType.Constant8 => PushValue.Constant8(reader.ReadUInt8()),
                 PushValueType.Constant16 => PushValue.Constant16(reader.ReadUInt16()),
-                _ => throw new SwfFormatException($"Unknown AVM1 push value type 0x{type:X2}.")
+                _ => null
             };
+
+            if (pushValue is null)
+            {
+                if (context.Strict)
+                    throw new SwfFormatException($"Unknown AVM1 push value type 0x{type:X2}.");
+
+                break;
+            }
 
             pushValues.Add(pushValue);
         }

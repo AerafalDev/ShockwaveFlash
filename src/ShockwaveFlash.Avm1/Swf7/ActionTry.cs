@@ -47,9 +47,9 @@ public sealed class ActionTry : Action
     public override void Encode(MemoryWriter writer, Avm1Context context)
     {
         writer.WriteUInt8((byte)Flags);
-        writer.WriteUInt16((ushort)TryBody.Length);
-        writer.WriteUInt16((ushort)CatchBody.Length);
-        writer.WriteUInt16((ushort)FinallyBody.Length);
+        writer.WriteUInt16(CheckedBodySize(TryBody.Length));
+        writer.WriteUInt16(CheckedBodySize(CatchBody.Length));
+        writer.WriteUInt16(CheckedBodySize(FinallyBody.Length));
         if (Flags.HasFlag(TryFlags.CatchInRegister))
             writer.WriteUInt8(CatchRegister);
         else

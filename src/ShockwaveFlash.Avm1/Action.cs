@@ -19,9 +19,9 @@ public abstract class Action
         Opcode = opcode;
     }
 
-    public static IReadOnlyList<Action> DecodeCollection(ReadOnlyMemory<byte> buffer, byte swfVersion)
+    public static IReadOnlyList<Action> DecodeCollection(ReadOnlyMemory<byte> buffer, byte swfVersion, bool strict = false)
     {
-        var context = new Avm1Context(swfVersion);
+        var context = new Avm1Context(swfVersion, strict);
         var actions = new List<Action>(capacity: 64);
         var reader = new MemoryReader(buffer);
 
@@ -38,7 +38,10 @@ public abstract class Action
             var actionReader = new MemoryReader(reader.ReadMemory(payloadLength));
             var action = Decode(actionReader, reader, opcode, context);
 
-            if (actionReader.Remaining > 0)
+            if (context.Strict && action is ActionUnknown)
+                throw new SwfFormatException($"Unknown AVM1 opcode 0x{opcodeRaw:X2}.");
+
+            if (context.Strict && actionReader.Remaining > 0)
                 throw new SwfFormatException($"AVM1 action {opcode} declared {payloadLength} bytes but consumed {actionReader.Position}.");
 
             actions.Add(action);
@@ -84,6 +87,14 @@ public abstract class Action
 
     public virtual void EncodeTrailer(MemoryWriter writer)
     {
+    }
+
+    protected static ushort CheckedBodySize(int length)
+    {
+        if (length > ushort.MaxValue)
+            throw new SwfFormatException($"AVM1 nested body of {length} bytes exceeds the 65535-byte limit.");
+
+        return (ushort)length;
     }
 
     private static Action Decode(MemoryReader reader, MemoryReader outer, ActionOpcode opcode, Avm1Context context)
@@ -181,7 +192,7 @@ public abstract class Action
             ActionOpcode.WaitForFrame2 => ActionWaitForFrame2.Decode(reader),
             ActionOpcode.SetTarget => ActionSetTarget.Decode(reader, context.Encoding),
             ActionOpcode.GoToLabel => ActionGoToLabel.Decode(reader, context.Encoding),
-            ActionOpcode.Push => ActionPush.Decode(reader, context.Encoding),
+            ActionOpcode.Push => ActionPush.Decode(reader, context),
             ActionOpcode.Jump => ActionJump.Decode(reader),
             ActionOpcode.If => ActionIf.Decode(reader),
             ActionOpcode.Call => new ActionCall(),

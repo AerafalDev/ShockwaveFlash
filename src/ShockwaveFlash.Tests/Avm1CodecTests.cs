@@ -1,3 +1,5 @@
+using ShockwaveFlash.Avm1.Swf1;
+using ShockwaveFlash.Avm1.Swf4;
 using ShockwaveFlash.Avm1.Swf5;
 using ShockwaveFlash.Avm1.Swf7;
 using ShockwaveFlash.Avm1.Types;
@@ -10,19 +12,41 @@ namespace ShockwaveFlash.Tests;
 public sealed class Avm1CodecTests
 {
     [Fact]
-    public void Unknown_push_value_type_throws_a_typed_exception()
+    public void Strict_decode_throws_on_an_unknown_push_value_type()
     {
         ReadOnlyMemory<byte> bytecode = new byte[] { 0x96, 0x01, 0x00, 0x0A };
 
-        Should.Throw<SwfFormatException>(() => Avm1Action.DecodeCollection(bytecode, swfVersion: 6));
+        Should.Throw<SwfFormatException>(() => Avm1Action.DecodeCollection(bytecode, swfVersion: 6, strict: true));
     }
 
     [Fact]
-    public void An_action_shorter_than_its_declared_length_throws_a_typed_exception()
+    public void Strict_decode_throws_when_an_action_is_shorter_than_its_declared_length()
     {
         ReadOnlyMemory<byte> bytecode = new byte[] { 0x81, 0x03, 0x00, 0x05, 0x00, 0xFF };
 
-        Should.Throw<SwfFormatException>(() => Avm1Action.DecodeCollection(bytecode, swfVersion: 6));
+        Should.Throw<SwfFormatException>(() => Avm1Action.DecodeCollection(bytecode, swfVersion: 6, strict: true));
+    }
+
+    [Fact]
+    public void Lenient_decode_skips_an_unknown_push_value_type()
+    {
+        ReadOnlyMemory<byte> bytecode = new byte[] { 0x96, 0x01, 0x00, 0x0A };
+
+        var actions = Avm1Action.DecodeCollection(bytecode, swfVersion: 6);
+
+        actions.Count.ShouldBe(1);
+        actions[0].ShouldBeOfType<ActionPush>().PushValues.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Lenient_decode_tolerates_a_trailing_length_mismatch()
+    {
+        ReadOnlyMemory<byte> bytecode = new byte[] { 0x81, 0x03, 0x00, 0x05, 0x00, 0xFF };
+
+        var actions = Avm1Action.DecodeCollection(bytecode, swfVersion: 6);
+
+        actions.Count.ShouldBe(1);
+        actions[0].ShouldBeOfType<ActionGotoFrame>();
     }
 
     [Fact]
