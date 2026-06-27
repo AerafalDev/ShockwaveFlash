@@ -3,12 +3,15 @@ using ShockwaveFlash.Avm1.Special;
 using ShockwaveFlash.Avm1.Swf4;
 using ShockwaveFlash.Avm1.Swf5;
 using ShockwaveFlash.Avm1.Types;
+using ShockwaveFlash.Exceptions;
 
 namespace ShockwaveFlash.Avm1;
 
 public static class Avm1Emitter
 {
     private const int PoolByteBudget = 60000;
+
+    private const int MaxNestingDepth = 256;
 
     public static ReadOnlyMemory<byte> EmitBytes(Avm1Object globals, byte swfVersion, IReadOnlyList<Action>? preamble = null)
     {
@@ -20,7 +23,7 @@ public static class Avm1Emitter
         var pool = new List<string>();
         var indexByString = new Dictionary<string, int>(StringComparer.Ordinal);
         var poolBytes = 2;
-        Collect(globals, pool, indexByString, ref poolBytes);
+        Collect(globals, pool, indexByString, ref poolBytes, 0);
 
         var actions = new List<Action>();
 
@@ -35,7 +38,7 @@ public static class Avm1Emitter
         foreach (var (name, value) in globals.Members)
         {
             actions.Add(PushString(name, indexByString));
-            EmitValue(value, actions, indexByString);
+            EmitValue(value, actions, indexByString, 0);
             actions.Add(new ActionSetVariable());
         }
 
@@ -43,22 +46,25 @@ public static class Avm1Emitter
         return actions;
     }
 
-    private static void Collect(Avm1Value value, List<string> pool, Dictionary<string, int> indexByString, ref int poolBytes)
+    private static void Collect(Avm1Value value, List<string> pool, Dictionary<string, int> indexByString, ref int poolBytes, int depth)
     {
+        if (depth > MaxNestingDepth)
+            throw new SwfFormatException($"AVM1 value tree is nested deeper than {MaxNestingDepth} levels.");
+
         switch (value)
         {
             case Avm1Object table:
                 foreach (var (name, member) in table.Members)
                 {
                     Intern(name, pool, indexByString, ref poolBytes);
-                    Collect(member, pool, indexByString, ref poolBytes);
+                    Collect(member, pool, indexByString, ref poolBytes, depth + 1);
                 }
 
                 break;
 
             case Avm1Array list:
                 foreach (var item in list.Items)
-                    Collect(item, pool, indexByString, ref poolBytes);
+                    Collect(item, pool, indexByString, ref poolBytes, depth + 1);
 
                 break;
 
@@ -85,15 +91,18 @@ public static class Avm1Emitter
         poolBytes += size;
     }
 
-    private static void EmitValue(Avm1Value value, List<Action> actions, Dictionary<string, int> indexByString)
+    private static void EmitValue(Avm1Value value, List<Action> actions, Dictionary<string, int> indexByString, int depth)
     {
+        if (depth > MaxNestingDepth)
+            throw new SwfFormatException($"AVM1 value tree is nested deeper than {MaxNestingDepth} levels.");
+
         switch (value)
         {
             case Avm1Object table:
                 foreach (var (name, member) in table.Members.Reverse())
                 {
                     actions.Add(PushString(name, indexByString));
-                    EmitValue(member, actions, indexByString);
+                    EmitValue(member, actions, indexByString, depth + 1);
                 }
 
                 actions.Add(PushInteger(table.Members.Count));
@@ -102,7 +111,7 @@ public static class Avm1Emitter
 
             case Avm1Array list:
                 for (var i = list.Items.Count - 1; i >= 0; i--)
-                    EmitValue(list.Items[i], actions, indexByString);
+                    EmitValue(list.Items[i], actions, indexByString, depth + 1);
 
                 actions.Add(PushInteger(list.Items.Count));
                 actions.Add(new ActionInitArray());

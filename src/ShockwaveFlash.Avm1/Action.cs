@@ -1,3 +1,4 @@
+using System.Text;
 using ShockwaveFlash.Avm1.Special;
 using ShockwaveFlash.Avm1.Swf1;
 using ShockwaveFlash.Avm1.Swf2;
@@ -36,7 +37,17 @@ public abstract class Action
                 payloadLength = reader.ReadUInt16();
 
             var actionReader = new MemoryReader(reader.ReadMemory(payloadLength));
-            var action = Decode(actionReader, reader, opcode, context);
+
+            Action action;
+
+            try
+            {
+                action = Decode(actionReader, reader, opcode, context);
+            }
+            catch (DecoderFallbackException exception)
+            {
+                throw new SwfFormatException($"AVM1 action {opcode} contains invalid UTF-8.", exception);
+            }
 
             if (context.Strict && action is ActionUnknown)
                 throw new SwfFormatException($"Unknown AVM1 opcode 0x{opcodeRaw:X2}.");
