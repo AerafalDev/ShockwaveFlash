@@ -149,7 +149,6 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
         var text = tag switch
         {
             DefineTextTag text1 => _textProcessor.Process(text1.Bounds, text1.Matrix, text1.Records),
-            DefineText2Tag text2 => _textProcessor.Process(text2.Bounds, text2.Matrix, text2.Records),
             DefineEditTextTag editText => _editTextProcessor.Process(editText),
             _ => null
         };
@@ -212,10 +211,6 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
                     map[text1.Id] = text1;
                     break;
 
-                case DefineText2Tag text2:
-                    map[text2.Id] = text2;
-                    break;
-
                 case DefineEditTextTag editText:
                     map[editText.Id] = editText;
                     break;
@@ -264,10 +259,6 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
                     map[morph1.Id] = new MorphShapeDefinition(_shapeProcessor, morph1.Start, morph1.End);
                     break;
 
-                case DefineMorphShape2Tag morph2:
-                    map[morph2.Id] = new MorphShapeDefinition(_shapeProcessor, morph2.Start, morph2.End);
-                    break;
-
                 default:
                     break;
             }
@@ -307,12 +298,12 @@ public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResol
                     map[font1.Id] = BuildFont(BuildGlyphs(font1.Glyphs, codeTables.GetValueOrDefault(font1.Id)), 1024f, null);
                     break;
 
-                case DefineFont2Tag font2:
-                    map[font2.Id] = BuildFont(font2.Glyphs, 1024f, font2.Layout);
-                    break;
-
                 case DefineFont3Tag font3:
                     map[font3.Id] = BuildFont(font3.Glyphs, 20480f, font3.Layout);
+                    break;
+
+                case DefineFont2Tag font2:
+                    map[font2.Id] = BuildFont(font2.Glyphs, 1024f, font2.Layout);
                     break;
 
                 default:

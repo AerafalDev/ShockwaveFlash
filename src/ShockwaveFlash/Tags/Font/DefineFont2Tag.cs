@@ -1,10 +1,11 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Font;
 using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Tags.Font;
 
-public sealed class DefineFont2Tag : Tag
+public class DefineFont2Tag : Tag
 {
     public ushort Id { get; set; }
 
@@ -52,7 +53,7 @@ public sealed class DefineFont2Tag : Tag
         Flags = flags;
     }
 
-    public static DefineFont2Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
+    public static DefineFont2Tag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion, byte fontVersion)
     {
         var id = reader.ReadUInt16();
         var flags = (FontFlags)reader.ReadUInt8();
@@ -140,7 +141,12 @@ public sealed class DefineFont2Tag : Tag
             layout = new FontLayout(ascent, descent, leading, kerning);
         }
 
-        return new DefineFont2Tag(metadata, id, name, language, layout, glyphs, flags);
+        return fontVersion switch
+        {
+            2 => new DefineFont2Tag(metadata, id, name, language, layout, glyphs, flags),
+            3 => new DefineFont3Tag(metadata, id, name, language, layout, glyphs, flags),
+            _ => throw new SwfFormatException($"Font version {fontVersion} is not supported.")
+        };
     }
 
     public override void Encode(MemoryWriter writer, byte swfVersion)

@@ -1,10 +1,11 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Morph;
 using ShockwaveFlash.Types.Shape;
 
 namespace ShockwaveFlash.Tags.Morph;
 
-public sealed class DefineMorphShapeTag : Tag
+public class DefineMorphShapeTag : Tag
 {
     public ushort Id { get; set; }
 
@@ -28,11 +29,22 @@ public sealed class DefineMorphShapeTag : Tag
         End = end;
     }
 
-    public static DefineMorphShapeTag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion)
+    public static DefineMorphShapeTag Decode(MemoryReader reader, TagMetadata metadata, byte swfVersion, byte morphVersion)
     {
         var id = reader.ReadUInt16();
         var startShapeBounds = Rectangle.Decode(reader);
         var endShapeBounds = Rectangle.Decode(reader);
+
+        var startEdgeBounds = startShapeBounds;
+        var endEdgeBounds = endShapeBounds;
+        var flags = DefineMorphShapeFlags.HasNonScalingStrokes;
+
+        if (morphVersion >= 2)
+        {
+            startEdgeBounds = Rectangle.Decode(reader);
+            endEdgeBounds = Rectangle.Decode(reader);
+            flags = (DefineMorphShapeFlags)reader.ReadUInt8();
+        }
 
         reader.Advance(sizeof(int));
 
@@ -55,13 +67,13 @@ public sealed class DefineMorphShapeTag : Tag
 
         for (var i = 0; i < numLineStyles; i++)
         {
-            var (startLineStyle, endLineStyle) = LineStyle.DecodeMorph(reader, 1);
+            var (startLineStyle, endLineStyle) = LineStyle.DecodeMorph(reader, morphVersion);
             startLineStyles[i] = startLineStyle;
             endLineStyles[i] = endLineStyle;
         }
 
         var bits = new BitReader();
-        var context = new ShapeContext(swfVersion, 1, (byte)bits.ReadUBits(reader, 4), (byte)bits.ReadUBits(reader, 4));
+        var context = new ShapeContext(swfVersion, morphVersion, (byte)bits.ReadUBits(reader, 4), (byte)bits.ReadUBits(reader, 4));
 
         var startShapes = new List<ShapeRecord>();
         var shape = ShapeRecord.Decode(reader, bits, context);
@@ -71,12 +83,13 @@ public sealed class DefineMorphShapeTag : Tag
             startShapes.Add(shape);
             shape = ShapeRecord.Decode(reader, bits, context);
         }
+
         startShapes.Add(shape);
 
         reader.Advance(sizeof(byte));
 
         bits = new BitReader();
-        context = new ShapeContext(swfVersion, 1, 0, 0);
+        context = new ShapeContext(swfVersion, morphVersion, 0, 0);
 
         var endShapes = new List<ShapeRecord>();
         shape = ShapeRecord.Decode(reader, bits, context);
@@ -86,19 +99,37 @@ public sealed class DefineMorphShapeTag : Tag
             endShapes.Add(shape);
             shape = ShapeRecord.Decode(reader, bits, context);
         }
+
         endShapes.Add(shape);
 
-        var startShape = new MorphShape(startShapeBounds, startShapeBounds, startFillStyles, startLineStyles, startShapes);
-        var endShape = new MorphShape(endShapeBounds, endShapeBounds, endFillStyles, endLineStyles, endShapes);
+        var startShape = new MorphShape(startShapeBounds, startEdgeBounds, startFillStyles, startLineStyles, startShapes);
+        var endShape = new MorphShape(endShapeBounds, endEdgeBounds, endFillStyles, endLineStyles, endShapes);
 
-        return new DefineMorphShapeTag(metadata, id, DefineMorphShapeFlags.HasNonScalingStrokes, startShape, endShape);
+        return morphVersion switch
+        {
+            1 => new DefineMorphShapeTag(metadata, id, flags, startShape, endShape),
+            2 => new DefineMorphShape2Tag(metadata, id, flags, startShape, endShape),
+            _ => throw new SwfFormatException($"Morph shape version {morphVersion} is not supported.")
+        };
     }
 
     public override void Encode(MemoryWriter writer, byte swfVersion)
     {
+        Encode(writer, swfVersion, 1);
+    }
+
+    protected void Encode(MemoryWriter writer, byte swfVersion, byte morphVersion)
+    {
         writer.WriteUInt16(Id);
         Start.ShapeBounds.Encode(writer);
         End.ShapeBounds.Encode(writer);
+
+        if (morphVersion >= 2)
+        {
+            Start.EdgeBounds.Encode(writer);
+            End.EdgeBounds.Encode(writer);
+            writer.WriteUInt8((byte)Flags);
+        }
 
         var body = new MemoryWriter();
 
@@ -130,7 +161,7 @@ public sealed class DefineMorphShapeTag : Tag
         }
 
         for (var i = 0; i < numLineStyles; i++)
-            LineStyle.EncodeMorph(body, Start.LineStyles[i], End.LineStyles[i], 1);
+            LineStyle.EncodeMorph(body, Start.LineStyles[i], End.LineStyles[i], morphVersion);
 
         var numFillBits = 0;
         var numLineBits = 0;
@@ -154,7 +185,7 @@ public sealed class DefineMorphShapeTag : Tag
         bits.WriteUBits(body, (uint)numFillBits, 4);
         bits.WriteUBits(body, (uint)numLineBits, 4);
 
-        var startContext = new ShapeContext(swfVersion, 1, numFillBits, numLineBits);
+        var startContext = new ShapeContext(swfVersion, morphVersion, numFillBits, numLineBits);
 
         foreach (var shape in Start.Shapes)
             shape.Encode(body, bits, startContext);
@@ -167,7 +198,7 @@ public sealed class DefineMorphShapeTag : Tag
 
         bits = new BitWriter();
 
-        var endContext = new ShapeContext(swfVersion, 1, 0, 0);
+        var endContext = new ShapeContext(swfVersion, morphVersion, 0, 0);
 
         foreach (var shape in End.Shapes)
             shape.Encode(endBody, bits, endContext);

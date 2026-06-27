@@ -1,9 +1,10 @@
+using ShockwaveFlash.Exceptions;
 using ShockwaveFlash.Types;
 using ShockwaveFlash.Types.Text;
 
 namespace ShockwaveFlash.Tags.Text;
 
-public sealed class DefineTextTag : Tag
+public class DefineTextTag : Tag
 {
     public ushort Id { get; set; }
 
@@ -21,7 +22,7 @@ public sealed class DefineTextTag : Tag
         Records = records;
     }
 
-    public static DefineTextTag Decode(MemoryReader reader, TagMetadata metadata)
+    public static DefineTextTag Decode(MemoryReader reader, TagMetadata metadata, byte textVersion)
     {
         var id = reader.ReadUInt16();
         var bounds = Rectangle.Decode(reader);
@@ -33,7 +34,7 @@ public sealed class DefineTextTag : Tag
 
         while (true)
         {
-            var record = TextRecord.Decode(reader, 1, numGlyphBits, numAdvanceBits);
+            var record = TextRecord.Decode(reader, textVersion, numGlyphBits, numAdvanceBits);
 
             if (record is null)
                 break;
@@ -41,10 +42,20 @@ public sealed class DefineTextTag : Tag
             records.Add(record);
         }
 
-        return new DefineTextTag(metadata, id, bounds, matrix, records);
+        return textVersion switch
+        {
+            1 => new DefineTextTag(metadata, id, bounds, matrix, records),
+            2 => new DefineText2Tag(metadata, id, bounds, matrix, records),
+            _ => throw new SwfFormatException($"Text version {textVersion} is not supported.")
+        };
     }
 
     public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        EncodeBody(writer, 1);
+    }
+
+    protected void EncodeBody(MemoryWriter writer, byte textVersion)
     {
         writer.WriteUInt16(Id);
         Bounds.Encode(writer);
@@ -66,7 +77,7 @@ public sealed class DefineTextTag : Tag
         writer.WriteUInt8(numAdvanceBits);
 
         foreach (var record in Records)
-            record.Encode(writer, 1, numGlyphBits, numAdvanceBits);
+            record.Encode(writer, textVersion, numGlyphBits, numAdvanceBits);
 
         writer.WriteUInt8(0);
     }
