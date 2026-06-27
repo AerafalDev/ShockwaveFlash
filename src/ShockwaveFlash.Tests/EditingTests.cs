@@ -1,5 +1,4 @@
 using ShockwaveFlash;
-using ShockwaveFlash.Tags;
 using ShockwaveFlash.Tags.Control;
 using ShockwaveFlash.Types;
 using Shouldly;
@@ -13,75 +12,50 @@ public sealed class EditingTests
         return ShockwaveFlashFile.Disassemble(SwfTestData.MinimalUncompressed());
     }
 
-    private static SetBackgroundColorTag CloneBackground(Tag tag)
+    [Fact]
+    public void Appending_a_tag_round_trips()
     {
-        var background = (SetBackgroundColorTag)tag;
-        return new SetBackgroundColorTag(background.Metadata, background.BackgroundColor);
+        var swf = Movie();
+        var count = swf.Tags.Count;
+        var background = (SetBackgroundColorTag)swf.Tags[0];
+
+        swf.Tags.Add(new SetBackgroundColorTag(background.Metadata, background.BackgroundColor));
+
+        swf.Tags.Count.ShouldBe(count + 1);
+        ShockwaveFlashFile.Disassemble(swf.Assemble()).Tags.Count.ShouldBe(count + 1);
     }
 
     [Fact]
-    public void AppendTag_adds_at_the_end_and_round_trips()
+    public void Replacing_a_tag_in_place_is_reflected_on_encode()
     {
         var swf = Movie();
-        var edited = swf.AppendTag(CloneBackground(swf.Tags[0]));
+        var background = (SetBackgroundColorTag)swf.Tags[0];
 
-        edited.Tags.Count.ShouldBe(swf.Tags.Count + 1);
-        ShockwaveFlashFile.Disassemble(edited.Assemble()).Tags.Count.ShouldBe(edited.Tags.Count);
+        swf.Tags[0] = new SetBackgroundColorTag(background.Metadata, new Color(1, 2, 3, 255));
+
+        var reparsed = ShockwaveFlashFile.Disassemble(swf.Assemble());
+        ((SetBackgroundColorTag)reparsed.Tags[0]).BackgroundColor.ShouldBe(new Color(1, 2, 3, 255));
     }
 
     [Fact]
-    public void InsertTag_places_the_tag_at_the_index()
+    public void Mutating_a_tag_in_place_is_reflected_on_encode()
     {
         var swf = Movie();
-        var clone = CloneBackground(swf.Tags[0]);
-        var edited = swf.InsertTag(1, clone);
+        ((SetBackgroundColorTag)swf.Tags[0]).BackgroundColor = new Color(9, 8, 7, 255);
 
-        edited.Tags[1].ShouldBeSameAs(clone);
-        edited.Tags.Count.ShouldBe(swf.Tags.Count + 1);
+        var reparsed = ShockwaveFlashFile.Disassemble(swf.Assemble());
+        ((SetBackgroundColorTag)reparsed.Tags[0]).BackgroundColor.ShouldBe(new Color(9, 8, 7, 255));
     }
 
     [Fact]
-    public void RemoveTag_removes_the_referenced_instance()
+    public void Removing_a_tag_round_trips()
     {
         var swf = Movie();
-        var target = swf.Tags[0];
-        var edited = swf.RemoveTag(target);
+        var count = swf.Tags.Count;
 
-        edited.Tags.Count.ShouldBe(swf.Tags.Count - 1);
-        edited.Tags.ShouldNotContain(target);
-    }
+        swf.Tags.RemoveAt(swf.Tags.Count - 1);
 
-    [Fact]
-    public void MoveTag_reorders_the_referenced_instance()
-    {
-        var swf = Movie();
-        var first = swf.Tags[0];
-        var edited = swf.MoveTag(0, swf.Tags.Count - 1);
-
-        edited.Tags[^1].ShouldBeSameAs(first);
-    }
-
-    [Fact]
-    public void ReplaceTag_targets_the_referenced_instance_not_a_structural_duplicate()
-    {
-        var swf = Movie();
-        var original = (SetBackgroundColorTag)swf.Tags[0];
-        var duplicate = new SetBackgroundColorTag(original.Metadata, original.BackgroundColor);
-        var file = new ShockwaveFlashFile(swf.Header, [original, duplicate, .. swf.Tags.Skip(1)]);
-
-        var replacement = new SetBackgroundColorTag(original.Metadata, new Color(1, 2, 3, 4));
-        var edited = file.ReplaceTag(duplicate, replacement);
-
-        edited.Tags[0].ShouldBeSameAs(original);
-        edited.Tags[1].ShouldBeSameAs(replacement);
-    }
-
-    [Fact]
-    public void ReplaceTag_throws_when_the_tag_is_not_in_the_file()
-    {
-        var swf = Movie();
-        var foreign = CloneBackground(swf.Tags[0]);
-
-        Should.Throw<ArgumentException>(() => swf.ReplaceTag(foreign, foreign));
+        swf.Tags.Count.ShouldBe(count - 1);
+        ShockwaveFlashFile.Disassemble(swf.Assemble()).Tags.Count.ShouldBe(count - 1);
     }
 }

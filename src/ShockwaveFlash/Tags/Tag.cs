@@ -64,7 +64,7 @@ public abstract class Tag
         }
     }
 
-    public static IReadOnlyList<Tag> DecodeCollection(MemoryReader reader, byte swfVersion, bool lenient = false)
+    public static List<Tag> DecodeCollection(MemoryReader reader, byte swfVersion, bool lenient = false)
     {
         if (s_depth >= MaxNestingDepth)
             throw new SwfFormatException($"Tag nesting exceeds the maximum depth of {MaxNestingDepth}.");

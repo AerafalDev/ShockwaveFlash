@@ -9,9 +9,9 @@ public sealed class ShockwaveFlashFile
 
     public ShockwaveFlashHeader Header { get; set; }
 
-    public IReadOnlyList<Tag> Tags { get; set; }
+    public List<Tag> Tags { get; set; }
 
-    public ShockwaveFlashFile(ShockwaveFlashHeader header, IReadOnlyList<Tag> tags)
+    public ShockwaveFlashFile(ShockwaveFlashHeader header, List<Tag> tags)
     {
         Header = header;
         Tags = tags;
@@ -62,68 +62,6 @@ public sealed class ShockwaveFlashFile
         file.WriteMemory(compressedBody);
 
         return file.WrittenMemory;
-    }
-
-    public ShockwaveFlashFile ReplaceTag(Tag oldTag, Tag newTag)
-    {
-        return ReplaceTagAt(IndexOf(oldTag), newTag);
-    }
-
-    public ShockwaveFlashFile ReplaceTagAt(int index, Tag newTag)
-    {
-        var tags = Tags.ToList();
-        tags[index] = newTag;
-        return new ShockwaveFlashFile(Header, tags);
-    }
-
-    public ShockwaveFlashFile InsertTag(int index, Tag tag)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, Tags.Count);
-
-        var tags = Tags.ToList();
-        tags.Insert(index, tag);
-        return new ShockwaveFlashFile(Header, tags);
-    }
-
-    public ShockwaveFlashFile AppendTag(Tag tag)
-    {
-        return InsertTag(Tags.Count, tag);
-    }
-
-    public ShockwaveFlashFile RemoveTag(Tag tag)
-    {
-        return RemoveTagAt(IndexOf(tag));
-    }
-
-    public ShockwaveFlashFile RemoveTagAt(int index)
-    {
-        var tags = Tags.ToList();
-        tags.RemoveAt(index);
-        return new ShockwaveFlashFile(Header, tags);
-    }
-
-    public ShockwaveFlashFile MoveTag(int fromIndex, int toIndex)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, Tags.Count);
-        ArgumentOutOfRangeException.ThrowIfNegative(toIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, Tags.Count);
-
-        var tags = Tags.ToList();
-        var tag = tags[fromIndex];
-        tags.RemoveAt(fromIndex);
-        tags.Insert(toIndex, tag);
-        return new ShockwaveFlashFile(Header, tags);
-    }
-
-    private int IndexOf(Tag tag)
-    {
-        for (var i = 0; i < Tags.Count; i++)
-            if (ReferenceEquals(Tags[i], tag))
-                return i;
-
-        throw new ArgumentException("The tag was not found in this file.", nameof(tag));
     }
 
     private int EstimateBodyCapacity()

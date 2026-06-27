@@ -91,7 +91,8 @@ public sealed class Avm1RoundTripTests
         var globals = tag.Evaluate(version);
         globals["EM"].AsObject["1"].AsObject["n"] = "Position assise";
 
-        var rebuilt = swf.ReplaceTag(tag, tag.WithGlobals(globals, version)).Assemble();
+        swf.Tags[swf.Tags.IndexOf(tag)] = tag.WithGlobals(globals, version);
+        var rebuilt = swf.Assemble();
 
         var reparsed = ShockwaveFlashFile.Disassemble(rebuilt);
         var reGlobals = reparsed.Tags.OfType<DoActionTag>().First().Evaluate(version);

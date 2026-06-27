@@ -6,9 +6,9 @@ public sealed class DefineSpriteTag : Tag
 
     public ushort NumFrames { get; set; }
 
-    public IReadOnlyList<Tag> Tags { get; set; }
+    public List<Tag> Tags { get; set; }
 
-    public DefineSpriteTag(TagMetadata metadata, ushort id, ushort numFrames, IReadOnlyList<Tag> tags) : base(metadata)
+    public DefineSpriteTag(TagMetadata metadata, ushort id, ushort numFrames, List<Tag> tags) : base(metadata)
     {
         Id = id;
         NumFrames = numFrames;
