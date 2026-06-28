@@ -35,3 +35,6 @@ _oracle/
 
 # Local render validation artifacts
 render-samples/
+
+# Reference repos / decompilers (kept locally, not tracked)
+context/

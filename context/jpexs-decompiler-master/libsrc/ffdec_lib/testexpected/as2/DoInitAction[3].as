@@ -1,2 +1,0 @@
-Push "star init"
-Trace
