@@ -1,0 +1,87 @@
+class
+ refid "tests:TestSwitchDefault"
+ instance QName(PackageNamespace("tests"), "TestSwitchDefault")
+  extends QName(PackageNamespace(""), "Object")
+  flag SEALED
+  flag PROTECTEDNS
+  protectedns ProtectedNamespace("tests:TestSwitchDefault")
+  iinit
+   refid "tests:TestSwitchDefault/instance/init"
+   body
+    maxstack 1
+    localcount 1
+    initscopedepth 4
+    maxscopedepth 5
+    code
+     getlocal0
+     pushscope
+
+     getlocal0
+     constructsuper      0
+
+     returnvoid
+    end ; code
+   end ; body
+  end ; method
+  trait method QName(PackageNamespace(""), "run")
+   method
+    refid "tests:TestSwitchDefault/instance/run"
+    returns QName(PackageNamespace(""), "void")
+    body
+     maxstack 2
+     localcount 4
+     initscopedepth 4
+     maxscopedepth 5
+     code
+      getlocal0
+      pushscope
+
+      pushbyte 5
+      lookupswitch Ldef, [L0,L1,Ldef,L3,Ldef,L5,L6]    
+      Ldef:
+    pushbyte 100
+    setlocal2
+    jump Lbr
+L0:
+    pushbyte 0
+    setlocal2
+    jump Lbr
+L1:
+    pushbyte 1
+    setlocal2
+    jump L5
+L3:
+    pushbyte 3
+    setlocal2
+    jump Lbr
+L5:
+    pushbyte 5
+    setlocal2
+    jump Lbr
+L6:
+    pushbyte 6
+    setlocal2
+    jump L0
+Lbr:  
+      returnvoid
+     end ; code
+    end ; body
+   end ; method
+  end ; trait
+ end ; instance
+ cinit
+  refid "tests:TestSwitchDefault/class/init"
+  body
+   maxstack 1
+   localcount 1
+   initscopedepth 3
+   maxscopedepth 4
+   code
+    getlocal0
+    pushscope
+
+    returnvoid
+   end ; code
+  end ; body
+ end ; method
+end ; class

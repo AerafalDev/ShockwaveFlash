@@ -1,0 +1,187 @@
+<DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" currentTimeline="1" xflVersion="2.2" creatorInfo="Adobe Flash Professional CS6" platform="Windows" versionInfo="Saved by Adobe Flash Windows 12.0 build 481" majorVersion="12" buildNumber="481" nextSceneIdentifier="2" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false" autoSaveEnabled="true" autoSaveHasPrompted="true">
+     <fonts>
+          <DOMFontItem name="Font 1" itemID="6727baf6-0000495f" font="TimesNewRomanPSMT" size="0" id="1" sourceLastImported="1730657014" embedRanges="1|2|3|4"/>
+     </fonts>
+     <symbols>
+          <Include href="LoadButton.xml" itemIcon="0" loadImmediate="false" itemID="6727bbf4-0000496e" lastModified="1730657274"/>
+          <Include href="SaveButton.xml" itemIcon="0" loadImmediate="false" itemID="6727b7a2-00004956" lastModified="1730657233"/>
+     </symbols>
+     <timelines>
+          <DOMTimeline name="Scene 1">
+               <layers>
+                    <DOMLayer name="Layer 2" color="#9933CC" current="true" isSelected="true">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <Actionscript>
+                                        <script><![CDATA[import flash.net.SharedObject;
+import flash.events.MouseEvent;
+import flash.net.ObjectEncoding;
+import flash.xml.XMLDocument;
+import flash.net.registerClassAlias;
+import flash.utils.ByteArray;
+import flash.utils.Dictionary;
+
+var s:String = "";
+for (var i = 0; i < 70000; i++) {
+	s += "A";
+}
+
+var dt = new Date(2024,12-1,3,23,16,56,5);
+var xm = new XMLDocument("<ul><li>item</li></ul>");
+
+var amf0test:SharedObject = SharedObject.getLocal("amf0test");
+amf0test.objectEncoding = ObjectEncoding.AMF0;
+
+var amf3test:SharedObject = SharedObject.getLocal("amf3test");
+amf3test.objectEncoding = ObjectEncoding.AMF3;
+
+var refobj = {a:5, b:7};
+
+var reftest = {a:refobj, b:refobj};
+reftest["c"] = reftest;
+
+
+registerClassAlias("MyClassAlias", MyClass);
+
+var arr = ["a","b","c"];
+arr["akey"] = "hello";
+
+var cls = new MyClass();
+cls["c"] = "dynamicValue"
+
+var ba = new ByteArray();
+ba.writeByte(0x12);
+ba.writeByte(0x34);
+ba.writeByte(0xAB);
+
+var vi:Vector.<int> = new Vector.<int>();
+vi.push(10);
+vi.push(20);
+vi.push(30);
+
+var di:Dictionary = new Dictionary(false);
+
+var key1:Object = { id: 1 };
+var key2:Object = { id: 2 };
+
+di[key1] = "First";
+di[key2] = "Second";
+
+var data = {
+	mynumber : 1.5,
+    mybool : true,
+	mystring : "Hello world",
+	myobj : {a:1, b:2},
+	mynull : null,
+	myundefined : undefined,
+	myarray : arr,
+	mydate : dt,
+	mydate2 : dt,
+	myref: reftest,
+	mylongstring : s,
+	myxml : xm,
+	myxml2 : xm,
+	mytypedobject : cls,
+	mybytearray : ba,
+	myvectorint: vi,
+	mydictionary: di
+	};
+
+amf0test.data.tref = reftest;
+amf0test.data.mydata = data;	
+amf0test.flush();
+
+amf3test.data.mydata = data;
+amf3test.flush();
+
+
+var localDataAmf0:SharedObject = SharedObject.getLocal("mySharedObjectAmf0");
+localDataAmf0.objectEncoding = ObjectEncoding.AMF0;
+
+var localDataAmf3:SharedObject = SharedObject.getLocal("mySharedObjectAmf3");
+localDataAmf3.objectEncoding = ObjectEncoding.AMF3;
+
+
+saveButton.addEventListener(MouseEvent.CLICK, fonSave);
+loadButton.addEventListener(MouseEvent.CLICK, fonLoad);
+		
+function fonSave(event:MouseEvent):void {
+	localDataAmf0.data.myText = inputText.text;
+	localDataAmf0.flush();
+	
+	localDataAmf3.data.myText = inputText.text;
+	localDataAmf3.flush();
+}
+		
+function fonLoad(event:MouseEvent):void {
+	inputText.text = localDataAmf3.data.myText;
+}]]></script>
+                                   </Actionscript>
+                                   <elements/>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 1" color="#4FFF4F">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMInputText name="inputText" width="367" height="45.75" border="true">
+                                             <matrix>
+                                                  <Matrix tx="86.95" ty="77.25"/>
+                                             </matrix>
+                                             <textRuns>
+                                                  <DOMTextRun>
+                                                       <characters></characters>
+                                                       <textAttrs>
+                                                            <DOMTextAttrs aliasText="false" size="20" bitmapSize="400" face="TimesNewRomanPSMT"/>
+                                                       </textAttrs>
+                                                  </DOMTextRun>
+                                             </textRuns>
+                                        </DOMInputText>
+                                        <DOMSymbolInstance libraryItemName="SaveButton" name="saveButton" symbolType="button">
+                                             <matrix>
+                                                  <Matrix tx="85.95" ty="154"/>
+                                             </matrix>
+                                             <transformationPoint>
+                                                  <Point x="55.5" y="21"/>
+                                             </transformationPoint>
+                                        </DOMSymbolInstance>
+                                        <DOMSymbolInstance libraryItemName="LoadButton" name="loadButton" symbolType="button">
+                                             <matrix>
+                                                  <Matrix tx="346.5" ty="155"/>
+                                             </matrix>
+                                             <transformationPoint>
+                                                  <Point/>
+                                             </transformationPoint>
+                                        </DOMSymbolInstance>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+               </layers>
+          </DOMTimeline>
+     </timelines>
+     <PrinterSettings/>
+     <publishHistory>
+          <PublishItem publishSize="21934" publishTime="1731250388"/>
+          <PublishItem publishSize="21916" publishTime="1731241595"/>
+          <PublishItem publishSize="21920" publishTime="1731241363"/>
+          <PublishItem publishSize="21920" publishTime="1731241267"/>
+          <PublishItem publishSize="21884" publishTime="1731240255"/>
+          <PublishItem publishSize="21875" publishTime="1731239891"/>
+          <PublishItem publishSize="20278" publishTime="1731239868"/>
+          <PublishItem publishSize="21783" publishTime="1731239610"/>
+          <PublishItem publishSize="21775" publishTime="1731239428"/>
+          <PublishItem publishSize="21695" publishTime="1731238381"/>
+          <PublishItem publishSize="21633" publishTime="1731228977"/>
+          <PublishItem publishSize="21633" publishTime="1731228925"/>
+          <PublishItem publishSize="21599" publishTime="1731228388"/>
+          <PublishItem publishSize="21570" publishTime="1731164207"/>
+          <PublishItem publishSize="21571" publishTime="1731164104"/>
+          <PublishItem publishSize="21715" publishTime="1731055062"/>
+          <PublishItem publishSize="21697" publishTime="1731054903"/>
+          <PublishItem publishSize="21636" publishTime="1731052148"/>
+          <PublishItem publishSize="21602" publishTime="1731051747"/>
+          <PublishItem publishSize="21507" publishTime="1730740224"/>
+     </publishHistory>
+</DOMDocument>

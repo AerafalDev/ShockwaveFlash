@@ -1,0 +1,58 @@
+/*
+ *  Copyright (C) 2010-2026 JPEXS, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.jpexs.decompiler.flash.exporters.modes;
+
+import com.jpexs.decompiler.flash.tags.enums.ImageFormat;
+
+/**
+ * Shape export mode.
+ *
+ * @author JPEXS
+ */
+public enum ShapeExportMode {
+    /**
+     * SVG - Scalable Vector Graphics
+     */
+    SVG,
+    /**
+     * PNG - Portable Network Graphics
+     */
+    PNG,
+    /**
+     * HTML5 Canvas
+     */
+    CANVAS,
+    /**
+     * BMP - Windows Bitmap
+     */
+    BMP,
+    /**
+     * WEBP
+     */
+    WEBP,
+    /**
+     * SWF - Shockwave Flash
+     */
+    SWF;
+    
+    public boolean available() {
+        if (this == WEBP) {
+            return ImageFormat.WEBP.available();
+        }
+        return true;
+    }
+}

@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.netbeans.org/ns/project/1">
+    <type>org.netbeans.modules.ant.freeform</type>
+    <configuration>
+        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
+            <name>ffdec</name>
+        </general-data>
+        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/2">
+            <!-- Do not use Project Properties customizer when editing this file manually. -->
+            <name>ffdec</name>
+            <properties/>
+            <folders>
+                <source-folder>
+                    <label>ffdec</label>
+                    <location>.</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>src</label>
+                    <type>java</type>
+                    <location>src</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>test</label>
+                    <type>java</type>
+                    <location>test</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>libsrc\ffdec_cli\src</label>
+                    <type>java</type>
+                    <location>libsrc/ffdec_cli/src</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>libsrc\ffdec_lib\src</label>
+                    <type>java</type>
+                    <location>libsrc/ffdec_lib/src</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>libsrc\ffdec_lib\test</label>
+                    <type>java</type>
+                    <location>libsrc/ffdec_lib/test</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>libsrc\ffdec_lib\lexers</label>
+                    <type>java</type>
+                    <location>libsrc/ffdec_lib/lexers</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+            </folders>
+            <ide-actions>
+                <action name="build">
+                    <target>build</target>
+                </action>
+                <action name="clean">
+                    <target>clean</target>
+                </action>
+                <action name="javadoc">
+                    <target>javadoc</target>
+                </action>
+                <action name="run">
+                    <target>run</target>
+                </action>
+                <action name="test">
+                    <target>test</target>
+                </action>
+                <action name="rebuild">
+                    <target>clean</target>
+                    <target>build</target>
+                </action>
+                <action name="debug">
+                    <script>nbproject/ide-targets.xml</script>
+                    <target>debug-nb</target>
+                </action>
+                <action name="run.single">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>run-selected-file-in-src</target>
+                    <context>
+                        <property>run.class</property>
+                        <folder>src</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="run.single">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>run-selected-file-in-test</target>
+                    <context>
+                        <property>run.class</property>
+                        <folder>test</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="debug.single">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>debug-selected-file-in-src</target>
+                    <context>
+                        <property>debug.class</property>
+                        <folder>src</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="test.single">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>test-selected-file</target>
+                    <context>
+                        <property>test.class</property>
+                        <folder>test</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="run.single.method">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>test-selected-method</target>
+                    <context>
+                        <property>test.class</property>
+                        <folder>test</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="debug.single.method">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>test-debug-selected-method</target>
+                    <context>
+                        <property>debug.class</property>
+                        <folder>test</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="debug.test.single">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>test-debug-selected-file</target>
+                    <context>
+                        <property>debug.class</property>
+                        <folder>test</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="profile">
+                    <script>nbproject/ide-targets.xml</script>
+                    <target>profile-nb</target>
+                </action>
+                <action name="profile.single">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>profile-selected-file-in-src</target>
+                    <context>
+                        <property>profile.class</property>
+                        <folder>src</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="debug.single">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>debug-selected-file-in-test</target>
+                    <context>
+                        <property>debug.class</property>
+                        <folder>test</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+            </ide-actions>
+            <export>
+                <type>folder</type>
+                <location>build</location>
+                <build-target>build</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>javadoc</location>
+                <build-target>build</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>reports</location>
+                <build-target>build</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>locales</location>
+                <build-target>build</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>reports</location>
+                <build-target>build</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>dist</location>
+                <build-target>build</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>build/test</location>
+                <build-target>build</build-target>
+            </export>
+            <view>
+                <items>
+                    <source-folder style="packages">
+                        <label>src</label>
+                        <location>src</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>test</label>
+                        <location>test</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>libsrc\ffdec_cli\src</label>
+                        <location>libsrc/ffdec_cli/src</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>libsrc\ffdec_lib\src</label>
+                        <location>libsrc/ffdec_lib/src</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>libsrc\ffdec_lib\test</label>
+                        <location>libsrc/ffdec_lib/test</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>libsrc\ffdec_lib\lexers</label>
+                        <location>libsrc/ffdec_lib/lexers</location>
+                    </source-folder>
+                    <source-file>
+                        <location>build.xml</location>
+                    </source-file>
+                    <source-file>
+                        <location>build.properties</location>
+                    </source-file>
+                    <source-file>
+                        <location>tools.properties</location>
+                    </source-file>
+                    <source-file>
+                        <location>jpexs_website.properties</location>
+                    </source-file>
+                    <source-file>
+                        <location>version.properties</location>
+                    </source-file>
+                    <source-file>
+                        <location>CHANGELOG.md</location>
+                    </source-file>
+                    <source-file>
+                        <location>.gitignore</location>
+                    </source-file>
+                    <source-file>
+                        <location>.gitattributes</location>
+                    </source-file>
+                    <source-file>
+                        <location>nbproject/project.xml</location>
+                    </source-file>
+                    <source-file>
+                        <location>nbproject/ide-file-targets.xml</location>
+                    </source-file>
+                    <source-file>
+                        <location>nbproject/ide-targets.xml</location>
+                    </source-file>
+                    <source-file>
+                        <location>README.md</location>
+                    </source-file>
+                </items>
+                <context-menu>
+                    <ide-action name="build"/>
+                    <ide-action name="rebuild"/>
+                    <ide-action name="clean"/>
+                    <ide-action name="javadoc"/>
+                    <ide-action name="run"/>
+                    <ide-action name="test"/>
+                    <ide-action name="profile"/>
+                    <ide-action name="debug"/>
+                    <action>
+                        <label>Create Installer</label>
+                        <target>installer</target>
+                    </action>
+                    <action>
+                        <label>Create ZIP</label>
+                        <target>archive</target>
+                    </action>
+                    <action>
+                        <label>Release new version on GitHub</label>
+                        <target>github-newversion</target>
+                    </action>
+                    <action>
+                        <label>Check style</label>
+                        <target>checkstyle</target>
+                    </action>
+                </context-menu>
+            </view>
+            <subprojects/>
+            <project-license>gpl30</project-license>
+        </general-data>
+        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/4">
+            <compilation-unit>
+                <package-root>src</package-root>
+                <classpath mode="compile">lib/jpproxy.jar;lib/trident-6.2.jar;lib/substance-flamingo-6.2.jar;lib/flamingo-6.2.jar;lib/substance-fix.jar;lib/substance-6.2.jar;libsrc/ffdec_lib/src;lib/tablelayout.jar;lib/jsyntaxpane-0.9.5.jar;lib/JavactiveX.jar;lib/flashdebugger.jar;lib/treetable.jar;lib/minimal-json-0.9.5.jar;libsrc/ffdec_lib/lib/gnujpdf.jar;libsrc/ffdec_lib/lib/jna-3.5.1.jar;libsrc/ffdec_lib/lib/jna-platform-3.5.1.jar;libsrc/ffdec_lib/lib/flashdebugger.jar;lib/gifreader.jar;lib/jansi-2.4.0.jar;lib/decimal.jar;lib/webp4j-core-2.1.1.jar</classpath>
+                <built-to>build</built-to>
+                <built-to>javadoc</built-to>
+                <built-to>reports</built-to>
+                <built-to>locales</built-to>
+                <built-to>reports</built-to>
+                <built-to>dist</built-to>
+                <javadoc-built-to>javadoc</javadoc-built-to>
+                <source-level>1.8</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>test</package-root>
+                <unit-tests/>
+                <classpath mode="compile">lib/LZMA.jar;lib/jna-3.5.1.jar;lib/jpproxy.jar;lib/jsyntaxpane-0.9.5.jar;src;testlib/emma.jar;testlib/emma_ant.jar;testlib/junit-4.8.2.jar;testlib/testng-6.8.jar;lib/ffdec_lib.jar;testlib/JavactiveX.jar</classpath>
+                <built-to>build/test</built-to>
+                <source-level>1.8</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>libsrc/ffdec_cli/src</package-root>
+                <source-level>1.8</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>libsrc/ffdec_lib/src</package-root>
+                <source-level>1.8</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>libsrc/ffdec_lib/test</package-root>
+                <unit-tests/>
+                <classpath mode="compile">lib/ffdec_lib.jar;libsrc/ffdec_lib/src;libsrc/ffdec_lib/testlib/emma.jar;libsrc/ffdec_lib/testlib/emma_ant.jar;libsrc/ffdec_lib/testlib/testng-6.8.jar</classpath>
+                <source-level>1.8</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>libsrc/ffdec_lib/lexers</package-root>
+                <source-level>1.8</source-level>
+            </compilation-unit>
+        </java-data>
+    </configuration>
+</project>

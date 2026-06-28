@@ -1,0 +1,57 @@
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto
+
+# Text files
+*.txt text
+*.xml text
+*.md text
+
+# Installers:
+*.iss text
+*.nsi text
+*.nsh text
+
+# Java
+*.java text
+*.mf text
+*.properties text
+# Generator of Lexical analyzers
+*.flex text
+
+# Graphics:
+*.svg text
+*.png binary
+*.jpg binary
+*.bmp binary
+*.ico binary
+*.icns binary
+*.xcf binary
+*.gif binary
+
+# Findbugs:
+*.fbp text
+
+# Batch files
+*.sh text eol=lf
+ffdec text eol=lf
+ffdec-cli text eol=lf
+*.bat text eol=crlf
+
+# PHP scripts
+*.php text
+
+# Delphi sources
+*.dpr text eol=crlf
+*.dfm text eol=crlf
+*.pas text eol=crlf
+*.dof text eol=crlf
+
+# Executables
+*.dll binary
+*.exe binary
+*.jar binary
+*.res binary
+
+# Fonts
+*.otf binary
+*.ttf binary

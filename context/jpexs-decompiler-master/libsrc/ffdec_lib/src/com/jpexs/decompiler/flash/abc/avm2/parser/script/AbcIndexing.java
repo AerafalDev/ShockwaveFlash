@@ -1,0 +1,1360 @@
+/*
+ *  Copyright (C) 2010-2026 JPEXS, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.jpexs.decompiler.flash.abc.avm2.parser.script;
+
+import com.jpexs.decompiler.flash.SWF;
+import com.jpexs.decompiler.flash.abc.ABC;
+import com.jpexs.decompiler.flash.abc.avm2.AVM2ConstantPool;
+import com.jpexs.decompiler.flash.abc.avm2.model.ApplyTypeAVM2Item;
+import com.jpexs.decompiler.flash.abc.avm2.model.NullAVM2Item;
+import com.jpexs.decompiler.flash.abc.types.ClassInfo;
+import com.jpexs.decompiler.flash.abc.types.InstanceInfo;
+import com.jpexs.decompiler.flash.abc.types.Multiname;
+import com.jpexs.decompiler.flash.abc.types.Namespace;
+import com.jpexs.decompiler.flash.abc.types.ValueKind;
+import com.jpexs.decompiler.flash.abc.types.traits.Trait;
+import com.jpexs.decompiler.flash.abc.types.traits.TraitClass;
+import com.jpexs.decompiler.flash.abc.types.traits.TraitFunction;
+import com.jpexs.decompiler.flash.abc.types.traits.TraitMethodGetterSetter;
+import com.jpexs.decompiler.flash.abc.types.traits.TraitSlotConst;
+import com.jpexs.decompiler.flash.abc.types.traits.Traits;
+import com.jpexs.decompiler.flash.tags.ABCContainerTag;
+import com.jpexs.decompiler.graph.DottedChain;
+import com.jpexs.decompiler.graph.GraphTargetItem;
+import com.jpexs.decompiler.graph.TypeItem;
+import com.jpexs.helpers.Reference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * Indexing of ABCs for faster access. Indexes ABC classes for faster class and
+ * property resolving.
+ *
+ * @author JPEXS
+ */
+public final class AbcIndexing {
+
+    private AbcIndexing parent = null;
+
+    private final List<ABC> abcs = new ArrayList<>();
+
+    private ABC selectedAbc = null;
+
+    /**
+     * Creates empty index with parent.
+     *
+     * @param parent If not property/class found, search also in this parent
+     */
+    public AbcIndexing(AbcIndexing parent) {
+        this(null, parent);
+    }
+
+    /**
+     * Creates index from SWF file with parent
+     *
+     * @param swf SWF file to load initial ABCs from
+     * @param parent If not property/class found, search also in this parent
+     */
+    public AbcIndexing(SWF swf, AbcIndexing parent) {
+        this.parent = parent;
+        if (swf != null) {
+            for (ABCContainerTag at : swf.getAbcList()) {
+                addAbc(at.getABC());
+            }
+            rebuildPkgToObjectsNameMap();
+        }
+    }
+
+    /**
+     * Creates index from SWF file.
+     *
+     * @param swf SWF file to load initial ABCs from
+     */
+    public AbcIndexing(SWF swf) {
+        this(swf, null);
+    }
+
+    /**
+     * Creates empty index
+     */
+    public AbcIndexing() {
+        this(null, null);
+    }
+
+    private static class AmbiguousPropertyDef {
+        private final String propName;
+       
+        private final GraphTargetItem parent;
+
+        public AmbiguousPropertyDef(String propName, GraphTargetItem parent) {
+            this.propName = propName;
+            this.parent = parent;
+        }                        
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 79 * hash + Objects.hashCode(this.propName);
+            hash = 79 * hash + Objects.hashCode(this.parent);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final AmbiguousPropertyDef other = (AmbiguousPropertyDef) obj;
+            if (!Objects.equals(this.propName, other.propName)) {
+                return false;
+            }
+            return Objects.equals(this.parent, other.parent);
+        }
+        
+    }
+    
+    /**
+     * Property key
+     */
+    public static class PropertyDef {
+        private final String propName;
+       
+        private final GraphTargetItem parent;
+
+        private String propNsString = null;
+
+        private int propNsIndex = 0;
+        
+        private int propNsKind = -1;
+
+        private ABC abc = null;
+        
+        /**
+         * To string
+         * @return String
+         */
+        @Override
+        public String toString() {
+            return parent.toString() + ":" + propName + (propNsIndex > 0 ? "[ns:" + propNsIndex + "]" : "") + (propNsString != null ? "[ns: " + propNsString + "]" : "");
+        }
+        
+        /**
+         * Gets property name
+         * @return Property name
+         */
+        public String getPropertyName() {
+            return propName;
+        }
+
+        /**
+         * Gets property namespace string
+         * @return Property namespace string
+         */
+        public String getPropNsString() {
+            return propNsString;
+        }
+
+        /**
+         * Creates key to property.
+         *
+         * @param propName Name of the property
+         * @param parent Parent type (usually TypeItem)
+         * @param abc ABC for private/protected/namespace namespace resolving
+         * @param propNsIndex Index of property(trait) namespace for
+         * private/protected/namespace namespace resolving
+         */
+        public PropertyDef(String propName, GraphTargetItem parent, ABC abc, int propNsIndex) {           
+
+            this.propName = propName;
+            this.parent = parent;
+            if (abc == null || propNsIndex <= 0) {
+                return;
+            }
+            Namespace ns = abc.constants.getNamespace(propNsIndex);
+            //this.propNsKind = ns.kind;
+            switch (ns.kind) {
+                case Namespace.KIND_PACKAGE:   
+                case Namespace.KIND_PACKAGE_INTERNAL:
+                case Namespace.KIND_PROTECTED:
+                case Namespace.KIND_STATIC_PROTECTED:
+                case Namespace.KIND_NAMESPACE:
+                    //this.abc = null;
+                    //this.propNsString = abc.constants.getNamespace(propNsIndex).getRawName(abc.constants);
+                    break;
+                
+                    //this.propNsString = abc.constants.getNamespace(propNsIndex).getRawName(abc.constants);
+                    //break;
+                default:
+                    this.abc = abc;
+                    this.propNsIndex = propNsIndex;                     
+            }            
+        }
+
+        /**
+         * Creates key to property.
+         * @param propName Property name
+         * @param parent Parent type
+         * @param propNsString Namespace string
+         */
+        public PropertyDef(String propName, GraphTargetItem parent, String propNsString, int nsKind) {
+            this.propName = propName;
+            this.parent = parent;
+            this.abc = null;
+            if (nsKind == Namespace.KIND_NAMESPACE) {
+                //this.propNsString = propNsString;
+            }
+            //this.propNsKind = nsKind;
+            //this.propNsString = propNsString;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 59 * hash + Objects.hashCode(this.propName);
+            hash = 59 * hash + Objects.hashCode(this.parent);
+            hash = 59 * hash + Objects.hashCode(this.propNsString);
+            hash = 59 * hash + this.propNsIndex;
+            hash = 59 * hash + this.propNsKind;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final PropertyDef other = (PropertyDef) obj;
+            if (this.propNsIndex != other.propNsIndex) {
+                return false;
+            }
+            if (this.propNsKind != other.propNsKind) {
+                return false;
+            }
+            if (!Objects.equals(this.propName, other.propName)) {
+                return false;
+            }
+            if (!Objects.equals(this.propNsString, other.propNsString)) {
+                return false;
+            }
+            return Objects.equals(this.parent, other.parent);
+        }
+       
+    }
+
+    /**
+     * Namespaced property key
+     */
+    public static class PropertyNsDef {
+
+        private final String propName;
+
+        private final DottedChain ns;
+
+        private int propNsIndex = 0;
+
+        private ABC abc = null;     
+
+        /**
+         * Gets property name
+         * @return Property name
+         */
+        public String getPropertyName() {
+            return propName;
+        }
+
+        /**
+         * To string
+         * @return String
+         */
+        @Override
+        public String toString() {
+            return ns.toString() + ":" + propName + (propNsIndex > 0 ? "[ns:" + propNsIndex + "]" : "");
+        }
+
+        /**
+         * Constructs namespaced property key
+         * @param propName Property name
+         * @param ns Namespace
+         * @param abc ABC
+         * @param nsIndex Namespace index
+         */
+        public PropertyNsDef(String propName, DottedChain ns, ABC abc, int nsIndex) {
+            this.propName = propName;
+            this.ns = ns;
+            if (abc == null || nsIndex <= 0) {
+                return;
+            }
+            int k = abc.constants.getNamespace(nsIndex).kind;
+            if (k == Namespace.KIND_PRIVATE) {
+                this.propNsIndex = nsIndex;
+                this.abc = abc;
+            }                       
+        }
+
+        /**
+         * Hash code
+         * @return Hash code
+         */
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 19 * hash + Objects.hashCode(this.propName);
+            hash = 19 * hash + Objects.hashCode(this.ns);
+            hash = 19 * hash + this.propNsIndex;
+            hash = 19 * hash + System.identityHashCode(this.abc);
+            return hash;
+        }
+
+        /**
+         * Equals
+         * @param obj Object
+         * @return True if equals
+         */
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final PropertyNsDef other = (PropertyNsDef) obj;
+            if (!Objects.equals(this.propName, other.propName)) {
+                return false;
+            }
+            if (!Objects.equals(this.ns, other.ns)) {
+                return false;
+            }
+            if (this.propNsIndex != other.propNsIndex) {
+                return false;
+            }
+            return (this.abc == other.abc);
+        }
+    }
+
+    /**
+     * Trait index
+     */
+    public static class TraitIndex {
+
+        /**
+         * Trait
+         */
+        public Trait trait;
+
+        /**
+         * ABC
+         */
+        public ABC abc;
+
+        /**
+         * Return type
+         */
+        public GraphTargetItem returnType;
+
+        /**
+         * Call return type
+         */
+        public GraphTargetItem callReturnType;
+
+        /**
+         * Value kind
+         */
+        public ValueKind value;
+
+        /**
+         * Object type
+         */
+        public GraphTargetItem objType;
+        
+        /**
+         * Script index
+         */
+        public int scriptIndex;
+
+        /**
+         * Constructs trait index
+         * @param trait Trait
+         * @param abc ABC
+         * @param type Type
+         * @param callType Call type
+         * @param value Value
+         * @param objType Object type
+         * @param scriptIndex Script index
+         */
+        public TraitIndex(Trait trait, ABC abc, GraphTargetItem type, GraphTargetItem callType, ValueKind value, GraphTargetItem objType, int scriptIndex) {
+            this.trait = trait;
+            this.abc = abc;
+            this.returnType = type;
+            this.callReturnType = callType;
+            this.value = value;
+            this.objType = objType;
+            this.scriptIndex = scriptIndex;
+        }
+    }
+
+    /**
+     * Class definition
+     */
+    private static class ClassDef {
+
+        /**
+         * Class type
+         */
+        public GraphTargetItem type;
+
+        /**
+         * Package
+         */
+        public DottedChain pkg;
+
+        private GraphTargetItem noNsType(GraphTargetItem type) {
+            TypeItem ti = (TypeItem) type;
+            ti = (TypeItem) ti.clone();
+            ti.ns = null;
+            return ti;
+        }
+
+        /**
+         * Constructs class definition
+         * @param type Type
+         * @param abc ABC
+         * @param scriptIndex Script index
+         */
+        public ClassDef(GraphTargetItem type, ABC abc, Integer scriptIndex) {
+            this.type = type;
+            if (scriptIndex != null) {
+                for (Trait t : abc.script_info.get(scriptIndex).traits.traits) {
+                    Multiname m = t.getName(abc);
+                    int nskind = m.getSimpleNamespaceKind(abc.constants);
+                    if (nskind == Namespace.KIND_PACKAGE) {
+                        pkg = m.getSimpleNamespaceName(abc.constants);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 17 * hash + Objects.hashCode(noNsType(this.type));
+            hash = 17 * hash + Objects.hashCode(this.pkg);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final ClassDef other = (ClassDef) obj;
+            if (!Objects.equals(noNsType(this.type), noNsType(other.type))) {
+                return false;
+            }
+            return Objects.equals(this.pkg, other.pkg);
+        }
+
+    }
+
+    /**
+     * Class index
+     */
+    public static class ClassIndex {
+
+        /**
+         * Index of class in ABC
+         */
+        public int index;
+
+        /**
+         * ABC
+         */
+        public ABC abc;
+
+        /**
+         * Parent class index
+         */
+        public ClassIndex parent;
+
+        /**
+         * Script index
+         */
+        public Integer scriptIndex;
+
+        /**
+         * To string
+         * @return String
+         */
+        @Override
+        public String toString() {
+            return abc.constants.getMultiname(abc.instance_info.get(index).name_index).getNameWithNamespace(new LinkedHashSet<>() /*???*/, abc, abc.constants, true).toPrintableString(new LinkedHashSet<>(), abc.getSwf(), true);
+        }
+
+        /**
+         * Constructs class index
+         * @param index Index
+         * @param abc ABC
+         * @param parent Parent
+         * @param scriptIndex Script index
+         */
+        public ClassIndex(int index, ABC abc, ClassIndex parent, Integer scriptIndex) {
+            this.index = index;
+            this.abc = abc;
+            this.parent = parent;
+            this.scriptIndex = scriptIndex;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 5;
+            hash = 37 * hash + this.index;
+            hash = 37 * hash + System.identityHashCode(this.abc);
+            hash = 37 * hash + Objects.hashCode(this.parent);
+            hash = 37 * hash + Objects.hashCode(this.scriptIndex);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final ClassIndex other = (ClassIndex) obj;
+            if (this.index != other.index) {
+                return false;
+            }
+            if (this.abc != other.abc) {
+                return false;
+            }
+            if (!Objects.equals(this.parent, other.parent)) {
+                return false;
+            }
+            return Objects.equals(this.scriptIndex, other.scriptIndex);
+        }
+    }
+
+    private Map<DottedChain, Set<String>> pkgToObjectsName = new LinkedHashMap<>();
+
+    private final Map<ClassDef, ClassIndex> classes = new HashMap<>();
+    
+    private final Map<PropertyDef, TraitIndex> instanceProperties = new HashMap<>();
+
+    private final Map<PropertyDef, TraitIndex> classProperties = new HashMap<>();
+
+    private final Map<PropertyNsDef, TraitIndex> instanceNsProperties = new HashMap<>();
+
+    private final Map<PropertyNsDef, TraitIndex> classNsProperties = new HashMap<>();
+
+    private final Map<PropertyNsDef, TraitIndex> scriptProperties = new HashMap<>();
+    
+    private final Map<AmbiguousPropertyDef, List<TraitIndex>> instanceAmbiguousProperties = new HashMap<>();
+    
+    private final Map<AmbiguousPropertyDef, List<TraitIndex>> classAmbiguousProperties = new HashMap<>();
+
+    private final Map<AmbiguousPropertyDef, List<TraitIndex>> scriptAmbiguousProperties = new HashMap<>();
+
+    /**
+     * Rebuilds package to objects name map.
+     */
+    public synchronized void rebuildPkgToObjectsNameMap() {
+        pkgToObjectsName.clear();
+        Set<ClassDef> cs = new LinkedHashSet<>(classes.keySet());
+        for (ClassDef cd : cs) {
+            if (!(cd.type instanceof TypeItem)) {
+                continue;
+            }
+            if (!pkgToObjectsName.containsKey(cd.pkg)) {
+                pkgToObjectsName.put(cd.pkg, new LinkedHashSet<>());
+            }
+            pkgToObjectsName.get(cd.pkg).add(((TypeItem) cd.type).fullTypeName.getLast());
+        }
+        Set<PropertyNsDef> nss = new LinkedHashSet<>(scriptProperties.keySet());
+        for (PropertyNsDef nsdef : nss) {
+            if (!pkgToObjectsName.containsKey(nsdef.ns)) {
+                pkgToObjectsName.put(nsdef.ns, new LinkedHashSet<>());
+            }
+            pkgToObjectsName.get(nsdef.ns).add(nsdef.propName);
+        }
+    }
+
+    /**
+     * Gets package objects.
+     * @param pkg Package
+     * @return Set of class names
+     */
+    public Set<String> getPackageObjects(DottedChain pkg) {
+        Set<String> classNames = new LinkedHashSet<>();
+        if (pkgToObjectsName.containsKey(pkg)) {
+            classNames.addAll(pkgToObjectsName.get(pkg));
+        }
+        if (parent != null) {
+            classNames.addAll(parent.getPackageObjects(pkg));
+        }
+        return classNames;
+    }
+    
+    public void getClassTraits(Set<String> usedDeobfuscations, GraphTargetItem cls, ABC abc, Integer scriptIndex, boolean getStatic, boolean getInstance, boolean getInheritance, boolean getPrivate, boolean getProtected, List<PropertyDef> ret, List<Boolean> staticRet) {
+        ClassIndex ci = findClass(cls, abc, scriptIndex);
+        if (ci == null) {
+            return;
+        }
+        ret.clear();
+        staticRet.clear();
+        getClassIndexTraitNames(usedDeobfuscations, ret, staticRet, ci, getStatic, getInstance, getInheritance, getPrivate, getProtected, new HashSet<>());        
+    }
+    
+    private static class UsedProperty {
+        private String propertyName;
+        private int nsKind;
+        private String namespaceStr;
+        private boolean isStatic;
+
+        public UsedProperty(String propertyName, int nsKind, String namespaceStr, boolean isStatic) {
+            this.propertyName = propertyName;
+            this.nsKind = nsKind;
+            this.namespaceStr = namespaceStr;
+            this.isStatic = isStatic;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 79 * hash + Objects.hashCode(this.propertyName);
+            hash = 79 * hash + this.nsKind;
+            hash = 79 * hash + Objects.hashCode(this.namespaceStr);
+            hash = 79 * hash + (this.isStatic ? 1 : 0);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final UsedProperty other = (UsedProperty) obj;
+            if (this.nsKind != other.nsKind) {
+                return false;
+            }
+            if (this.isStatic != other.isStatic) {
+                return false;
+            }
+            if (!Objects.equals(this.propertyName, other.propertyName)) {
+                return false;
+            }
+            return Objects.equals(this.namespaceStr, other.namespaceStr);
+        }        
+    }
+    
+    private void getClassIndexTraitNames(Set<String> usedDeobfuscations, List<PropertyDef> ret, List<Boolean> staticRet, ClassIndex ci, boolean getStatic, boolean getInstance, boolean getInheritance, boolean getPrivate, boolean getProtected, Set<UsedProperty> used) {
+        GraphTargetItem ciName = multinameToType(usedDeobfuscations, ci.abc.instance_info.get(ci.index).name_index, ci.abc, ci.abc.constants);
+                
+        boolean isObject = ciName.equals(new TypeItem("Object"));
+        List<String> ignoredObjectTraits = Arrays.asList("_init", "_dontEnumPrototype", "_setPropertyIsEnumerable");
+        
+        if (getInstance) {
+            for (PropertyDef def : instanceProperties.keySet()) {                
+                if (isObject && ignoredObjectTraits.contains(def.propName)) {
+                    continue;
+                }
+                int nsKind = -1;
+                if (def.propNsIndex != 0) {
+                    nsKind = def.abc.constants.getNamespace(def.propNsIndex).kind;                    
+                }
+                if (nsKind == Namespace.KIND_PRIVATE  && !getPrivate) {
+                    continue;
+                }
+                if ((nsKind == Namespace.KIND_PROTECTED || nsKind == Namespace.KIND_STATIC_PROTECTED) && !getProtected) {
+                    continue;
+                }                      
+                if (Objects.equals(def.parent, ciName)) {
+                    UsedProperty up = new UsedProperty(def.propName, def.propNsKind, def.propNsString, false);
+                    if (used.contains(up)) {
+                        continue;
+                    }
+                    used.add(up);
+                
+                    
+                    ret.add(def);
+                    staticRet.add(false);
+                }                
+            }
+        }
+        if (getStatic) {
+            for (PropertyDef def : classProperties.keySet()) {
+                if (isObject && ignoredObjectTraits.contains(def.propName)) {
+                    continue;
+                }
+                int nsKind = -1;
+                if (def.propNsIndex != 0) {
+                    nsKind = def.abc.constants.getNamespace(def.propNsIndex).kind;                    
+                }
+                if (nsKind == Namespace.KIND_PRIVATE  && !getPrivate) {
+                    continue;
+                }
+                if ((nsKind == Namespace.KIND_PROTECTED || nsKind == Namespace.KIND_STATIC_PROTECTED) && !getProtected) {
+                    continue;
+                }
+                if (Objects.equals(def.parent, ciName)) {
+                    UsedProperty up = new UsedProperty(def.propName, def.propNsKind, def.propNsString, true);
+                    if (used.contains(up)) {
+                        continue;
+                    }
+                    used.add(up);
+                    ret.add(def);
+                    staticRet.add(true);
+                }
+            }
+        }
+        
+        if (parent != null) {
+            parent.getClassIndexTraitNames(usedDeobfuscations, ret, staticRet, ci, getStatic, getInstance, getInheritance, getPrivate, getProtected, used);
+        }
+        
+        if (getInheritance && ci.parent != null) {
+            getClassIndexTraitNames(usedDeobfuscations, ret, staticRet, ci.parent, getStatic, getInstance, getInheritance, false, getProtected, used);
+        }        
+    }
+
+    /**
+     * Finds class in index.
+     * @param cls Class to find
+     * @param abc ABC
+     * @param scriptIndex Script index
+     * @return Class index or null
+     */
+    public ClassIndex findClass(GraphTargetItem cls, ABC abc, Integer scriptIndex) {
+        ClassDef keyWithScriptIndex = new ClassDef(cls, abc, scriptIndex);
+        if (classes.containsKey(keyWithScriptIndex)) {
+            return classes.get(keyWithScriptIndex);
+        }
+
+        ClassDef keyWithNoScriptIndex = new ClassDef(cls, abc, null);
+        if (classes.containsKey(keyWithNoScriptIndex)) {
+            return classes.get(keyWithNoScriptIndex);
+        }
+
+        if (parent == null) {
+            return null;
+        }
+        return parent.findClass(cls, abc, scriptIndex);
+    }
+
+    /**
+     * Finds property type or call type.
+     * @param abc ABC
+     * @param cls Class
+     * @param propName Property name
+     * @param ns Namespace
+     * @param findStatic Find static properties
+     * @param findInstance Find instance properties
+     * @param findProtected Find protected namespace properties
+     * @param type Property type
+     * @param callType Call type
+     * @param foundStatic Trait found as static
+     */
+    public void findPropertyTypeOrCallType(ABC abc, GraphTargetItem cls, String propName, int ns, boolean findStatic, boolean findInstance, boolean findProtected, Reference<GraphTargetItem> type, Reference<GraphTargetItem> callType, Reference<Boolean> foundStatic) {
+        TraitIndex traitIndex = findProperty(new PropertyDef(propName, cls, abc, ns), findStatic, findInstance, findProtected, foundStatic);
+        if (traitIndex == null) {
+            type.setVal(TypeItem.UNKNOWN);
+            callType.setVal(TypeItem.UNKNOWN);
+        } else {
+            type.setVal(traitIndex.returnType);
+            callType.setVal(traitIndex.callReturnType);
+        }
+    }
+
+    /**
+     * Finds property type.
+     * @param abc ABC
+     * @param cls Class
+     * @param propName Property name
+     * @param ns Namespace
+     * @param findStatic Find static properties
+     * @param findInstance Find instance properties
+     * @param findProtected Find protected namespace properties
+     * @param foundStatic Trait found as static
+     * @return Trait index or null     
+     */
+    public GraphTargetItem findPropertyType(ABC abc, GraphTargetItem cls, String propName, int ns, boolean findStatic, boolean findInstance, boolean findProtected, Reference<Boolean> foundStatic) {
+        TraitIndex traitIndex = findProperty(new PropertyDef(propName, cls, abc, ns), findStatic, findInstance, findProtected, foundStatic);
+        if (traitIndex == null) {
+            return TypeItem.UNBOUNDED;
+        }
+        return traitIndex.returnType;
+    }
+
+    /**
+     * Finds property call type.
+     * @param abc ABC
+     * @param cls Class
+     * @param propName Property name
+     * @param ns Namespace
+     * @param findStatic Find static properties
+     * @param findInstance Find instance properties
+     * @param findProtected Find protected namespace properties
+     * @param foundStatic Trait found as static
+     * @return Trait index or null
+     */
+    public GraphTargetItem findPropertyCallType(ABC abc, GraphTargetItem cls, String propName, int ns, boolean findStatic, boolean findInstance, boolean findProtected, Reference<Boolean> foundStatic) {
+        TraitIndex traitIndex = findProperty(new PropertyDef(propName, cls, abc, ns), findStatic, findInstance, findProtected, foundStatic);
+        if (traitIndex == null) {
+            return TypeItem.UNBOUNDED;
+        }
+        return traitIndex.callReturnType;
+    }
+
+    /**
+     * Finds script property
+     * @param ns Namespace
+     * @return Trait index or null
+     */
+    public TraitIndex findScriptProperty(DottedChain ns) {
+        return findScriptProperty(ns.getLast(), ns.getWithoutLast());
+    }
+
+    /**
+     * Finds script property
+     * @param propName Property name
+     * @param ns Namespace
+     * @return Trait index or null
+     */
+    public TraitIndex findScriptProperty(String propName, DottedChain ns) {
+        PropertyNsDef nsd = new PropertyNsDef(propName, ns, null, 0);
+        if (!scriptProperties.containsKey(nsd)) {
+            if (parent != null) {
+                return parent.findScriptProperty(propName, ns);
+            }
+            return null;
+        }
+        return scriptProperties.get(nsd);
+    }
+
+    /**
+     * Finds property with namespace.
+     * @param prop Property to find
+     * @param findStatic Find static properties
+     * @param findInstance Find instance properties
+     * @param foundStatic  Whether result is static
+     * @return Trait index or null
+     */
+    public TraitIndex findNsProperty(PropertyNsDef prop, boolean findStatic, boolean findInstance, Reference<Boolean> foundStatic) {
+        if (findStatic) {
+            if (classNsProperties.containsKey(prop)) {
+                foundStatic.setVal(true);
+                return classNsProperties.get(prop);
+            }            
+        }
+        if (findInstance && instanceNsProperties.containsKey(prop)) {
+            foundStatic.setVal(false);
+            return instanceNsProperties.get(prop);
+        }
+        
+        if (parent != null) {
+            TraitIndex ret = parent.findProperty(new PropertyDef(prop.propName, new TypeItem(prop.ns), prop.abc, prop.propNsIndex), findStatic, findInstance, true, foundStatic);
+            if (ret != null) {
+                return ret;
+            }                
+        }
+        return null;
+    }
+
+    /**
+     * Finds property in index
+     * @param prop Property to find
+     * @param findStatic Find static properties
+     * @param findInstance Find instance properties
+     * @param findProtected Find protected namespace properties
+     * @param foundStatic  Whether result is static
+     * @return Trait index or null
+     */
+    public TraitIndex findProperty(PropertyDef prop, boolean findStatic, boolean findInstance, boolean findProtected, Reference<Boolean> foundStatic) {
+        /*System.out.println("searching " + prop);
+        for (PropertyDef p : instanceProperties.keySet()) {
+            if (p.parent.equals(new TypeItem("tests_classes.TestConvertParent"))) {
+                System.out.println("- " + p);
+            }
+        }
+        System.out.println("-----------");
+         */
+        //search all static first
+        if (findStatic && classProperties.containsKey(prop)) {
+            TraitIndex ti = classProperties.get(prop);            
+            if (ti != null) {
+                foundStatic.setVal(true);
+                return ti;
+            }
+            if (parent != null) {
+                TraitIndex ret = parent.findProperty(prop, findStatic, findInstance, findProtected, foundStatic);
+                if (ret != null) {                    
+                    return ret;
+                }
+            }
+        }
+
+        //now search instance
+        if (findInstance && instanceProperties.containsKey(prop)) {
+            TraitIndex ti = instanceProperties.get(prop);
+            if (ti != null) {
+                foundStatic.setVal(false);
+                return ti;
+            }
+            if (parent != null) {
+                TraitIndex ret = parent.findProperty(prop, findStatic, findInstance, findProtected, foundStatic);
+                if (ret != null) {                    
+                    return ret;
+                }
+            }
+        }
+
+        //now search parent class
+        AbcIndexing.ClassIndex ci = findClass(prop.parent, prop.abc, null);
+        if (ci != null && ci.parent != null && (prop.abc == null || prop.propNsIndex == 0)) {
+            AbcIndexing.ClassIndex ciParent = ci.parent;
+            DottedChain parentClass = ciParent.abc.instance_info.get(ciParent.index).getName(ciParent.abc.constants).getNameWithNamespace(new LinkedHashSet<>(), ciParent.abc, ciParent.abc.constants, true);
+            PropertyDef parentDef = new PropertyDef(prop.propName, new TypeItem(parentClass), (ABC) null, 0);
+            TraitIndex pti = findProperty(parentDef, findStatic, findInstance, findProtected, foundStatic);
+            if (pti != null) {
+                return pti;
+            }
+        }
+
+        if (findProtected && prop.propNsIndex == 0) {
+            if (ci != null) {
+                int protNs = ci.abc.instance_info.get(ci.index).protectedNS;
+                PropertyDef prop2 = new PropertyDef(prop.propName, prop.parent, ci.abc, protNs);
+                TraitIndex pti = findProperty(prop2, findStatic, findInstance, false, foundStatic);
+                if (pti != null) {
+                    return pti;
+                }
+            }
+        }
+        if (parent != null) {
+            if (prop.propNsIndex != 0) {
+                /*Namespace ns = getSelectedAbc().constants.getNamespace(prop.propNsIndex);
+                if (ns.kind == Namespace.KIND_NAMESPACE) {
+                    ABC parentAbc = parent.getSelectedAbc();
+                    AVM2ConstantPool parentConstants = parentAbc.constants;
+                    int parentNsId = parentConstants.getNamespaceId(Namespace.KIND_NAMESPACE, parentConstants.getStringId(ns.getName(getSelectedAbc().constants), false), 0, false);
+                    prop = new PropertyDef(prop.propName, prop.parent, parentAbc, parentNsId);
+                }*/                
+            }
+            TraitIndex pti = parent.findProperty(prop, findStatic, findInstance, findProtected, foundStatic);
+            if (pti != null) {
+                return pti;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Converts multiname to type
+     * @param usedDeobfuscations Used deobfuscations
+     * @param m_index Multiname index
+     * @param abc ABC
+     * @param constants AVM2 constant pool
+     * @return Type
+     */
+    public static GraphTargetItem multinameToType(Set<String> usedDeobfuscations, int m_index, ABC abc, AVM2ConstantPool constants) {
+        if (m_index == 0) {
+            return TypeItem.UNBOUNDED;
+        }
+        Multiname m = constants.getMultiname(m_index);
+        if (m.isCyclic()) {
+            return null;
+        }
+        if (m.kind == Multiname.TYPENAME) {
+            GraphTargetItem obj = multinameToType(usedDeobfuscations, m.qname_index, abc, constants);
+            if (obj == null) {
+                return null;
+            }
+            List<GraphTargetItem> params = new ArrayList<>();
+            for (int pm : m.params) {
+                GraphTargetItem r = multinameToType(usedDeobfuscations, pm, abc, constants);
+                if (r == null) {
+                    return null;
+                }
+                if (pm == 0) {
+                    r = new NullAVM2Item(null, null);
+                }
+                params.add(r);
+            }
+            return new ApplyTypeAVM2Item(null, null, obj, params);
+        } else {
+            if (m.namespace_index != 0 && m.getNamespace(constants).kind == Namespace.KIND_PRIVATE) {
+                return new TypeItem(m.getName(usedDeobfuscations, abc, constants, new ArrayList<>(), true, true), "ns:" + m.namespace_index);
+            }
+            return new TypeItem(m.getNameWithNamespace(usedDeobfuscations, abc, constants, true));
+        }
+    }
+
+    private static GraphTargetItem getTraitCallReturnType(Set<String> usedDeobfuscations, ABC abc, Trait t) {
+        if (t instanceof TraitSlotConst) {
+            return TypeItem.UNBOUNDED;
+        }
+        if (t instanceof TraitMethodGetterSetter) {
+            TraitMethodGetterSetter tmgs = (TraitMethodGetterSetter) t;
+            if (tmgs.kindType == Trait.TRAIT_GETTER) {
+                return TypeItem.UNBOUNDED;
+            }
+            if (tmgs.kindType == Trait.TRAIT_SETTER) {
+                return TypeItem.UNBOUNDED;
+            }
+            return multinameToType(usedDeobfuscations, abc.method_info.get(tmgs.method_info).ret_type, abc, abc.constants);
+        }
+
+        if (t instanceof TraitFunction) {
+            TraitFunction tf = (TraitFunction) t;
+            return multinameToType(usedDeobfuscations, abc.method_info.get(tf.method_info).ret_type, abc, abc.constants);
+
+        }
+        return TypeItem.UNBOUNDED;
+    }
+
+    private static GraphTargetItem getTraitReturnType(Set<String> usedDeobfuscations, ABC abc, Trait t) {
+        if (t instanceof TraitSlotConst) {
+            TraitSlotConst tsc = (TraitSlotConst) t;
+            if (tsc.type_index == 0) {
+                return TypeItem.UNBOUNDED;
+            }
+            return multinameToType(usedDeobfuscations, tsc.type_index, abc, abc.constants);
+        }
+        if (t instanceof TraitMethodGetterSetter) {
+            TraitMethodGetterSetter tmgs = (TraitMethodGetterSetter) t;
+            if (tmgs.kindType == Trait.TRAIT_GETTER) {
+                return multinameToType(usedDeobfuscations, abc.method_info.get(tmgs.method_info).ret_type, abc, abc.constants);
+            }
+            if (tmgs.kindType == Trait.TRAIT_SETTER) {
+                if (abc.method_info.get(tmgs.method_info).param_types.length > 0) {
+                    return multinameToType(usedDeobfuscations, abc.method_info.get(tmgs.method_info).param_types[0], abc, abc.constants);
+                } else {
+                    return TypeItem.UNBOUNDED;
+                }
+            }
+            return new TypeItem(DottedChain.FUNCTION);
+        }
+
+        if (t instanceof TraitFunction) {
+            return new TypeItem(DottedChain.FUNCTION);
+        }
+        return TypeItem.UNBOUNDED;
+    }
+
+    /**
+     * Indexes traits
+     * @param abc ABC
+     * @param name_index Name index
+     * @param ts Traits
+     * @param map Map to index
+     * @param mapNs Map to index
+     * @param scriptIndex Script index
+     */
+    protected void indexTraits(ABC abc, int name_index, Traits ts, Map<PropertyDef, TraitIndex> map, Map<PropertyNsDef, TraitIndex> mapNs, Map<AmbiguousPropertyDef, List<TraitIndex>> mapAmbiguous, int scriptIndex) {        
+        for (Trait t : ts.traits) {
+            if (t.deleted) {
+                continue;
+            }
+            ValueKind propValue = null;
+            if (t instanceof TraitSlotConst) {
+                TraitSlotConst tsc = (TraitSlotConst) t;
+                propValue = new ValueKind(tsc.value_index, tsc.value_kind);
+            }
+            if (mapAmbiguous != null) {
+                AmbiguousPropertyDef dp = new AmbiguousPropertyDef(t.getName(abc).getName(new LinkedHashSet<>(), abc, abc.constants, new ArrayList<>() /*?*/, true, false), multinameToType(new LinkedHashSet<>(), name_index, abc, abc.constants));
+                TraitIndex ti = new TraitIndex(t, abc, getTraitReturnType(new LinkedHashSet<>(), abc, t), getTraitCallReturnType(new LinkedHashSet<>(), abc, t), propValue, multinameToType(new LinkedHashSet<>(), name_index, abc, abc.constants), scriptIndex);                
+                if (!mapAmbiguous.containsKey(dp)) {
+                    mapAmbiguous.put(dp, new ArrayList<>());
+                    mapAmbiguous.get(dp).add(ti);
+                } else {
+                    int thisNsKind = t.getName(abc).getNamespace(abc.constants).kind;
+                    boolean onlySameNsKind = true;
+                    for (TraitIndex ti2 : mapAmbiguous.get(dp)) {
+                        int prevNsKind = ti2.trait.getName(ti2.abc).getNamespace(ti2.abc.constants).kind;                                
+                        if (prevNsKind != thisNsKind) {
+                            onlySameNsKind = false;
+                            break;
+                        }
+                    }
+                    if (!onlySameNsKind) {
+                        mapAmbiguous.get(dp).add(ti);
+                    }
+                }
+                
+            }
+            
+            if (map != null) {
+                PropertyDef dp = new PropertyDef(t.getName(abc).getName(new LinkedHashSet<>(), abc, abc.constants, new ArrayList<>() /*?*/, true, false), multinameToType(new LinkedHashSet<>(), name_index, abc, abc.constants), abc, abc.constants.getMultiname(t.name_index).namespace_index);
+                map.put(dp, new TraitIndex(t, abc, getTraitReturnType(new LinkedHashSet<>(), abc, t), getTraitCallReturnType(new LinkedHashSet<>(), abc, t), propValue, multinameToType(new LinkedHashSet<>(), name_index, abc, abc.constants), scriptIndex));
+            }
+            if (mapNs != null) {
+                Multiname m = abc.constants.getMultiname(t.name_index);
+                PropertyNsDef ndp = new PropertyNsDef(t.getName(abc).getName(new LinkedHashSet<>(), abc, abc.constants, new ArrayList<>() /*?*/, true, true/*FIXME ???*/), m == null || m.namespace_index == 0 ? DottedChain.EMPTY : m.getNamespace(abc.constants).getName(abc.constants), abc, m == null ? 0 : m.namespace_index);
+                TraitIndex ti = new TraitIndex(t, abc, getTraitReturnType(new LinkedHashSet<>(), abc, t), getTraitCallReturnType(new LinkedHashSet<>(), abc, t), propValue, multinameToType(new LinkedHashSet<>(), name_index, abc, abc.constants), scriptIndex);
+                if (!mapNs.containsKey(ndp)) {
+                    mapNs.put(ndp, ti);
+                }
+            }
+
+        }        
+    }
+
+    /**
+     * Refreshes selected ABC
+     */
+    public void refreshSelected() {
+        refreshAbc(getSelectedAbc());
+    }
+
+    /**
+     * Refreshes ABC in index
+     * @param abc ABC to refresh
+     */
+    public void refreshAbc(ABC abc) {
+        if (abc == null) {
+            return;
+        }
+        removeAbc(abc);
+        addAbc(abc);
+        rebuildPkgToObjectsNameMap();
+    }
+
+    /**
+     * Removes ABC from index
+     * @param abc ABC to remove
+     */
+    public void removeAbc(ABC abc) {
+        abcs.remove(abc);
+        Set<ClassDef> gti_keys = new HashSet<>(classes.keySet());
+        for (ClassDef key : gti_keys) {
+            if (classes.get(key).abc == abc) {
+                classes.remove(key);
+            }
+        }
+        Set<PropertyDef> pd_keys = new HashSet<>(instanceProperties.keySet());
+
+        for (PropertyDef key : pd_keys) {
+            if (instanceProperties.get(key).abc == abc) {
+                instanceProperties.remove(key);
+            }
+        }
+        pd_keys = new HashSet<>(classProperties.keySet());
+        for (PropertyDef key : pd_keys) {
+            if (classProperties.get(key).abc == abc) {
+                classProperties.remove(key);
+            }
+        }
+
+        Set<PropertyNsDef> pnd_keys = new HashSet<>(scriptProperties.keySet());
+
+        for (PropertyNsDef key : pnd_keys) {
+            if (scriptProperties.get(key).abc == abc) {
+                scriptProperties.remove(key);
+            }
+        }
+
+        pnd_keys = new HashSet<>(classNsProperties.keySet());
+        for (PropertyNsDef key : pnd_keys) {
+            if (classNsProperties.get(key).abc == abc) {
+                classNsProperties.remove(key);
+            }
+        }
+
+        pnd_keys = new HashSet<>(instanceNsProperties.keySet());
+        for (PropertyNsDef key : pnd_keys) {
+            if (instanceNsProperties.get(key).abc == abc) {
+                instanceNsProperties.remove(key);
+            }
+        }
+
+    }
+
+    /**
+     * Adds ABC to index
+     *
+     * @param abc ABC to add
+     */
+    public synchronized void addAbc(ABC abc) {
+        if (abc == null) {
+            return;
+        }
+        List<ClassIndex> addedClasses = new ArrayList<>();
+
+        for (int i = 0; i < abc.script_info.size(); i++) {
+            indexTraits(abc, 0, abc.script_info.get(i).traits, null, scriptProperties, scriptAmbiguousProperties, i);
+            for (int t = 0; t < abc.script_info.get(i).traits.traits.size(); t++) {
+                Trait tr = abc.script_info.get(i).traits.traits.get(t);
+                if (tr.deleted) {
+                    continue;
+                }
+                if (tr instanceof TraitClass) {
+                    TraitClass tc = (TraitClass) tr;
+                    InstanceInfo ii = abc.instance_info.get(tc.class_info);
+                    if (ii.deleted) {
+                        continue;
+                    }
+                    ClassInfo ci = abc.class_info.get(tc.class_info);
+                    int nsKind = abc.constants.getMultiname(tc.name_index).getSimpleNamespaceKind(abc.constants);
+                    Integer classScriptIndex = nsKind == Namespace.KIND_PACKAGE ? null : i;
+                    ClassIndex cindex = new ClassIndex(tc.class_info, abc, null, classScriptIndex);
+                    addedClasses.add(cindex);
+                    GraphTargetItem cname = multinameToType(new LinkedHashSet<>(), ii.name_index, abc, abc.constants);
+                    classes.put(new ClassDef(cname, abc, classScriptIndex), cindex);
+
+                    indexTraits(abc, ii.name_index, ii.instance_traits, instanceProperties, instanceNsProperties, instanceAmbiguousProperties, i);
+                    indexTraits(abc, ii.name_index, ci.static_traits, classProperties, classNsProperties, classAmbiguousProperties, i);
+                }
+            }
+        }
+
+        for (ClassIndex cindex : addedClasses) {
+            int parentClassName = abc.instance_info.get(cindex.index).super_index;
+            if (parentClassName > 0) {
+                TypeItem parentClass = new TypeItem(abc.constants.getMultiname(parentClassName).getNameWithNamespace(new LinkedHashSet<>(), abc, abc.constants, true));
+                ClassIndex parentClassIndex = findClass(parentClass, abc, null);
+                if (parentClassIndex == null) {
+                    //Parent class can be deleted, do not check. TODO: handle this better
+                    //throw new RuntimeException("Parent class " + parentClass + " definition not found!");
+                }
+                cindex.parent = parentClassIndex;
+            }
+        }
+        abcs.add(abc);
+        selectedAbc = abc;
+    }
+
+    /**
+     * Selects ABC for indexing
+     *
+     * @param abc ABC to select
+     */
+    public void selectAbc(ABC abc) {
+        if (abcs.contains(abc)) {
+            selectedAbc = abc;
+        } else {
+            addAbc(abc);
+            rebuildPkgToObjectsNameMap();
+        }
+    }
+
+    /**
+     * Gets selected ABC
+     *
+     * @return Selected ABC
+     */
+    public ABC getSelectedAbc() {
+        return selectedAbc;
+    }
+
+    /**
+     * Converts namespace value to name
+     * @param valueStr Namespace value
+     * @return Namespace name
+     */
+    public DottedChain nsValueToName(String valueStr) {
+        for (ABC abc : abcs) {
+            DottedChain ret = abc.nsValueToName(valueStr);
+            if (!ret.isEmpty()) {
+                return ret;
+            }
+        }
+        if (parent != null) {
+            return parent.nsValueToName(valueStr);
+        }
+        return null;
+    }
+
+    /**
+     * Checks if class is instance of another class
+     * @param abc ABC
+     * @param classIndex Class index
+     * @param searchClassName Class name to search
+     * @return True if class is instance of another class
+     */
+    public boolean isInstanceOf(ABC abc, int classIndex, DottedChain searchClassName) {
+        DottedChain clsName = abc.instance_info.get(classIndex).getName(abc.constants).getNameWithNamespace(new LinkedHashSet<>(), abc, abc.constants, false);
+        if (searchClassName.equals(clsName)) {
+            return true;
+        }
+        if (abc.instance_info.get(classIndex).super_index == 0) {
+            return false;
+        }
+        DottedChain parentClassName = abc.constants.getMultiname(abc.instance_info.get(classIndex).super_index).getNameWithNamespace(new LinkedHashSet<>(), abc, abc.constants, false);
+
+        AbcIndexing.ClassIndex ci = findClass(new TypeItem(parentClassName), abc, null);
+        if (ci == null) {
+            return false;
+        }
+        return isInstanceOf(ci.abc, ci.index, searchClassName);
+    }
+    
+    public Boolean isPropertyAmbiguous(ABC abc, String propertyName, GraphTargetItem parent, boolean findStatic, boolean findInstance) {
+        AmbiguousPropertyDef key = new AmbiguousPropertyDef(propertyName, parent);
+        if (findStatic && classAmbiguousProperties.containsKey(key)) {
+            return classAmbiguousProperties.get(key).size() > 1;
+        }
+        if (findInstance && instanceAmbiguousProperties.containsKey(key)) {
+            return instanceAmbiguousProperties.get(key).size() > 1;
+        }
+        ClassIndex ci = findClass(parent, abc, null);
+        if (ci != null) {
+            if (ci.parent != null) {
+                ci = ci.parent;
+                DottedChain parentClassName = ci.abc.instance_info.get(ci.index).getName(ci.abc.constants).getNameWithNamespace(new HashSet<>(), ci.abc, ci.abc.constants, false);
+                return isPropertyAmbiguous(ci.abc, propertyName, new TypeItem(parentClassName), findStatic, findInstance);
+            }
+        }
+        return null;
+    }
+}
