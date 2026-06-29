@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/ShockwaveFlash.Avm1.svg)](https://www.nuget.org/packages/ShockwaveFlash.Avm1)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/AerafalDev/ShockwaveFlash/blob/main/LICENSE)
 
-AVM1 (ActionScript 1/2 bytecode) support for [**ShockwaveFlash**](https://www.nuget.org/packages/ShockwaveFlash). Disassemble `DoAction` bytecode to a mutable, strongly-typed action tree and assemble it back losslessly; dump it as **p-code** or best-effort **AS2**; and evaluate linear data scripts to a typed value tree you can edit and write back.
+AVM1 (ActionScript 1/2 bytecode) support for [**ShockwaveFlash**](https://www.nuget.org/packages/ShockwaveFlash). Disassemble `DoAction` bytecode to a mutable, strongly-typed action tree and assemble it back losslessly; dump it as **p-code** or best-effort **AS2**; and evaluate linear data scripts to a typed value tree you can edit and write back — or map them to your own records with the bundled source generator.
 
 ## Install
 
@@ -78,6 +78,55 @@ emotes["24"] = new Avm1Object { Members = { ["n"] = "New emote", ["s"] = "new" }
 var output = swf.ReplaceTag(tag, tag.WithGlobals(globals, version)).Assemble();
 File.WriteAllBytes("emotes.swf", output.ToArray());
 ```
+
+## Typed models (source generator)
+
+Instead of walking the value tree by string keys, map a global to your own records. Annotate a
+`partial` type with `[Avm1Object]` and the bundled source generator emits a reflection-free,
+AOT-friendly `ToAvm1Object` / `FromAvm1Object` (no extra package reference required):
+
+```csharp
+using ShockwaveFlash.Avm1.Serialization;
+
+[Avm1Object]
+public partial record Emote(
+    [property: Avm1Property("s")] string Shortcut,
+    [property: Avm1Property("n")] string Name);
+```
+
+`EM` is an object keyed by id, so read it as a map, edit, and write it back:
+
+```csharp
+var globals = tag.Evaluate(version);
+
+Dictionary<string, Emote> emotes = Avm1Convert.ReadMap<Emote>(globals["EM"].AsObject);
+emotes["1"] = emotes["1"] with { Name = "New name" };
+emotes["24"] = new Emote("new", "New emote");
+globals["EM"] = Avm1Convert.WriteMap(emotes);
+
+var output = swf.ReplaceTag(tag, tag.WithGlobals(globals, version)).Assemble();
+```
+
+For a global that is a fixed-shape object, give the type a global name and use `ReadGlobal` /
+`WriteGlobal` (or `TryReadGlobal`):
+
+```csharp
+[Avm1Object("A")]
+public partial record Alignment(
+    [property: Avm1Property("a")] Dictionary<string, AlignmentSide> Sides,
+    [property: Avm1Property("fe")] Dictionary<string, string> FeatEffects);
+
+var alignment = Avm1Convert.ReadGlobal<Alignment>(globals);
+Avm1Convert.WriteGlobal(globals, alignment);
+```
+
+Supported member types: scalars (`string`, `bool`, any numeric — widened to `double` — and `enum`),
+nested `[Avm1Object]` types, collections (`T[]`, `List<T>`, `Dictionary<string, V>`) that nest to any
+depth (`int[][]`, `Dictionary<string, Dictionary<string, int[]>>`, …), and the verbatim escape hatch
+`Avm1Value` / `Avm1Array` / `Avm1Object` for irreducibly heterogeneous fields (unions, tuples).
+Nullable members are optional — a `null` is omitted on write and a missing key reads back as `null`.
+Use `[Avm1Ignore]` to skip a member. Mapping problems are reported as
+[`AVM1xxx` diagnostics](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md).
 
 ## Raw actions
 
