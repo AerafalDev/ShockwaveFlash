@@ -1,7 +1,9 @@
 using ShockwaveFlash;
 using ShockwaveFlash.Avm1;
+using ShockwaveFlash.Avm1.Serialization;
 using ShockwaveFlash.Avm1.Types;
 using ShockwaveFlash.Tests.Models;
+using ShockwaveFlash.Tests.Serialization;
 using ShockwaveFlash.Tags.Action;
 using Shouldly;
 
@@ -61,7 +63,8 @@ public sealed class LangsTypedRoundTripTests
                     if (!IsEmoteShaped(leaf, out var entry))
                         continue;
 
-                    var roundTripped = Emote.FromAvm1Object(entry).ToAvm1Object();
+                    var typeInfo = TestModelsContext.Default.Emote;
+                    var roundTripped = Avm1Serializer.Serialize(Avm1Serializer.Deserialize(entry, typeInfo), typeInfo);
                     Avm1Trees.DeepEquals(entry, roundTripped).ShouldBeTrue($"{Path.GetFileName(path)} / {id}");
                     matched++;
                 }

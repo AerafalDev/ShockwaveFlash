@@ -1,13 +1,14 @@
-using ShockwaveFlash.Avm1.Exceptions;
-using ShockwaveFlash.Avm1.Serialization;
 using ShockwaveFlash.Avm1.Types;
 using ShockwaveFlash.Tests.Models;
+using ShockwaveFlash.Tests.Serialization;
 using Shouldly;
 
 namespace ShockwaveFlash.Tests;
 
 public sealed class Avm1ConvertTests
 {
+    private static readonly TestModelsContext Ctx = TestModelsContext.Default;
+
     private static Player NewPlayer()
     {
         return new Player(
@@ -22,26 +23,19 @@ public sealed class Avm1ConvertTests
     }
 
     [Fact]
-    public void WriteGlobal_then_ReadGlobal_round_trips()
+    public void Write_then_read_round_trips_through_the_binding_path()
     {
         var globals = new Avm1Object();
 
-        Avm1Convert.WriteGlobal(globals, NewPlayer());
+        Ctx.Write(globals, NewPlayer());
 
         globals.Members.ShouldContainKey("player");
-        Avm1Convert.ReadGlobal<Player>(globals).Name.ShouldBe("Kerubim");
+        Ctx.Read<Player>(globals)!.Name.ShouldBe("Kerubim");
     }
 
     [Fact]
-    public void TryReadGlobal_returns_false_when_absent()
+    public void Read_returns_default_when_the_global_is_absent()
     {
-        Avm1Convert.TryReadGlobal<Player>(new Avm1Object(), out var player).ShouldBeFalse();
-        player.ShouldBeNull();
-    }
-
-    [Fact]
-    public void ReadGlobal_throws_when_global_is_missing()
-    {
-        Should.Throw<Avm1SerializationException>(() => Avm1Convert.ReadGlobal<Player>(new Avm1Object()));
+        Ctx.Read<Player>(new Avm1Object()).ShouldBeNull();
     }
 }

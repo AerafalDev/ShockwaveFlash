@@ -16,22 +16,6 @@ public sealed class Avm1SerializableGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var results = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                Avm1ObjectAttributeName,
-                predicate: static (node, _) => node is ClassDeclarationSyntax or RecordDeclarationSyntax or StructDeclarationSyntax,
-                transform: static (ctx, ct) => Avm1Parser.Parse(ctx, ct))
-            .WithTrackingName(TrackingNames.Parse);
-
-        context.RegisterSourceOutput(results, static (productionContext, result) =>
-        {
-            foreach (var diagnostic in result.Diagnostics)
-                productionContext.ReportDiagnostic(diagnostic.ToDiagnostic());
-
-            if (result.Model is { } model)
-                productionContext.AddSource(model.HintName, SourceText.From(Avm1SerializableEmitter.Emit(model), Encoding.UTF8));
-        });
-
         var contexts = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 Avm1SerializableAttributeName,

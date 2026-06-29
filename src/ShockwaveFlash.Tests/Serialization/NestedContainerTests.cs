@@ -1,5 +1,7 @@
+using ShockwaveFlash.Avm1.Serialization;
 using ShockwaveFlash.Avm1.Types;
 using ShockwaveFlash.Tests.Models;
+using ShockwaveFlash.Tests.Serialization;
 using Shouldly;
 
 namespace ShockwaveFlash.Tests;
@@ -22,13 +24,14 @@ public sealed class NestedContainerTests
             raw,
             null);
 
-        var obj = model.ToAvm1Object();
+        var typeInfo = TestModelsContext.Default.Nested;
+        var obj = Avm1Serializer.Serialize(model, typeInfo).AsObject;
 
         obj.Members.ShouldNotContainKey("opt");
 
-        var back = Nested.FromAvm1Object(obj);
+        var back = Avm1Serializer.Deserialize(obj, typeInfo);
 
-        Avm1Trees.DeepEquals(obj, back.ToAvm1Object()).ShouldBeTrue();
+        Avm1Trees.DeepEquals(obj, Avm1Serializer.Serialize(back, typeInfo)).ShouldBeTrue();
         back.Flags["a"].ShouldBe(new[] { true, false });
         back.Grid[0].ShouldBe(new[] { 1, 2 });
         back.Grid[1].ShouldBe(new[] { 3 });

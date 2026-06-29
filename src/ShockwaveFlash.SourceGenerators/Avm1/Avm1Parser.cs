@@ -13,17 +13,6 @@ namespace ShockwaveFlash.SourceGenerators.Avm1;
 
 internal static class Avm1Parser
 {
-    public static Avm1ParseResult Parse(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
-    {
-        var diagnostics = new List<DiagnosticInfo>();
-        var symbol = (INamedTypeSymbol)context.TargetSymbol;
-        var node = (TypeDeclarationSyntax)context.TargetNode;
-        var location = node.Identifier.GetLocation();
-
-        var model = BuildTypeModel(symbol, location, cancellationToken, diagnostics, requirePartial: true);
-        return new Avm1ParseResult(model, ToArray(diagnostics));
-    }
-
     internal static Avm1TypeModel? BuildTypeModel(INamedTypeSymbol symbol, Location location, CancellationToken cancellationToken, List<DiagnosticInfo> diagnostics, bool requirePartial)
     {
         if (symbol.IsGenericType || symbol.IsStatic || symbol.IsRefLikeType)

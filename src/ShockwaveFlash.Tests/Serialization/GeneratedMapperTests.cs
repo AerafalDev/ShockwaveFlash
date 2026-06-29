@@ -1,10 +1,14 @@
+using ShockwaveFlash.Avm1.Serialization;
 using ShockwaveFlash.Tests.Models;
+using ShockwaveFlash.Tests.Serialization;
 using Shouldly;
 
 namespace ShockwaveFlash.Tests;
 
 public sealed class GeneratedMapperTests
 {
+    private static readonly TestModelsContext Ctx = TestModelsContext.Default;
+
     private static Player NewPlayer()
     {
         return new Player(
@@ -19,9 +23,9 @@ public sealed class GeneratedMapperTests
     }
 
     [Fact]
-    public void ToAvm1Object_writes_the_expected_tree()
+    public void Serialize_writes_the_expected_tree()
     {
-        var obj = NewPlayer().ToAvm1Object();
+        var obj = Avm1Serializer.Serialize(NewPlayer(), Ctx.Player).AsObject;
 
         obj["name"].AsString.ShouldBe("Kerubim");
         obj["score"].AsNumber.ShouldBe(42d);
@@ -36,9 +40,9 @@ public sealed class GeneratedMapperTests
     }
 
     [Fact]
-    public void FromAvm1Object_reconstructs_all_members()
+    public void Deserialize_reconstructs_all_members()
     {
-        var back = Player.FromAvm1Object(NewPlayer().ToAvm1Object());
+        var back = Avm1Serializer.Deserialize(Avm1Serializer.Serialize(NewPlayer(), Ctx.Player), Ctx.Player);
 
         back.Name.ShouldBe("Kerubim");
         back.Score.ShouldBe(42);
@@ -54,8 +58,8 @@ public sealed class GeneratedMapperTests
     [Fact]
     public void Round_trip_is_stable()
     {
-        var first = NewPlayer().ToAvm1Object();
-        var second = Player.FromAvm1Object(first).ToAvm1Object();
+        var first = Avm1Serializer.Serialize(NewPlayer(), Ctx.Player);
+        var second = Avm1Serializer.Serialize(Avm1Serializer.Deserialize(first, Ctx.Player), Ctx.Player);
 
         Avm1Trees.DeepEquals(first, second).ShouldBeTrue();
     }
@@ -64,16 +68,16 @@ public sealed class GeneratedMapperTests
     public void Null_nullable_member_is_omitted()
     {
         var player = NewPlayer() with { Sidearm = null };
-        var obj = player.ToAvm1Object();
+        var obj = Avm1Serializer.Serialize(player, Ctx.Player).AsObject;
 
         obj.Members.ShouldNotContainKey("Sidearm");
-        Player.FromAvm1Object(obj).Sidearm.ShouldBeNull();
+        Avm1Serializer.Deserialize(obj, Ctx.Player).Sidearm.ShouldBeNull();
     }
 
     [Fact]
-    public void GlobalName_comes_from_the_attribute()
+    public void Binding_path_comes_from_the_attribute()
     {
-        Player.Avm1GlobalName.ShouldBe("player");
-        Weapon.Avm1GlobalName.ShouldBeNull();
+        Ctx.Player.BindingPath.ShouldBe(["player"]);
+        (Ctx.Weapon.BindingPath ?? []).ShouldBeEmpty();
     }
 }

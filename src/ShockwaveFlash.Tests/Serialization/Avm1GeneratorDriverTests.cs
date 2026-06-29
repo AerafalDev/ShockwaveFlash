@@ -10,87 +10,17 @@ namespace ShockwaveFlash.Tests;
 
 public sealed class Avm1GeneratorDriverTests
 {
-    private const string ValidSource = """
-        using ShockwaveFlash.Avm1.Serialization;
-
-        namespace Demo;
-
-        [Avm1Object("d")]
-        public partial record Item([property: Avm1Property("n")] string Name, int Count);
-        """;
-
     private const string ContextSource = """
         using ShockwaveFlash.Avm1.Serialization;
         using ShockwaveFlash.Avm1.Serialization.Metadata;
 
         namespace Demo;
 
-        [Avm1Object]
         public partial record Item([property: Avm1Property("n")] string Name, int Count);
 
         [Avm1Serializable(typeof(Item), "it")]
         public partial class DemoContext : Avm1SerializerContext;
         """;
-
-    [Fact]
-    public void Generates_a_serializer_for_a_valid_type()
-    {
-        var (result, diagnostics) = Run(ValidSource);
-
-        diagnostics.ShouldBeEmpty();
-
-        var generated = result.GeneratedSources.Single(s => s.HintName.EndsWith(".Avm1.g.cs", StringComparison.Ordinal));
-        var text = generated.SourceText.ToString();
-
-        text.ShouldContain("ToAvm1Object()");
-        text.ShouldContain("FromAvm1Object(");
-        text.ShouldContain("Avm1GlobalName");
-    }
-
-    [Fact]
-    public void Reports_AVM1001_for_a_non_partial_type()
-    {
-        var (_, diagnostics) = Run("""
-            using ShockwaveFlash.Avm1.Serialization;
-            [Avm1Object]
-            public record NotPartial(string Name);
-            """);
-
-        diagnostics.Select(d => d.Id).ShouldContain("AVM1001");
-    }
-
-    [Fact]
-    public void Reports_AVM1002_for_an_unsupported_member()
-    {
-        var (_, diagnostics) = Run("""
-            using ShockwaveFlash.Avm1.Serialization;
-            [Avm1Object]
-            public partial record Bag(object Payload);
-            """);
-
-        diagnostics.Select(d => d.Id).ShouldContain("AVM1002");
-    }
-
-    [Fact]
-    public void Pipeline_output_is_cached_on_an_unrelated_edit()
-    {
-        var compilation = Compile(ValidSource);
-
-        GeneratorDriver driver = CSharpGeneratorDriver.Create(
-            [new Avm1SerializableGenerator().AsSourceGenerator()],
-            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
-
-        driver = driver.RunGenerators(compilation);
-
-        var edited = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace Other { class Extra { } }"));
-        driver = driver.RunGenerators(edited);
-
-        var tracked = driver.GetRunResult().Results[0].TrackedSteps;
-        tracked.ShouldContainKey("Avm1Parse");
-        tracked["Avm1Parse"]
-            .SelectMany(step => step.Outputs)
-            .ShouldAllBe(output => output.Reason == IncrementalStepRunReason.Cached || output.Reason == IncrementalStepRunReason.Unchanged);
-    }
 
     [Fact]
     public void Generates_a_serializer_context_for_a_registered_type()
@@ -110,13 +40,48 @@ public sealed class Avm1GeneratorDriverTests
     }
 
     [Fact]
+    public void Reports_AVM1003_for_a_type_without_a_usable_constructor()
+    {
+        var (_, diagnostics) = Run("""
+            using ShockwaveFlash.Avm1.Serialization;
+            using ShockwaveFlash.Avm1.Serialization.Metadata;
+
+            public partial class Ambiguous
+            {
+                public Ambiguous(int a) { }
+                public Ambiguous(string b) { }
+            }
+
+            [Avm1Serializable(typeof(Ambiguous))]
+            public partial class C : Avm1SerializerContext;
+            """);
+
+        diagnostics.Select(d => d.Id).ShouldContain("AVM1003");
+    }
+
+    [Fact]
+    public void Reports_AVM1004_for_a_duplicate_member_key()
+    {
+        var (_, diagnostics) = Run("""
+            using ShockwaveFlash.Avm1.Serialization;
+            using ShockwaveFlash.Avm1.Serialization.Metadata;
+
+            public partial record Dup([property: Avm1Property("k")] int A, [property: Avm1Property("k")] int B);
+
+            [Avm1Serializable(typeof(Dup))]
+            public partial class C : Avm1SerializerContext;
+            """);
+
+        diagnostics.Select(d => d.Id).ShouldContain("AVM1004");
+    }
+
+    [Fact]
     public void Reports_AVM1007_for_a_non_partial_context()
     {
         var (_, diagnostics) = Run("""
             using ShockwaveFlash.Avm1.Serialization;
             using ShockwaveFlash.Avm1.Serialization.Metadata;
 
-            [Avm1Object]
             public partial record Item(string Name);
 
             [Avm1Serializable(typeof(Item))]
@@ -158,7 +123,7 @@ public sealed class Avm1GeneratorDriverTests
     {
         var references = new List<MetadataReference>(Net100.References.All)
         {
-            MetadataReference.CreateFromFile(typeof(Avm1ObjectAttribute).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Avm1SerializableAttribute).Assembly.Location),
         };
 
         return CSharpCompilation.Create(
