@@ -8,4 +8,5 @@ internal readonly record struct Avm1MemberModel(
     bool MemberNullable,
     bool ThrowIfMissing,
     bool IsConstructorParameter,
-    bool IsSettable);
+    bool IsSettable,
+    string? ConverterTypeFqn);

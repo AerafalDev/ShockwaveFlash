@@ -16,6 +16,10 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
         info.Kind = KindOf(converter);
         info.Options = options;
 
+        var globalName = type.GetCustomAttribute<Avm1ObjectAttribute>()?.GlobalName;
+        if (!string.IsNullOrEmpty(globalName))
+            info.BindingPath = globalName!.Split('.');
+
         if (info.Kind is Avm1TypeInfoKind.Object)
             info.SetPopulate(target => Populate(target, type, options));
 

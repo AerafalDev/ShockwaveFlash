@@ -162,6 +162,8 @@ internal static class Avm1ContextEmitter
         builder.AppendIndentedLine($"MemberType = typeof({member.DeclaredType}),");
         builder.AppendIndentedLine($"Getter = static __obj => (({type})__obj).{member.CSharpName},");
 
+        if (member.ConverterTypeFqn is not null)
+            builder.AppendIndentedLine($"ConverterType = typeof({member.ConverterTypeFqn}),");
         if (member.MemberNullable)
             builder.AppendIndentedLine("Nullable = true,");
         if (member.ThrowIfMissing)

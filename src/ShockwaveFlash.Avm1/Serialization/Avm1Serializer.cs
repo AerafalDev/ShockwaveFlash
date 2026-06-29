@@ -37,4 +37,22 @@ public static class Avm1Serializer
         options ??= Avm1SerializerOptions.Default;
         return (T)options.GetConverter(typeof(T)).ReadBoxed(value, options)!;
     }
+
+    [RequiresUnreferencedCode("AVM1 reflection serialization may require types that cannot be statically analyzed.")]
+    [RequiresDynamicCode("AVM1 reflection serialization may construct converters at runtime.")]
+    public static T? ReadGlobal<T>(Avm1Object globals, Avm1SerializerOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(globals);
+        options ??= Avm1SerializerOptions.Default;
+        return Avm1GlobalBinding.Read(globals, (Avm1TypeInfo<T>)options.GetTypeInfo(typeof(T)));
+    }
+
+    [RequiresUnreferencedCode("AVM1 reflection serialization may require types that cannot be statically analyzed.")]
+    [RequiresDynamicCode("AVM1 reflection serialization may construct converters at runtime.")]
+    public static void WriteGlobal<T>(Avm1Object globals, T value, Avm1SerializerOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(globals);
+        options ??= Avm1SerializerOptions.Default;
+        Avm1GlobalBinding.Write(globals, value, (Avm1TypeInfo<T>)options.GetTypeInfo(typeof(T)));
+    }
 }

@@ -80,12 +80,21 @@ internal static class Avm1Parser
 
             keyOwners[key] = name;
 
+            var converterTypeFqn = GetConverterTypeFqn(member);
+            if (converterTypeFqn is not null)
+                classified = classified with
+                {
+                    ThrowIfMissing = !classified.MemberNullable,
+                    Value = classified.Value with { Kind = ValueKind.Passthrough, IsValueType = false },
+                };
+
             members.Add(classified with
             {
                 CSharpName = name,
                 Avm1Key = key,
                 IsConstructorParameter = isConstructorParameter,
                 IsSettable = isSettable,
+                ConverterTypeFqn = converterTypeFqn,
             });
         }
 
@@ -255,7 +264,7 @@ internal static class Avm1Parser
             _ => false,
         };
 
-        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false);
+        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false, null);
         return true;
     }
 
@@ -301,12 +310,6 @@ internal static class Avm1Parser
             return true;
         }
 
-        if (HasAttribute(core, Avm1SerializableGenerator.Avm1ObjectAttributeName))
-        {
-            spec = new ValueSpec(ValueKind.Nested, default, fqn, false, null);
-            return true;
-        }
-
         if (core is IArrayTypeSymbol { Rank: 1 } array && TryBuildValueSpec(array.ElementType, out var arrayElement))
         {
             spec = new ValueSpec(ValueKind.Array, default, arrayElement.TypeFqn, false, arrayElement);
@@ -322,6 +325,12 @@ internal static class Avm1Parser
         if (core is INamedTypeSymbol enumerable && TryGetEnumerableElement(enumerable, out var elementType) && TryBuildValueSpec(elementType, out var listElement))
         {
             spec = new ValueSpec(ValueKind.List, default, listElement.TypeFqn, false, listElement);
+            return true;
+        }
+
+        if (core is INamedTypeSymbol)
+        {
+            spec = new ValueSpec(ValueKind.Nested, default, fqn, false, null);
             return true;
         }
 
@@ -420,6 +429,14 @@ internal static class Avm1Parser
     {
         var attribute = symbol.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is Avm1SerializableGenerator.Avm1ObjectAttributeName);
         return attribute is { ConstructorArguments.Length: > 0 } ? attribute.ConstructorArguments[0].Value as string : null;
+    }
+
+    private static string? GetConverterTypeFqn(ISymbol member)
+    {
+        var attribute = member.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is Avm1SerializableGenerator.Avm1ConverterAttributeName);
+        return attribute is { ConstructorArguments.Length: > 0 } && attribute.ConstructorArguments[0].Value is INamedTypeSymbol converterType
+            ? converterType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            : null;
     }
 
     private static bool IsAccessible(Accessibility? accessibility)

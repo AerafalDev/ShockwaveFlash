@@ -27,48 +27,13 @@ public abstract class Avm1SerializerContext : IAvm1TypeInfoResolver
     public T? Read<T>(Avm1Object source)
     {
         ArgumentNullException.ThrowIfNull(source);
-
-        var info = GetTypeInfo<T>();
-        Avm1Value current = source;
-
-        if (info.BindingPath is { } path)
-            foreach (var segment in path)
-            {
-                if (current is not Avm1Object table || !table.Members.TryGetValue(segment, out var next))
-                    return default;
-
-                current = next;
-            }
-
-        return Avm1Serializer.Deserialize(current, info);
+        return Avm1GlobalBinding.Read(source, GetTypeInfo<T>());
     }
 
     public void Write<T>(Avm1Object destination, T value)
     {
         ArgumentNullException.ThrowIfNull(destination);
-
-        var info = GetTypeInfo<T>();
-        var serialized = Avm1Serializer.Serialize(value, info);
-
-        if (info.BindingPath is not { Length: > 0 } path)
-            throw new Avm1SerializationException($"Type '{typeof(T)}' has no binding path to write into a globals object.");
-
-        var current = destination;
-        for (var i = 0; i < path.Length - 1; i++)
-        {
-            if (current.Members.TryGetValue(path[i], out var next) && next is Avm1Object child)
-            {
-                current = child;
-            }
-            else
-            {
-                child = new Avm1Object();
-                current.Members[path[i]] = child;
-                current = child;
-            }
-        }
-
-        current.Members[path[^1]] = serialized;
+        Avm1GlobalBinding.Write(destination, value, GetTypeInfo<T>());
     }
 
     Avm1TypeInfo? IAvm1TypeInfoResolver.GetTypeInfo(Type type, Avm1SerializerOptions options)
