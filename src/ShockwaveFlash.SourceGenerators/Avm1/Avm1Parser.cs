@@ -48,7 +48,7 @@ internal static class Avm1Parser
             var isConstructorParameter = construction == ConstructionKind.Constructor
                 && parameterNames.Any(p => string.Equals(p, name, StringComparison.OrdinalIgnoreCase));
 
-            if (!isConstructorParameter && !isSettable)
+            if (!isConstructorParameter && !isSettable && !HasAttribute(member, Avm1SerializableGenerator.Avm1IncludeAttributeName))
                 continue;
 
             var explicitKey = GetPropertyKey(member);

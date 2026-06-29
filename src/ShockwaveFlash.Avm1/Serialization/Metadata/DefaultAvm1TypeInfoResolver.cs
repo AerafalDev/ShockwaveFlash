@@ -81,7 +81,7 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
             var isConstructorParameter = constructor is not null
                 && parameterNames.Any(p => string.Equals(p, memberName, StringComparison.OrdinalIgnoreCase));
 
-            if (!isConstructorParameter && !settable)
+            if (!isConstructorParameter && !settable && member.GetCustomAttribute<Avm1IncludeAttribute>() is null)
                 continue;
 
             var explicitKey = member.GetCustomAttribute<Avm1PropertyAttribute>()?.Key;
