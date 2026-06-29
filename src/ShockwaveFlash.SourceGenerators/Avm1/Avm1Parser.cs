@@ -362,7 +362,7 @@ internal static class Avm1Parser
     }
 
 
-    private static bool TryGetDictionaryValue(INamedTypeSymbol type, out ITypeSymbol value)
+    internal static bool TryGetDictionaryValue(INamedTypeSymbol type, out ITypeSymbol value)
     {
         if (MatchDictionary(type, out value))
             return true;
@@ -392,7 +392,7 @@ internal static class Avm1Parser
         return false;
     }
 
-    private static bool TryGetEnumerableElement(INamedTypeSymbol type, out ITypeSymbol element)
+    internal static bool TryGetEnumerableElement(INamedTypeSymbol type, out ITypeSymbol element)
     {
         if (MatchEnumerable(type, out element))
             return true;
@@ -405,6 +405,15 @@ internal static class Avm1Parser
 
         element = null!;
         return false;
+    }
+
+    internal static bool IsLeaf(ITypeSymbol type)
+    {
+        if (type.SpecialType is SpecialType.System_String or SpecialType.System_Boolean || IsNumeric(type.SpecialType) || type.TypeKind == TypeKind.Enum)
+            return true;
+
+        return type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString()
+            is "ShockwaveFlash.Avm1.Types.Avm1Value" or "ShockwaveFlash.Avm1.Types.Avm1Object" or "ShockwaveFlash.Avm1.Types.Avm1Array";
     }
 
     private static bool MatchEnumerable(INamedTypeSymbol candidate, out ITypeSymbol element)
@@ -421,7 +430,7 @@ internal static class Avm1Parser
         return false;
     }
 
-    private static bool HasAttribute(ISymbol symbol, string metadataName)
+    internal static bool HasAttribute(ISymbol symbol, string metadataName)
     {
         return symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == metadataName);
     }
