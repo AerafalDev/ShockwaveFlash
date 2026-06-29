@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace ShockwaveFlash.Tests;
 
-public sealed class Avm1ConvertTests
+public sealed class Avm1GlobalBindingTests
 {
     private static readonly TestModelsContext Ctx = TestModelsContext.Default;
 
