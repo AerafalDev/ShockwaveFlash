@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Provider } from '@/components/provider';
 import './global.css';
@@ -5,6 +6,15 @@ import './global.css';
 const inter = Inter({
   subsets: ['latin'],
 });
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://aerafaldev.github.io/ShockwaveFlash'),
+  title: {
+    default: 'ShockwaveFlash',
+    template: '%s · ShockwaveFlash',
+  },
+  description: 'Read, edit, write and render SWF (Shockwave Flash) files in pure .NET 10.',
+};
 
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
