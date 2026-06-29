@@ -4,12 +4,15 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <RunAnalyzers>false</RunAnalyzers>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="CsCheck" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
@@ -21,6 +24,11 @@
     <ProjectReference Include="..\ShockwaveFlash\ShockwaveFlash.csproj" />
     <ProjectReference Include="..\ShockwaveFlash.Avm1\ShockwaveFlash.Avm1.csproj" />
     <ProjectReference Include="..\ShockwaveFlash.Rendering\ShockwaveFlash.Rendering.csproj" />
+    <ProjectReference Include="..\ShockwaveFlash.SourceGenerators\ShockwaveFlash.SourceGenerators.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Analyzer Include="..\ShockwaveFlash.SourceGenerators\bin\$(Configuration)\netstandard2.0\ShockwaveFlash.SourceGenerators.dll" />
   </ItemGroup>
 
   <ItemGroup>
