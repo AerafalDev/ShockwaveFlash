@@ -1,0 +1,244 @@
+---
+title: "Rendering to images & SVG"
+description: "Render SWF movies, sprites, and characters to PNG, JPEG, WebP, animated GIF, PDF, and SVG using SkiaDrawer and SvgDrawer."
+---
+
+## Overview
+
+Rendering is a two-step pipeline. First you build a `SwfRenderer` over a parsed `ShockwaveFlashFile` and ask it for an `IDrawable` — the whole movie, a single character, or a sprite. Then you hand that `IDrawable` to one of the static encoder methods on `SkiaDrawer` (raster + PDF) or `SvgDrawer` (vector SVG).
+
+Every encoder takes an `IDrawable` plus format-specific options, and either returns a `byte[]` (Skia) or a `string` (SVG). None of them mutate the drawable, so the same drawable can be encoded to several formats.
+
+## Getting a drawable
+
+`SwfRenderer` is constructed from a parsed file and an optional `RenderOptions`:
+
+```csharp
+using ShockwaveFlash;
+using ShockwaveFlash.Rendering;
+
+var bytes = File.ReadAllBytes("movie.swf");
+var file = ShockwaveFlashFile.Disassemble(bytes);
+
+var renderer = new SwfRenderer(file);
+```
+
+From the renderer you obtain an `IDrawable` in one of three ways:
+
+```csharp
+// The whole stage / timeline (paints the SetBackgroundColor if present).
+MovieDefinition movie = renderer.Movie();
+
+// A specific character by id (shape, sprite, text, button, morph, or image).
+IDrawable character = renderer.Character(characterId);
+
+// A sprite by id (returns null if the id is not a DefineSprite).
+SpriteDefinition? sprite = renderer.Sprite(spriteId);
+```
+
+Every `IDrawable` exposes the geometry the encoders need:
+
+```csharp
+public interface IDrawable
+{
+    Rectangle Bounds { get; }
+    int FrameCount(bool recursive = false);
+    IDrawer Draw(IDrawer drawer, int frame = 0);
+    IDrawable TransformColors(ColorTransform colorTransform);
+}
+```
+
+The encoders read `Bounds` to size the output and call `Draw` for the requested `frame`.
+
+## Coordinates, scale, and background
+
+SWF geometry is measured in twips (1 px = 20 twips). All Skia encoders convert `Bounds.Width / 20` and `Bounds.Height / 20` to pixels and then multiply by `scale`. The output is at least 1x1:
+
+```text
+width  = max(1, ceil(Bounds.Width  / 20 * scale))
+height = max(1, ceil(Bounds.Height / 20 * scale))
+```
+
+So `scale = 1f` renders at native pixel size, `scale = 2f` doubles each dimension, and `scale = 0.5f` halves it.
+
+The `SKColor? background` argument fills the canvas before drawing. Passing `null` (the default) clears to `SKColors.Transparent` — useful for PNG/WebP/SVG that support alpha, but JPEG has no alpha so you usually want to pass an opaque color there.
+
+```csharp
+using SkiaSharp;
+
+var white = new SKColor(0xFF, 0xFF, 0xFF, 0xFF);
+```
+
+## PNG
+
+`RenderToPng` always encodes at quality 100 internally, so it only exposes `scale`, `background`, and `frame`:
+
+```csharp
+public static byte[] RenderToPng(
+    IDrawable drawable,
+    float scale = 1f,
+    SKColor? background = null,
+    int frame = 0)
+```
+
+Example — render the movie's first frame at 2x onto a white background:
+
+```csharp
+var renderer = new SwfRenderer(file);
+IDrawable movie = renderer.Movie();
+
+byte[] png = SkiaDrawer.RenderToPng(movie, scale: 2f, background: white);
+File.WriteAllBytes("movie.png", png);
+```
+
+Leave `background` unset to keep transparency:
+
+```csharp
+byte[] transparent = SkiaDrawer.RenderToPng(renderer.Character(42));
+```
+
+## JPEG
+
+JPEG adds a `quality` parameter (0–100, default 90). Because JPEG cannot store alpha, supply an opaque `background`:
+
+```csharp
+public static byte[] RenderToJpeg(
+    IDrawable drawable,
+    int quality = 90,
+    float scale = 1f,
+    SKColor? background = null,
+    int frame = 0)
+```
+
+```csharp
+byte[] jpeg = SkiaDrawer.RenderToJpeg(movie, quality: 85, scale: 1f, background: white);
+File.WriteAllBytes("movie.jpg", jpeg);
+```
+
+## WebP
+
+WebP has the same shape as JPEG — a `quality` (default 90) plus `scale`, `background`, and `frame`:
+
+```csharp
+public static byte[] RenderToWebp(
+    IDrawable drawable,
+    int quality = 90,
+    float scale = 1f,
+    SKColor? background = null,
+    int frame = 0)
+```
+
+```csharp
+byte[] webp = SkiaDrawer.RenderToWebp(movie, quality: 90, scale: 1f, background: white);
+File.WriteAllBytes("movie.webp", webp);
+```
+
+WebP supports alpha, so omitting `background` produces a transparent image.
+
+> All three raster encoders throw `RenderingException` if the native Skia build cannot encode that format (for example a Skia build compiled without WebP support).
+
+## Animated GIF
+
+`RenderToAnimatedGif` walks every frame of the drawable for you, so there is **no** `frame` parameter. Instead it takes `delayMilliseconds` (per-frame delay, default 60):
+
+```csharp
+public static byte[] RenderToAnimatedGif(
+    IDrawable drawable,
+    int delayMilliseconds = 60,
+    float scale = 1f,
+    SKColor? background = null)
+```
+
+Internally it determines the frame count with `drawable.FrameCount(recursive: true)` (at least 1), renders each frame in turn, and encodes them into a single GIF. The delay is converted to GIF centiseconds as `max(1, delayMilliseconds / 10)`, so values are effectively rounded down to the nearest 10 ms (and never below 10 ms).
+
+Animated sprites are the natural input. Pick a `DefineSprite` with more than one frame and encode it:
+
+```csharp
+using ShockwaveFlash.Tags.Sprite;
+
+var spriteTag = file.Tags.OfType<DefineSpriteTag>()
+    .First(tag => tag.NumFrames > 1);
+
+SpriteDefinition sprite = new SwfRenderer(file).Sprite(spriteTag.Id)!;
+
+byte[] gif = SkiaDrawer.RenderToAnimatedGif(
+    sprite,
+    delayMilliseconds: 80,
+    scale: 1f,
+    background: white);
+
+File.WriteAllBytes("sprite.gif", gif);
+```
+
+The number of image frames written equals `sprite.FrameCount()` for that drawable.
+
+## PDF
+
+`RenderToPdf` renders a single frame onto one PDF page sized in points from the (scaled) bounds:
+
+```csharp
+public static byte[] RenderToPdf(
+    IDrawable drawable,
+    float scale = 1f,
+    SKColor? background = null,
+    int frame = 0)
+```
+
+The page width/height use `max(1f, Bounds.Width / 20 * scale)` (and likewise for height), drawing onto a Skia `SKDocument` PDF canvas:
+
+```csharp
+byte[] pdf = SkiaDrawer.RenderToPdf(movie, scale: 1f, background: white, frame: 0);
+File.WriteAllBytes("movie.pdf", pdf);
+```
+
+The result begins with the `%PDF` magic bytes.
+
+## SVG
+
+Vector output lives on `SvgDrawer` and returns a `string`. It only takes a `frame` (default 0) — there is no `scale`, `quality`, or `background`, because the SVG carries the native bounds as its `viewBox` and consumers scale it themselves:
+
+```csharp
+public static string RenderToSvg(IDrawable drawable, int frame = 0)
+```
+
+```csharp
+using ShockwaveFlash.Rendering.Drawing.Svg;
+
+string svg = SvgDrawer.RenderToSvg(renderer.Movie());
+File.WriteAllText("movie.svg", svg);
+```
+
+The emitted document opens with `<svg xmlns="http://www.w3.org/2000/svg" ...>` and sets `width`, `height`, and `viewBox` from the drawable's `Bounds` (converted from twips to pixels). Solid fills, linear/radial gradients, bitmap patterns, clip paths, blend modes, and filters (blur, glow, drop shadow, color matrix) are all translated to native SVG constructs.
+
+To render a specific character to SVG, resolve it first and pass the frame you want:
+
+```csharp
+string characterSvg = SvgDrawer.RenderToSvg(renderer.Character(characterId), frame: 0);
+```
+
+## Walking frames manually
+
+For the raster and PDF encoders (which take a single `frame`), you can loop over `FrameCount()` yourself to produce one file per frame:
+
+```csharp
+IDrawable movie = renderer.Movie();
+
+for (var frame = 0; frame < movie.FrameCount(); frame++)
+{
+    byte[] png = SkiaDrawer.RenderToPng(movie, scale: 1f, background: white, frame: frame);
+    File.WriteAllBytes($"frame-{frame:D4}.png", png);
+}
+```
+
+Pass `recursive: true` to `FrameCount` to include the frames of nested sprites when deciding how many top-level frames to walk — this is exactly what `RenderToAnimatedGif` does internally.
+
+## Choosing an encoder
+
+| Format | Method | Animated | Quality knob | Alpha | Scale |
+| --- | --- | --- | --- | --- | --- |
+| PNG | `SkiaDrawer.RenderToPng` | no (single `frame`) | none (always 100) | yes | `scale` |
+| JPEG | `SkiaDrawer.RenderToJpeg` | no (single `frame`) | `quality` (0–100) | no | `scale` |
+| WebP | `SkiaDrawer.RenderToWebp` | no (single `frame`) | `quality` (0–100) | yes | `scale` |
+| Animated GIF | `SkiaDrawer.RenderToAnimatedGif` | yes (all frames) | none | palette + transparency | `scale` |
+| PDF | `SkiaDrawer.RenderToPdf` | no (single `frame`) | none | via `background` | `scale` |
+| SVG | `SvgDrawer.RenderToSvg` | no (single `frame`) | n/a (vector) | yes | n/a (`viewBox`) |

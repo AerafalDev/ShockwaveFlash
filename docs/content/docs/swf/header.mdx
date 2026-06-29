@@ -1,0 +1,170 @@
+---
+title: "Header & wire model"
+description: "The SWF file header, fixed-point value types (Fixed8 8.8 and Fixed16 16.16), the frame rectangle in twips, and the FWS/CWS/ZWS compression formats."
+---
+
+## Overview
+
+Every SWF stream begins with an 8-byte fixed header followed by a variable header that lives inside the (possibly compressed) body. The library models the parsed result with `ShockwaveFlashHeader`, a `readonly record struct` in the `ShockwaveFlash` namespace:
+
+```csharp
+public readonly record struct ShockwaveFlashHeader(
+    ShockwaveFlashCompression Compression,
+    byte Version,
+    int FileLength,
+    Rectangle FrameSize,
+    Fixed8 FrameRate,
+    ushort FrameCount)
+```
+
+The field names are exactly `Compression`, `Version`, `FileLength`, `FrameSize`, `FrameRate`, and `FrameCount` — there is no separate `FrameSize` or `FrameRate` type; those concepts are carried by `Rectangle` and `Fixed8` respectively.
+
+The header is reached through `ShockwaveFlashFile.Header`:
+
+```csharp
+var file = ShockwaveFlashFile.Disassemble(bytes);
+ShockwaveFlashHeader header = file.Header;
+```
+
+## Wire layout
+
+`ShockwaveFlashFile.Disassemble` reads the fixed 8-byte prefix from the raw stream before any decompression:
+
+1. One signature byte — `'F'`, `'C'`, or `'Z'` — which is the `ShockwaveFlashCompression` value.
+2. Two bytes that must be `'W'` and `'S'`.
+3. One byte `Version`.
+4. A little-endian `Int32` `FileLength` (the total uncompressed file length, including the 8-byte prefix).
+
+The constant `ShockwaveFlashFile.HeaderSize` is `8`. The body that follows is decompressed to `fileLength - 8` bytes, and the variable header (`FrameSize`, `FrameRate`, `FrameCount`) is decoded from that decompressed body by `ShockwaveFlashHeader.Decode`:
+
+```csharp
+var frameSize = Rectangle.Decode(reader);
+var frameRate = reader.ReadFixed8();
+var frameCount = reader.ReadUInt16();
+```
+
+Invalid signatures raise `SwfFormatException` (e.g. a signature byte that is not `'F'`/`'C'`/`'Z'`, or missing `'WS'`).
+
+## Compression formats
+
+`ShockwaveFlashCompression` is a `byte`-backed enum whose values are the literal ASCII signature bytes:
+
+```csharp
+public enum ShockwaveFlashCompression : byte
+{
+    None = (byte)'F', // FWS - uncompressed
+    ZLib = (byte)'C', // CWS - zlib-compressed body
+    Lzma = (byte)'Z'  // ZWS - LZMA-compressed body
+}
+```
+
+| Enum value | Signature | Meaning |
+|---|---|---|
+| `ShockwaveFlashCompression.None` | `FWS` | Body stored uncompressed |
+| `ShockwaveFlashCompression.ZLib` | `CWS` | Body compressed with zlib |
+| `ShockwaveFlashCompression.Lzma` | `ZWS` | Body compressed with LZMA |
+
+The enum carries the codec behavior through extension members `Decompress` and `Compress`:
+
+```csharp
+ReadOnlyMemory<byte> body =
+    header.Compression.Decompress(compressed, uncompressedLength);
+```
+
+Only the three values above are supported; anything else throws `SwfUnsupportedException`. Note that the signature byte covers only the body — the 8-byte prefix (signature, `WS`, version, length) is always stored in the clear.
+
+## Fixed-point value types
+
+SWF stores fractional numbers as fixed-point integers. The library exposes two value types, both `readonly record struct`s in `ShockwaveFlash.Types`, each wrapping a single integer `Raw` field.
+
+### `Fixed8` — 8.8 signed fixed point
+
+```csharp
+public readonly record struct Fixed8(short Raw)
+```
+
+Backed by a `short`; the low 8 bits are the fraction. Read it with `ToSingle()` (or `ToDouble()`), which divides the raw value by 256:
+
+```csharp
+Fixed8 fps = header.FrameRate;
+float framesPerSecond = fps.ToSingle();  // Raw / 256f
+double precise        = fps.ToDouble(); // Raw / 256.0
+```
+
+Construct one from a float with `Fixed8.FromSingle`, and use the constants `Fixed8.Zero` and `Fixed8.One` (where `One` has `Raw == 1 << 8`). `FrameRate` on the header is a `Fixed8`, so the frame rate is read as `header.FrameRate.ToSingle()`.
+
+### `Fixed16` — 16.16 signed fixed point
+
+```csharp
+public readonly record struct Fixed16(int Raw)
+```
+
+Backed by an `int`; the low 16 bits are the fraction. `ToSingle()`/`ToDouble()` divide the raw value by 65536:
+
+```csharp
+Fixed16 scale = new Fixed16(0x0001_8000); // 1.5
+float asFloat = scale.ToSingle();          // Raw / 65536f -> 1.5
+```
+
+Construct with `Fixed16.FromSingle` or `Fixed16.FromDouble`; constants are `Fixed16.Zero` and `Fixed16.One` (`Raw == 1 << 16`).
+
+### `FixedPoint2`
+
+A pair of `Fixed16` values used for 2-D fixed-point coordinates:
+
+```csharp
+public readonly record struct FixedPoint2(Fixed16 X, Fixed16 Y)
+```
+
+with `FixedPoint2.Zero` available.
+
+### Reading and writing fixed-point on the wire
+
+`MemoryReader` and `MemoryWriter` provide the matching primitives:
+
+```csharp
+Fixed8 r8   = reader.ReadFixed8();      // new Fixed8(ReadInt16())
+Fixed16 r16 = reader.ReadFixed();       // new Fixed16(ReadInt32())
+FixedPoint2 p = reader.ReadFixedPoint2();
+
+writer.WriteFixed8(r8);
+writer.WriteFixed(r16);
+writer.WriteFixedPoint2(p);
+```
+
+There are also unsigned float helpers `ReadUFixed8()` (16-bit value / 256f) and `ReadUFixed()` (32-bit value / 65536f) that return a `float` directly rather than a `Fixed*` struct.
+
+## The frame rectangle (twips)
+
+`FrameSize` is a `Rectangle`, the stage bounds expressed in **twips** (1 twip = 1/20 px, i.e. 20 twips per pixel). It is a `readonly record struct`:
+
+```csharp
+public readonly record struct Rectangle(int XMin, int XMax, int YMin, int YMax)
+```
+
+Derived members include `Width` (`Math.Max(XMax - XMin, 0)`), `Height`, and the corner/`Center` points (`TopLeft`, `BottomRight`, `TopRight`, `BottomLeft`, `Center`) as `Point` values. Because the values are twips, convert to pixels by dividing by 20:
+
+```csharp
+Rectangle frame = header.FrameSize;
+int widthTwips  = frame.Width;
+double widthPx  = frame.Width  / 20.0;
+double heightPx = frame.Height / 20.0;
+```
+
+On the wire the rectangle is bit-packed: a 5-bit unsigned count `nBits`, followed by four signed `nBits` fields in the order `XMin`, `XMax`, `YMin`, `YMax`. `Rectangle.Decode`/`Rectangle.Encode` handle this packing via the bit reader/writer, and the writer recomputes the minimal `nBits` from `BitWriter.SignedBitsNeeded` of the four bounds.
+
+## Round-tripping a header
+
+`ShockwaveFlashFile.Assemble` writes the 8-byte prefix (signature byte, `'W'`, `'S'`, `Version`, `Int32` length) and then the compressed body, recomputing `FileLength` as `HeaderSize + body.Position`. A typical edit-and-rewrite looks like:
+
+```csharp
+var file = ShockwaveFlashFile.Disassemble(input);
+
+file.Header = file.Header with
+{
+    Compression = ShockwaveFlashCompression.ZLib,
+    FrameRate   = Fixed8.FromSingle(30f)
+};
+
+ReadOnlyMemory<byte> output = file.Assemble();
+```

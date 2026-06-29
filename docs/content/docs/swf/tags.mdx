@@ -1,0 +1,303 @@
+---
+title: "Tags"
+description: "The SWF tag model in ShockwaveFlash: the Tag base type, TagMetadata, the mutable Tags list, the concrete tag types per category, and how unknown tags are preserved verbatim."
+---
+
+## Overview
+
+The body of a SWF movie is a flat sequence of *tags*. Each tag begins with a 16-bit code-and-length header, optionally followed by a 32-bit long length, and then a body whose layout depends on the tag's code. In ShockwaveFlash every tag is modeled as a subclass of the abstract `Tag` type defined in `src/ShockwaveFlash/Tags/Tag.cs`, and a parsed movie exposes its tags as a plain, mutable `List<Tag>`.
+
+This page describes the tag model, how tags are read and written, how you enumerate/add/remove/replace tags on the list, the concrete tag types grouped by category, and how tags the library does not recognize are round-tripped without loss.
+
+## The `Tag` base type
+
+`Tag` is an abstract class. Every concrete tag carries a `TagMetadata` value and knows how to encode its own body:
+
+```csharp
+[DebuggerDisplay("{Metadata.Code,nq}")]
+public abstract class Tag
+{
+    public TagMetadata Metadata { get; set; }
+
+    protected Tag(TagMetadata metadata)
+    {
+        Metadata = metadata;
+    }
+
+    public abstract void Encode(MemoryWriter writer, byte swfVersion);
+}
+```
+
+The only shared instance state is `Metadata`; everything else lives on the concrete subclasses (for example `ShapeId` on `DefineShapeTag`, `BackgroundColor` on `SetBackgroundColorTag`). `Encode` writes only the tag *body* — the code-and-length framing is added by the collection encoder described below.
+
+### `TagMetadata`
+
+`TagMetadata` (in `src/ShockwaveFlash/Tags/TagMetadata.cs`) is a small `readonly struct` that records what kind of tag this is and where its body came from in the source stream:
+
+```csharp
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct TagMetadata :
+    IFormattable,
+    IEquatable<TagMetadata>,
+    IEqualityOperators<TagMetadata, TagMetadata, bool>
+{
+    public readonly TagCode Code;
+    public readonly int Offset;
+    public readonly int Length;
+
+    public TagMetadata(TagCode code, int offset, int length) { /* ... */ }
+}
+```
+
+- `Code` is the tag's `TagCode` (see below).
+- `Offset` is the byte position of the body within the decompressed movie body, as observed at decode time.
+- `Length` is the body length in bytes, as observed at decode time.
+
+Note that `Offset` and `Length` reflect the *original* parse. They are not recomputed when you mutate a tag; the authoritative length used on write is always the number of bytes the tag actually encodes. `TagMetadata` equality and hashing are defined on `Code` alone — two metadata values are considered equal when their codes match, regardless of offset or length.
+
+### `TagCode`
+
+`TagCode` (in `src/ShockwaveFlash/Tags/TagCode.cs`) is a `ushort`-backed enum naming every tag the library understands. The numeric values are the canonical SWF tag IDs, so the enum is sparse:
+
+```csharp
+public enum TagCode : ushort
+{
+    End = 0,
+    ShowFrame = 1,
+    DefineShape = 2,
+    PlaceObject = 4,
+    // ...
+    DefineFont4 = 91,
+    EnableTelemetry = 93,
+    PlaceObject4 = 94
+}
+```
+
+A code that does not appear in this enum is still representable — it is carried as a raw `ushort` inside a `TagMetadata` and surfaced as an `UnknownTag` (see [Unknown tags](#unknown-tags-are-preserved-verbatim)).
+
+## Reading and writing tag collections
+
+Decoding and encoding of a *sequence* of tags is handled by two static methods on `Tag`.
+
+`DecodeCollection` reads tags until the reader is exhausted. For each tag it splits the 16-bit header into a code and a 6-bit short length, promotes to a 32-bit length when the short length is the sentinel `63`, slices the body, and dispatches on the code:
+
+```csharp
+var codeAndLength = reader.ReadUInt16();
+var code = (ushort)(codeAndLength >> 6);
+var length = codeAndLength & 63;
+
+if (length is 63)
+    length = reader.ReadInt32();
+
+var offset = reader.Position;
+var metadata = new TagMetadata((TagCode)code, offset, length);
+var tagBody = reader.ReadMemory(length);
+
+tags.Add(DecodeTag(tagBody, metadata, swfVersion));
+```
+
+Dispatch is a `switch` over `metadata.Code` that calls the matching concrete tag's static `Decode` method (for example `TagCode.DefineSprite => DefineSpriteTag.Decode(...)`). The decoder is bounded: nested tag collections are limited to a maximum depth (`MaxNestingDepth`) and a length-mismatch — where a tag's `Decode` does not consume exactly the declared body — throws a `SwfFormatException`. The `lenient` flag (threaded through from `ShockwaveFlashFile.Disassemble`) downgrades such failures to an `UnknownTag` instead of throwing.
+
+`EncodeCollection` is the inverse. It encodes each tag's body into a scratch buffer, then writes the code-and-length header — short form when the body is under 63 bytes, long form otherwise — followed by the body:
+
+```csharp
+var code = (ushort)tag.Metadata.Code;
+var length = body.Position;
+
+if (length < MaxShortTagLength)
+{
+    writer.WriteUInt16((ushort)((code << 6) | length));
+}
+else
+{
+    writer.WriteUInt16((ushort)((code << 6) | MaxShortTagLength));
+    writer.WriteInt32(length);
+}
+
+writer.WriteMemory(body.WrittenMemory);
+```
+
+Because the length is taken from what `Encode` actually produced, you never have to keep `Metadata.Length` in sync by hand after editing a tag.
+
+## The mutable `Tags` list
+
+A disassembled movie exposes its tags directly. `ShockwaveFlashFile` (in `src/ShockwaveFlash/ShockwaveFlashFile.cs`) holds them as an ordinary settable `List<Tag>`:
+
+```csharp
+public sealed class ShockwaveFlashFile
+{
+    public ShockwaveFlashHeader Header { get; set; }
+    public List<Tag> Tags { get; set; }
+}
+```
+
+There is no special collection type and no copy-on-write — `Tags` is a regular `List<Tag>`, so all the usual list operations apply, and `Assemble()` simply re-encodes whatever the list currently holds. The same shape recurses: a `DefineSpriteTag` owns its own nested `List<Tag> Tags`, so a sprite's timeline is edited exactly like the top-level one.
+
+### Enumerating
+
+```csharp
+var swf = ShockwaveFlashFile.Disassemble(bytes);
+
+foreach (var tag in swf.Tags)
+{
+    if (tag is DefineSpriteTag sprite)
+        Console.WriteLine($"sprite {sprite.Id} with {sprite.Tags.Count} child tags");
+}
+```
+
+Pattern-matching on the concrete type is the idiomatic way to inspect a tag, since `Tag` itself only exposes `Metadata`.
+
+### Adding
+
+Append a tag like any list element. The following appends a copy of the existing background-color tag and round-trips cleanly:
+
+```csharp
+var background = (SetBackgroundColorTag)swf.Tags[0];
+swf.Tags.Add(new SetBackgroundColorTag(background.Metadata, background.BackgroundColor));
+```
+
+### Replacing
+
+Assign through the indexer to swap a tag in place. A re-assembled movie reflects the new value:
+
+```csharp
+var background = (SetBackgroundColorTag)swf.Tags[0];
+swf.Tags[0] = new SetBackgroundColorTag(background.Metadata, new Color(1, 2, 3, 255));
+```
+
+You can also mutate a tag's properties directly rather than replacing the instance — the change is picked up on the next `Assemble()` because encoding reads live state:
+
+```csharp
+((SetBackgroundColorTag)swf.Tags[0]).BackgroundColor = new Color(9, 8, 7, 255);
+```
+
+### Removing
+
+```csharp
+swf.Tags.RemoveAt(swf.Tags.Count - 1);
+```
+
+All of these mutations survive a disassemble/assemble/disassemble cycle, since the list is the single source of truth for the movie body.
+
+## Tag categories and concrete types
+
+The concrete tags live under `src/ShockwaveFlash/Tags/`, grouped into namespaces by purpose. The recognized types are:
+
+### Display list (`ShockwaveFlash.Tags.DisplayList`)
+Controls which characters are on the stage at which depth, and advances frames.
+- `PlaceObjectTag`, `PlaceObject2Tag`, `PlaceObject3Tag`, `PlaceObject4Tag`
+- `RemoveObjectTag`, `RemoveObject2Tag`
+- `ShowFrameTag`
+
+`PlaceObject2Tag` and `PlaceObject3Tag` model the optional fields (matrix, color transform, ratio, name, clip depth, clip actions) as nullable properties and recompute the flags on encode, so you set, say, `Name` and `Matrix` and never touch the flag bits yourself. `PlaceObject3Tag` additionally carries `Filters` (an array of `Filter`), `BlendMode`, cache/visibility flags, and an opaque `BackgroundColor`.
+
+### Control / structure (`ShockwaveFlash.Tags.Control`)
+Movie-level metadata, asset linkage, and stream framing.
+- `EndTag`, `SetBackgroundColorTag`, `FrameLabelTag`, `ProtectTag`
+- `ExportAssetsTag`, `ImportAssetsTag`, `ImportAssets2Tag`, `SymbolClassTag`, `NameCharacterTag`
+- `EnableDebuggerTag`, `EnableDebugger2Tag`, `DebugIdTag`, `ScriptLimitsTag`, `SetTabIndexTag`
+- `DefineScalingGridTag`, `DefineSceneAndFrameLabelDataTag`
+
+`EndTag` and `ShowFrameTag` are bodiless — their `Encode` writes nothing and they are constructed directly from metadata during decode. `SymbolClassTag` carries a `SymbolReference[] Symbols` array of id/name pairs.
+
+### Metadata / attributes (`ShockwaveFlash.Tags.Metadata`)
+- `MetadataTag`, `FileAttributesTag`, `ProductInfoTag`, `EnableTelemetryTag`, `DefineBinaryDataTag`
+
+`DefineBinaryDataTag` stores an `Id` plus an opaque `ReadOnlyMemory<byte> Data` payload.
+
+### Shapes (`ShockwaveFlash.Tags.Shape`)
+- `DefineShapeTag`, `DefineShape2Tag`, `DefineShape3Tag`, `DefineShape4Tag`
+
+These form an inheritance chain: `DefineShape2Tag`, `DefineShape3Tag`, and `DefineShape4Tag` all derive from `DefineShapeTag`. The base exposes `ShapeId`, `ShapeBounds`, `Styles`, and `Shapes` (a list of `ShapeRecord`); `DefineShape4Tag` adds `EdgeBounds` and `Flags`. A single `DefineShapeTag.Decode(reader, metadata, swfVersion, shapeVersion)` produces the right subclass based on the shape version.
+
+### Fonts (`ShockwaveFlash.Tags.Font`)
+- `DefineFontTag`, `DefineFont2Tag`, `DefineFont3Tag`, `DefineFont4Tag`
+- `DefineFontInfoTag`, `DefineFontInfo2Tag`, `DefineFontAlignZonesTag`, `DefineFontNameTag`
+
+`DefineFont3` is decoded by the same code path as `DefineFont2Tag` with a different version argument.
+
+### Text (`ShockwaveFlash.Tags.Text`)
+- `DefineTextTag`, `DefineText2Tag`, `DefineEditTextTag`, `CsmTextSettingsTag`
+
+### Sounds (`ShockwaveFlash.Tags.Sound`)
+- `DefineSoundTag`, `StartSoundTag`, `StartSound2Tag`
+- `SoundStreamHeadTag`, `SoundStreamHead2Tag`, `SoundStreamBlockTag`
+
+### Bitmaps (`ShockwaveFlash.Tags.Bitmap`)
+- `DefineBitsTag`, `JpegTablesTag`
+- `DefineBitsJpeg2Tag`, `DefineBitsJpeg3Tag`, `DefineBitsJpeg4Tag`
+- `DefineBitsLosslessTag`, `DefineBitsLossless2Tag`
+
+### Sprites (`ShockwaveFlash.Tags.Sprite`)
+- `DefineSpriteTag`
+
+A sprite is a nested timeline. It owns `Id`, `NumFrames`, and a `List<Tag> Tags`, and it reuses the same collection codec recursively:
+
+```csharp
+public sealed class DefineSpriteTag : Tag
+{
+    public ushort Id { get; set; }
+    public ushort NumFrames { get; set; }
+    public List<Tag> Tags { get; set; }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteUInt16(Id);
+        writer.WriteUInt16(NumFrames);
+        EncodeCollection(writer, Tags, swfVersion);
+    }
+}
+```
+
+### Buttons (`ShockwaveFlash.Tags.Button`)
+- `DefineButtonTag`, `DefineButton2Tag`, `DefineButtonCxFormTag`, `DefineButtonSoundTag`
+
+### Morph shapes (`ShockwaveFlash.Tags.Morph`)
+- `DefineMorphShapeTag`, `DefineMorphShape2Tag`
+
+### Video (`ShockwaveFlash.Tags.Video`)
+- `DefineVideoStreamTag`, `VideoFrameTag`
+
+`DefineVideoStreamTag` exposes `Id`, `NumFrames`, `Width`, `Height`, `IsSmoothed`, `Deblocking`, and `Codec`, packing the smoothing/deblocking flags into a single byte on encode.
+
+### ActionScript bytecode (`ShockwaveFlash.Tags.Action` and `ShockwaveFlash.Tags.Abc`)
+- AVM1: `DoActionTag`, `DoInitActionTag`
+- AVM2 (ABC): `DoAbcTag`, `DoAbc2Tag`
+
+These hold the raw bytecode as `ReadOnlyMemory<byte> Data`. `DoAbc2Tag` additionally carries `Flags` and a `Name`:
+
+```csharp
+public sealed class DoAbc2Tag : Tag
+{
+    public DoAbc2Flags Flags { get; set; }
+    public string Name { get; set; }
+    public ReadOnlyMemory<byte> Data { get; set; }
+}
+```
+
+### Filters
+
+There is no standalone "filter tag" code. Filters are a structural type (`ShockwaveFlash.Types.Filter.Filter`) attached to a display-list placement: `PlaceObject3Tag.Filters` is a `Filter[]?`, decoded and re-encoded with a leading count as part of the place tag's body.
+
+## Unknown tags are preserved verbatim
+
+Any tag whose code is not in the dispatch `switch` — including codes absent from the `TagCode` enum — is wrapped in an `UnknownTag` (in `src/ShockwaveFlash/Tags/UnknownTag.cs`) that simply holds the raw body bytes:
+
+```csharp
+public sealed class UnknownTag : Tag
+{
+    public ReadOnlyMemory<byte> Data { get; set; }
+
+    public static UnknownTag Decode(MemoryReader reader, TagMetadata metadata)
+    {
+        return new UnknownTag(metadata, reader.ReadMemoryToEnd());
+    }
+
+    public override void Encode(MemoryWriter writer, byte swfVersion)
+    {
+        writer.WriteMemory(Data);
+    }
+}
+```
+
+Because `Encode` writes `Data` back unchanged and the original `TagCode` is retained in `Metadata.Code`, an unrecognized tag round-trips byte-for-byte. The same `UnknownTag` is also the fallback when decoding *fails* under lenient mode: a recognized-but-malformed tag is captured as raw bytes rather than aborting the parse, so a single corrupt tag never costs you the rest of the movie. In both cases the tag remains a first-class entry in the `Tags` list — you can keep it, move it, or remove it just like any typed tag.

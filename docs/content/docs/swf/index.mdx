@@ -1,0 +1,37 @@
+---
+title: Overview
+description: Read, edit and write SWF files as a strongly-typed, mutable tag tree.
+---
+
+The `ShockwaveFlash` package disassembles a `.swf` into a strongly-typed tag tree, lets you inspect or
+edit it in code, then assembles it back — the round-trip is **lossless**: byte-identical for
+canonically-encoded SWFs and byte-stable on re-encode, validated on a real corpus of production files.
+
+```csharp
+using ShockwaveFlash;
+
+var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+
+Console.WriteLine($"SWF v{swf.Header.Version} ({swf.Header.Compression})");
+Console.WriteLine($"Frame size : {swf.Header.FrameSize}");
+Console.WriteLine($"Frame rate : {swf.Header.FrameRate.ToSingle()} fps");
+Console.WriteLine($"Tags       : {swf.Tags.Count}");
+
+File.WriteAllBytes("copy.swf", swf.Assemble().ToArray());
+```
+
+<Cards>
+  <Card title="Header & wire model" href="/docs/swf/header" description="The header fields, fixed-point value types, the frame rectangle in twips, and the FWS/CWS/ZWS compression formats." />
+  <Card title="Tags" href="/docs/swf/tags" description="The Tag base type, the mutable Tags list, every concrete tag category, and how unknown tags survive verbatim." />
+  <Card title="Editing & writing" href="/docs/swf/editing" description="Disassemble → edit → assemble, replacing tags, verifying the round-trip, and the typed exception hierarchy." />
+</Cards>
+
+## At a glance
+
+- **Broad tag coverage** — shapes, fonts, text, sounds, bitmaps, sprites, buttons, morph shapes, video,
+  ABC and control tags. Unknown tags are preserved verbatim, so nothing is lost on round-trip.
+- **Exact wire model** — fixed-point types (`Fixed16` 16.16, `Fixed8` 8.8) and twip rectangles; no lossy
+  `float` conversions on the wire.
+- **All three containers** — `FWS` (uncompressed), `CWS` (zlib) and `ZWS` (LZMA) are read and written.
+- **Allocation-light** — the public surface works over `ReadOnlyMemory<byte>`; no `unsafe`, no `Span`
+  plumbing in your code.

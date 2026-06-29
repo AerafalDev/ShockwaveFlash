@@ -1,0 +1,305 @@
+---
+title: "Evaluator & coercion"
+description: "How Avm1Machine linearly evaluates a DoAction byte stream into a global object table, the operators and coercion rules it implements, and how the Avm1Emitter writes a modified global table back to AVM1 bytecode."
+---
+
+## Overview
+
+`Avm1Machine` (in `src/ShockwaveFlash.Avm1/Avm1Machine.cs`) is a deliberately small, **linear** AVM1 interpreter. It is built to read *data scripts* — the kind of `DoAction` tag a tool authoring SWFs emits to seed a movie's global variables — not to run arbitrary control flow. It walks a decoded `IReadOnlyList<Action>` from top to bottom, maintains an operand stack, a register file, a constant pool, and a single global object table, and stops at the first `ActionEnd`. The product of a run is the `Avm1Object` held in `Globals`.
+
+The machine does **not** implement jumps, branches, function calls, `with` scopes, timeline control, or object instantiation in any meaningful way. Those opcodes either decode to no-ops with placeholder stack results, or fall through to the unsupported path (see [Unsupported opcodes](#unsupported-opcodes)). This is intentional: the use case is extracting and rewriting the flat name/value pairs a script pushes into globals (for example, the Dofus `lang` files), not faithfully emulating a player.
+
+## Running a script
+
+The static entry point decodes the action bytes and executes them:
+
+```csharp
+public static Avm1Object Run(ReadOnlyMemory<byte> actions, byte swfVersion, bool strict = false)
+{
+    var machine = new Avm1Machine(swfVersion);
+    machine.Execute(Action.DecodeCollection(actions, swfVersion), strict);
+    return machine.Globals;
+}
+```
+
+`Action.DecodeCollection` (in `Action.cs`) turns the raw `DoAction` payload into typed `Action` records, and `Execute` interprets them. The SWF version is threaded through because several coercion rules are version-gated (see [Version-gated behavior](#version-gated-behavior)). The constructor defaults to version 6: `Avm1Machine(byte swfVersion = 6)`.
+
+### tag.Evaluate
+
+Most callers do not touch `Avm1Machine` directly; they use the extension methods in `Avm1Extensions.cs` on a `DoActionTag`:
+
+```csharp
+public static Avm1Object Evaluate(this DoActionTag tag, byte swfVersion, bool strict = false)
+{
+    return Avm1Machine.Run(tag.Data, swfVersion, strict);
+}
+```
+
+`Evaluate` is just `Run` over the tag's `Data`. There is also `DecodeActions` (decode only, no execution) on the same tag.
+
+### The execution loop
+
+`Execute` is one big `switch` over the action records. Each case pops its operands, computes a result, and pushes it back. A few structural cases:
+
+- `ActionConstantPool` replaces the machine's `_constantPool` with the pool's strings. `Push` values of type `Constant8`/`Constant16` are later resolved against this list.
+- `ActionPush` resolves every `PushValue` in its `PushValues` list to an `Avm1Value` and pushes each (see [Push resolution](#push-resolution)).
+- `ActionEnd` returns immediately, ending the run.
+- Anything not handled hits the `default` arm.
+
+Globals are populated through the variable and member opcodes:
+
+```csharp
+case ActionSetVariable:
+    {
+        var value = Pop();
+        _globals.Members[ToStr(Pop())] = value;
+        break;
+    }
+```
+
+`ActionGetVariable` reads back from `_globals.Members` (returning `Avm1Value.Undefined` when absent). `ActionGetMember`/`ActionSetMember` operate on whatever `Avm1Object` is on the stack, and `ActionInitObject`/`ActionInitArray` build `Avm1Object`/`Avm1Array` aggregates by popping `count` entries. This is how a flat script like `push "key"; push "value"; setVariable` lands a pair in `Globals`.
+
+## The value model
+
+Values on the stack are `Avm1Value` records (in `Types/Avm1Value.cs`):
+
+- `Avm1String(string Value)`
+- `Avm1Number(double Value)`
+- `Avm1Boolean(bool Value)`
+- `Avm1Null` and `Avm1Undefined` (singletons exposed as `Avm1Value.Null` / `Avm1Value.Undefined`)
+- `Avm1Object` — a `Dictionary<string, Avm1Value>` named `Members` (ordinal comparer)
+- `Avm1Array` — a `List<Avm1Value>` named `Items`
+
+Implicit conversions let the machine push CLR primitives directly (`string`, `double`, `int`, `bool` all convert to `Avm1Value`), which is why expressions like `_stack.Push(left + right)` compile.
+
+### Push resolution
+
+`Resolve` maps a decoded `PushValue` (the on-wire push operand, in `Types/PushValue.cs`) to a runtime `Avm1Value`:
+
+```csharp
+private Avm1Value Resolve(PushValue value)
+{
+    return value switch
+    {
+        PushValue.PushValueString item => item.Value,
+        PushValue.PushValueInteger item => item.Value,
+        PushValue.PushValueFloat item => (double)item.Value,
+        PushValue.PushValueDouble item => item.Value,
+        PushValue.PushValueBoolean item => item.Value,
+        PushValue.PushValueNull => Avm1Value.Null,
+        PushValue.PushValueRegister item => Register(item.RegisterIndex),
+        PushValue.PushValueConstant8 item => Constant(item.ConstantIndex),
+        PushValue.PushValueConstant16 item => Constant(item.ConstantIndex),
+        _ => Avm1Value.Undefined
+    };
+}
+```
+
+`PushValueUndefined` (and any unmapped case) becomes `Avm1Value.Undefined`. `Register` and `Constant` both bounds-check their index and return `Undefined` when out of range.
+
+## The register file
+
+The machine holds a fixed bank of 256 registers, all initialized to `Undefined`:
+
+```csharp
+private static Avm1Value[] CreateRegisters()
+{
+    var registers = new Avm1Value[256];
+    Array.Fill(registers, Avm1Value.Undefined);
+    return registers;
+}
+```
+
+`ActionStoreRegister` **peeks** the top of stack (it does not pop) and writes it into `_registers[RegisterNumber]`, ignoring register numbers `>= _registers.Length`. If the stack is empty it stores `Undefined`. Pushing register `n` (via `PushValueRegister`) reads it back through `Register(int index)`, which returns `Undefined` for any index outside `[0, 256)`.
+
+## The operand stack
+
+The stack is a `Stack<Avm1Value>`. All reads go through `Pop`, which is **never-throwing**: an empty stack yields `Undefined` rather than an exception.
+
+```csharp
+private Avm1Value Pop()
+{
+    return _stack.Count > 0 ? _stack.Pop() : Avm1Value.Undefined;
+}
+```
+
+Stack-manipulation opcodes:
+
+- `ActionPop` — discard top.
+- `ActionPushDuplicate` — pop, push twice.
+- `ActionStackSwap` — swap the top two entries.
+- `DropArguments` (a helper, not an opcode) pops a count then pops that many values; it backs the placeholder implementations of `ActionNewObject`, `ActionCallMethod`, and `ActionCallFunction`, all of which discard their arguments and push `Undefined` (or a fresh empty `Avm1Object` for `NewObject`).
+
+## Operators
+
+All arithmetic/comparison/bitwise opcodes pop right then left (right is on top), apply coercion, and push the result.
+
+**Arithmetic.** `ActionAdd`, `ActionSubtract`, `ActionMultiply`, `ActionDivide`, `ActionModulo` coerce both operands with `ToNum` and produce a `double`. `ActionDivide` has a SWF4 quirk: dividing by zero on version `< 5` pushes the string `"#ERROR#"` instead of infinity.
+
+```csharp
+case ActionDivide:
+    {
+        var right = ToNum(Pop());
+        var left = ToNum(Pop());
+        _stack.Push(right == 0.0 && _version < 5 ? "#ERROR#" : left / right);
+        break;
+    }
+```
+
+`ActionAdd2` is the typed add: if **either** operand is an `Avm1String` it concatenates string coercions, otherwise it adds numbers. `ActionStringAdd` always concatenates `ToStr` of both.
+
+**Bitwise.** `ActionBitAnd`, `ActionBitOr`, `ActionBitXor` coerce with `ToInt32` and push the result back as a `double`. The shifts (`ActionBitLShift`, `ActionBitRShift`, `ActionBitURShift`) mask the shift count with `& 31`; the unsigned right shift coerces the value with `ToUint32`, the signed shifts with `ToInt32`.
+
+**Comparison/logic.** `ActionEquals` and `ActionLess` are the SWF4 numeric forms (`ToNum` both sides, push a `bool`). The SWF5+ typed forms use abstract comparison helpers:
+
+- `ActionEquals2` → `AbstractEquals`
+- `ActionLess2` → `AbstractLess`
+- `ActionGreater` → `AbstractLess(right, left)`
+- `ActionStrictEquals` → `StrictEquals`
+
+`ActionNot` pushes `!ToBool(...)`. `ActionAnd`/`ActionOr` coerce both sides with `ToBool` (no short-circuit — both operands are already popped) and push the boolean result.
+
+**String ops.** `ActionStringEquals` compares ordinally. `ActionStringLess`/`ActionStringGreater` use `string.CompareOrdinal`. `ActionStringLength` and `ActionMBStringLength` push `.Length` as a double. `ActionStringExtract`/`ActionMBStringExtract` delegate to `StringExtract(text, index, count)`, which uses a **1-based** start index (Flash `substring` semantics) and clamps the range. `ActionCharToAscii`/`ActionMBCharToAscii` push the first UTF-16 code unit (or `0`); `ActionAsciiToChar`/`ActionMBAsciiToChar` map a code back to a one-char string (and produce an empty string for `\0`).
+
+**Type ops.** `ActionToInteger` pushes `ToInt32` as a double; `ActionToNumber` pushes `ToNum`; `ActionToString` pushes `ToStr`; `ActionTypeOf` pushes the `TypeOf` tag string.
+
+### Abstract comparison helpers
+
+`AbstractEquals` mirrors ECMAScript loose equality, restricted to the machine's type set: objects/arrays compare by reference; `null`/`undefined` are equal to each other; two strings compare ordinally; two booleans compare as booleans; otherwise both sides go through `ToNum`. `AbstractLess` returns `Avm1Value.Undefined` when either side is `NaN` (the AVM1 "undefined comparison" result), compares two strings ordinally, compares objects/arrays as `false`, and otherwise compares `ToNum`. `StrictEquals` compares objects/arrays by reference and everything else by record value equality (`left == right`).
+
+## Coercion rules
+
+The coercion methods are the heart of the machine and are version-aware.
+
+### ToNum (number coercion)
+
+```csharp
+internal double ToNum(Avm1Value value)
+{
+    return value switch
+    {
+        Avm1Number number => number.Value,
+        Avm1Boolean flag => flag.Value ? 1.0 : 0.0,
+        Avm1Null => _version < 7 ? 0.0 : double.NaN,
+        Avm1Undefined => _version < 7 ? 0.0 : double.NaN,
+        Avm1String text => StringToNumber(text.Value),
+        _ => double.NaN
+    };
+}
+```
+
+Objects and arrays coerce to `NaN`. `null`/`undefined` coerce to `0` before version 7 and to `NaN` from version 7. String-to-number goes through `StringToNumber`, which:
+
+- Trims whitespace.
+- On version `>= 6`, sniffs a radix with `GuessRadix`: a leading `0x`/`0X` is hex, a leading `0` followed by only octal digits is octal; those are parsed by `ParseRadix`.
+- Otherwise parses a decimal float with `ParseFloatImpl`. Parsing is **strict** (trailing garbage → `NaN`) on version `>= 5`; on SWF4 a non-numeric string coerces to `0`.
+
+`ToInt32`/`ToUint32` build on `ToNum`: `ToUint32` returns 0 for non-finite numbers, truncates, then wraps modulo 2^32; `ToInt32` is the unchecked reinterpretation of that.
+
+### ToStr (string coercion) and number formatting
+
+```csharp
+internal string ToStr(Avm1Value value)
+{
+    return value switch
+    {
+        Avm1String text => text.Value,
+        Avm1Number number => FormatNumber(number.Value),
+        Avm1Null => "null",
+        Avm1Undefined => _version < 7 ? string.Empty : "undefined",
+        Avm1Boolean flag => _version < 5 ? (flag.Value ? "1" : "0") : (flag.Value ? "true" : "false"),
+        Avm1Array array => string.Join(",", array.Items.Select(ToStr)),
+        Avm1Object => "[object Object]",
+        _ => "null"
+    };
+}
+```
+
+Numbers are stringified by `FormatNumber`, a static method that is a faithful port of Flash's own double-to-string routine rather than a call to .NET's `double.ToString`. It special-cases `NaN`, `Infinity`/`-Infinity`, and zero; emits an exact integer string for whole numbers in the 32-bit range; and for everything else reconstructs the decimal digits manually. It derives a base-10 exponent from the IEEE-754 binary exponent (`log10Of2`), extracts up to 15 significant digits via a power-of-ten `DecimalShift`, applies round-half-away rounding on the 16th digit, trims trailing zeros, and switches to `e+`/`e-` scientific notation for large or very small magnitudes. The point of porting it verbatim is byte-exact round-tripping: a number read out of a SWF and written back must serialize to the same characters the Flash authoring tool produced.
+
+### ToBool (boolean coercion)
+
+```csharp
+internal bool ToBool(Avm1Value value)
+{
+    return value switch
+    {
+        Avm1Boolean flag => flag.Value,
+        Avm1Number number => !double.IsNaN(number.Value) && number.Value != 0.0,
+        Avm1String text => ToBoolString(text.Value),
+        Avm1Object => true,
+        Avm1Array => true,
+        _ => false
+    };
+}
+```
+
+`null`/`undefined` are falsy. A number is truthy when it is non-`NaN` and non-zero. String truthiness is version-gated via `ToBoolString`: on version `>= 7` a non-empty string is `true`; before that the string is coerced to a number and judged non-`NaN`/non-zero (SWF4/5/6 semantics).
+
+### TypeOf
+
+`TypeOf` returns `"undefined"`, `"null"`, `"number"`, `"boolean"`, `"string"`, or `"object"` (the fallback for both `Avm1Object` and `Avm1Array`).
+
+## Version-gated behavior
+
+Summary of the rules that change with `swfVersion`:
+
+- **Divide by zero** pushes `"#ERROR#"` on version `< 5`.
+- **Boolean → string** is `"1"`/`"0"` on version `< 5`, else `"true"`/`"false"`.
+- **null/undefined → number** is `0` before version 7, `NaN` from version 7.
+- **undefined → string** is empty before version 7, `"undefined"` from version 7.
+- **String → number** uses radix sniffing (hex/octal) only on version `>= 6`, and is strict (no trailing garbage) only on version `>= 5`.
+- **String → boolean** is "non-empty" on version `>= 7`, numeric-truthiness before that.
+
+## Unsupported opcodes
+
+The `default` arm handles every opcode the machine does not implement (jumps, ifs, `with`, function definitions, timeline actions, and so on):
+
+```csharp
+default:
+    if (strict)
+        throw new Avm1UnsupportedActionException(action.Opcode);
+    _unsupported.Add(action.Opcode);
+    break;
+```
+
+In the default (non-strict) mode, the opcode is simply recorded and execution continues. The set is exposed as `UnsupportedOpcodes` (`IReadOnlySet<ActionOpcode>`), so a caller can inspect which actions were skipped after a `Run`. In **strict** mode the machine throws `Avm1UnsupportedActionException` (carrying the `Opcode`) the moment it meets one — useful when you need a guarantee the script was a pure data script and nothing was silently ignored. Note that strict mode also tightens decoding: `Action.DecodeCollection`/`ActionPush.Decode` throw `SwfFormatException` on unknown opcodes, leftover payload bytes, invalid UTF-8, or unknown push types.
+
+## Writing globals back
+
+After you mutate the `Avm1Object` returned by `Run`/`Evaluate`, `Avm1Emitter` (in `Avm1Emitter.cs`) serializes it back to a `DoAction` byte stream. The public surface:
+
+```csharp
+public static ReadOnlyMemory<byte> EmitBytes(Avm1Object globals, byte swfVersion, IReadOnlyList<Action>? preamble = null)
+{
+    return Action.EncodeCollection(Emit(globals, preamble), swfVersion);
+}
+```
+
+`Emit` builds the action list in two passes:
+
+1. **Collect** walks the value tree and interns every member name and string value into a constant pool via `Intern`. Interning is bounded: it stops adding entries once the pool reaches `ushort.MaxValue` strings or its serialized size would exceed `PoolByteBudget` (60000 bytes). The walk also enforces `MaxNestingDepth` (256) and throws `SwfFormatException` if the tree is nested deeper. If anything was interned, a single `ActionConstantPool` is emitted first.
+2. For each top-level member, it emits `PushString(name)`, then `EmitValue(value)`, then `ActionSetVariable` — the inverse of how the machine reads globals.
+
+`EmitValue` reconstructs aggregates: an `Avm1Object` pushes each member (name then value, in reverse member order) followed by the member count and `ActionInitObject`; an `Avm1Array` pushes items in reverse, then the count, then `ActionInitArray`; strings go through `PushString`; scalars go through `ToScalar` wrapped in an `ActionPush`. `PushString` prefers a `Constant8`/`Constant16` reference when the string was interned (choosing the 8-bit form for indices `< 256`), and falls back to an inline `PushValueString`. `ToScalar` maps booleans, `null`, and numbers (choosing a compact `Integer` push for whole numbers in the int range, otherwise `Double`), defaulting to an `Undefined` push. The list is terminated with `ActionEnd`.
+
+An optional `preamble` of pre-existing actions can be prepended; any `ActionEnd` in the preamble is filtered out so it does not truncate the stream early.
+
+### WithGlobals
+
+The convenient round-trip on a tag is the `WithGlobals` extension in `Avm1Extensions.cs`:
+
+```csharp
+public static DoActionTag WithGlobals(this DoActionTag tag, Avm1Object globals, byte swfVersion)
+{
+    return new DoActionTag(tag.Metadata, Avm1Emitter.EmitBytes(globals, swfVersion));
+}
+```
+
+It produces a **new** `DoActionTag` that reuses the original `Metadata` but carries freshly emitted bytes for the supplied globals. The typical flow is: `var g = tag.Evaluate(version);` → mutate `g.Members` → `var newTag = tag.WithGlobals(g, version);`. The sibling `WithActions` does the same for a raw action list when you want to control the bytecode directly rather than regenerate it from a value tree.
+
+## Practical notes
+
+- The machine is single-shot and not thread-safe; create one (or call the static `Run`) per script.
+- Because the evaluator ignores control flow, a script that guards its `setVariable` calls behind branches will not populate globals as the real player would — this evaluator targets straight-line data scripts only.
+- `EmitBytes` does not necessarily reproduce the original byte stream verbatim (member ordering, pool packing, and scalar encoding are the emitter's own choices); it produces an equivalent script that re-evaluates to the same globals. For byte-exact identity of unchanged numbers, the ported `FormatNumber` is what keeps string values stable across a decode/encode round-trip.

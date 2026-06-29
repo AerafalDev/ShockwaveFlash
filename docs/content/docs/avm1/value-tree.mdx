@@ -33,8 +33,10 @@ var emotes = globals["EM"].AsObject;
 emotes["1"].AsObject["n"] = "New name";                                             // change
 emotes["24"] = new Avm1Object { Members = { ["n"] = "New emote", ["s"] = "new" } }; // add
 
-var output = swf.ReplaceTag(tag, tag.WithGlobals(globals, version)).Assemble();
-File.WriteAllBytes("emotes.swf", output.ToArray());
+// Swap the re-emitted tag back into the list, then assemble.
+swf.Tags[swf.Tags.IndexOf(tag)] = tag.WithGlobals(globals, version);
+
+File.WriteAllBytes("emotes.swf", swf.Assemble().ToArray());
 ```
 
 To map globals to your own records instead of walking keys by hand, see

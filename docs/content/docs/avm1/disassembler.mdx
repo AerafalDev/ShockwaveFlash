@@ -1,0 +1,168 @@
+---
+title: "Disassembler"
+description: "Turn a DoAction tag's AVM1 bytecode into readable text with Avm1Disassembler.Disassemble, choosing faithful p-code or best-effort AS2 reconstruction."
+---
+
+## Overview
+
+`Avm1Disassembler` (namespace `ShockwaveFlash.Avm1.Text`) is a static class that renders AVM1 bytecode as human-readable text. It is the read-only counterpart to the action model: it consumes the decoded `Action` objects and produces a string. It performs no control-flow analysis, no decompilation, and never executes anything — it walks the action list once and writes text.
+
+There are two output dialects, selected by the `Avm1DisassemblyKind` enum:
+
+```csharp
+namespace ShockwaveFlash.Avm1.Text;
+
+public enum Avm1DisassemblyKind
+{
+    Pcode,
+    As2
+}
+```
+
+- `Pcode` (the default) is a **faithful** one-line-per-instruction listing.
+- `As2` is a **best-effort** reconstruction of the original ActionScript 2 source.
+
+## Entry points
+
+`Disassemble` has two overloads. One takes raw bytecode and decodes it for you; the other takes an already-decoded action list. Both default to `Avm1DisassemblyKind.Pcode`.
+
+```csharp
+public static string Disassemble(ReadOnlyMemory<byte> bytecode, byte swfVersion, Avm1DisassemblyKind kind = Avm1DisassemblyKind.Pcode)
+{
+    return Disassemble(Action.DecodeCollection(bytecode, swfVersion), swfVersion, kind);
+}
+
+public static string Disassemble(IReadOnlyList<Action> actions, byte swfVersion, Avm1DisassemblyKind kind = Avm1DisassemblyKind.Pcode)
+```
+
+The bytecode overload simply forwards to `Action.DecodeCollection(bytecode, swfVersion)` (see the action model), so a `DoAction` tag's payload is turned into text in one call. `swfVersion` is needed because string decoding (the constant pool, push strings, identifiers) depends on the SWF version's text encoding.
+
+The result is the assembled `StringBuilder` with a single `TrimEnd('\n')` applied, so there is no trailing newline.
+
+```csharp
+var builder = new StringBuilder();
+
+if (kind is Avm1DisassemblyKind.As2)
+{
+    WriteAs2(builder, actions, swfVersion, 0, []);
+}
+else
+{
+    IReadOnlyList<string> pool = [];
+    WritePcode(builder, actions, swfVersion, 0, ref pool);
+}
+
+return builder.ToString().TrimEnd('\n');
+```
+
+### Getting bytecode from a DoAction tag
+
+A `DoAction` tag exposes its raw action bytes; pass them straight in along with the file's SWF version:
+
+```csharp
+var text = Avm1Disassembler.Disassemble(doAction.ActionBytes, swf.Header.Version, Avm1DisassemblyKind.Pcode);
+```
+
+## Faithful p-code (`Avm1DisassemblyKind.Pcode`)
+
+The p-code writer (`WritePcode`) emits exactly one textual line per action, in source order, with no reordering or elision. This is the dialect to use when you need a 1:1, lossless-ish view of what the bytecode actually contains.
+
+What it captures:
+
+- **Every opcode by name.** The default case falls back to `action.Opcode.ToString()`, so even operand-less actions like `Play`, `Pop`, `Add`, `GetVariable` print their enum name verbatim.
+- **Operands**, formatted per action by the `PcodeHead` helper. For example:
+
+```csharp
+ActionGotoFrame a => $"GotoFrame {a.Frame}",
+ActionGetURL a => $"GetURL {Quote(a.Url)}, {Quote(a.Target)}",
+ActionStoreRegister a => $"StoreRegister {a.RegisterNumber}",
+ActionJump a => $"Jump {a.BranchOffset}",
+ActionIf a => $"If {a.BranchOffset}",
+ActionDefineFunction a => $"DefineFunction {Quote(a.Name)}({string.Join(", ", a.Parameters)})",
+ActionUnknown a => $"Unknown(0x{(byte)a.Opcode:X2})",
+```
+
+- **Branch offsets are printed as raw numbers** (`Jump {a.BranchOffset}`, `If {a.BranchOffset}`). They are *not* resolved to labels or instruction indices — see limitations below.
+- **`Push` is expanded one value per line.** Each value in `push.PushValues` gets its own `Push ...` line.
+- **The constant pool is tracked and resolved.** When an `ActionConstantPool` is seen, its `Constants` become the active `pool`, and later `Constant8`/`Constant16` push values are rendered as the resolved string (via `FormatResolved`) rather than an index. If an index is out of range it falls back to `c{index}`.
+- **Nested bodies are decoded recursively and indented** with two spaces per level. `ActionWith`, `ActionDefineFunction`, `ActionDefineFunction2`, and `ActionTry` re-decode their body memory via `Action.DecodeCollection` and emit a brace-delimited block. `Try` additionally emits `Catch(...)` and `Finally` blocks, with the catch target shown as `r{CatchRegister}` when `TryFlags.CatchInRegister` is set, otherwise the `CatchVariable` name.
+
+### Sample p-code output
+
+A simple variable assignment (`name = "value";`) compiles to two pushes, a `SetVariable`, and `End`:
+
+```text
+Push "name"
+Push "value"
+SetVariable
+End
+```
+
+Constant-pool references are resolved back to their string when the pool is in scope. Given a `ConstantPool` of `["greeting"]` followed by a `Push Constant8(0)`:
+
+```text
+ConstantPool "greeting"
+Push "greeting"
+```
+
+Nested blocks are decoded and indented. A `With` body containing `Play` then `Pop`:
+
+```text
+With {
+  Play
+  Pop
+}
+```
+
+## Best-effort AS2 (`Avm1DisassemblyKind.As2`)
+
+The AS2 writer (`WriteAs2`) does a small symbolic stack evaluation to reconstruct something that reads like the original ActionScript 2. It maintains a `Stack<string>` of expression fragments and a `Dictionary<int, string>` of register contents, then rewrites stack-machine patterns into expressions and statements.
+
+What it captures / reconstructs:
+
+- **Binary operators.** `BinaryOperator` maps actions to infix symbols and rewrites `... left right Op` into `(left op right)`. For example `ActionAdd`/`ActionAdd2`/`ActionStringAdd` become `+`, `ActionEquals`/`ActionEquals2`/`ActionStringEquals` become `==`, `ActionLess`/`ActionLess2`/`ActionStringLess` become `<`, plus `-`, `*`, `/`, `%`, `>`, `&&`, `||`, `&`, `|`, `^`.
+- **Push values and registers.** Pushes go onto the symbolic stack; a `PushValue.PushValueRegister` resolves to the last value stored into that register (via `ActionStoreRegister`), falling back to `r{index}`.
+- **Variable and member access.** `GetVariable`/`SetVariable` produce `name` reads and `name = value;` statements; `GetMember`/`SetMember` produce `target.member` (or `target[expr]` when the name is not a valid identifier, via the `Member` helper).
+- **Object and array literals.** `InitObject` rebuilds `{a: 1, b: 2}` and `InitArray` rebuilds `[x, y]` by popping the element count and then the elements.
+- **Calls and construction.** `CallFunction`, `CallMethod`, `NewObject`, and `NewMethod` rebuild `f(args)`, `target.method(args)`, and `new Type(args)`, popping the argument count and arguments via `PopArguments`.
+- **Statements.** `trace(...)`, plain expression statements from `Pop`, and `function name(params) { ... }` (named) or an inline `function(params) { ... }` expression (anonymous) for `DefineFunction`/`DefineFunction2`. Function bodies are rendered recursively and indented by `RenderAs2Body`.
+- **Unary not.** `ActionNot` becomes `!expr`.
+
+Whenever an action is reached that the AS2 writer does not model, it first **flushes** any pending stack expressions as statements, then prints that action using the same `PcodeHead` head as the p-code mode. So unrecognized opcodes degrade gracefully to a p-code line rather than being dropped.
+
+### Sample AS2 output
+
+The same `Push "name"; Push "value"; SetVariable` sequence reconstructs to:
+
+```text
+name = "value";
+```
+
+A named function with a body of `Push "hi"; Trace`:
+
+```text
+function f(a) {
+  trace("hi");
+}
+```
+
+Register tracking lets a stored value reappear at its use site. Storing `"hi"` into register 0, then assigning it to `name`, yields (the leftover `"hi";` is the flushed `Pop` of the duplicated stack top):
+
+```text
+"hi";
+name = "hi";
+```
+
+## Linear-subset limitations
+
+Both modes operate on a single linear pass over the action list. The AS2 mode in particular only reconstructs a **straight-line subset** of AVM1 and deliberately does not attempt real control-flow recovery. Concretely:
+
+- **No branch resolution.** `Jump` and `If` print their raw `BranchOffset` (a signed byte offset) in p-code. The AS2 writer has no case for them, so they fall through to the p-code-style head after a stack flush. There is no reconstruction of `if`/`else`, `while`, or `for` from the underlying jumps.
+- **No labels or addresses.** Lines are not annotated with byte offsets or instruction indices, so a numeric branch offset cannot be correlated to a target line from the output alone.
+- **Symbolic stack is approximate.** `Pop` on an empty stack yields the literal `"undefined"` (via the `Pop` helper), and `StoreRegister` with nothing on the stack records `"undefined"`. Counts for `InitObject`/`InitArray`/arguments are parsed best-effort with `ParseCount`, which returns `0` for any non-integer fragment. Mismatched stack shapes therefore produce plausible-but-imperfect text rather than an error.
+- **No semantic validation.** The disassembler trusts the decoded actions; it does not verify that the reconstructed AS2 would recompile to the same bytecode. Treat AS2 output as a readable approximation and `Pcode` as the authoritative listing.
+- **Constant pool scope is linear.** The active pool is whatever the most recent `ActionConstantPool` set; there is no per-branch or per-scope pool analysis. An out-of-range or not-yet-seen constant index renders as `c{index}`.
+
+## When to use which
+
+Use `Pcode` when you need an accurate, instruction-faithful view — debugging a decoder, diffing bytecode, or confirming exactly what a `DoAction` tag contains. Use `As2` when you want a quick, readable sense of what the code *does*, accepting that branches and unusual stack patterns will be rendered loosely.

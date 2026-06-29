@@ -1,0 +1,168 @@
+---
+title: "Architecture & options"
+description: "How ShockwaveFlash.Rendering is layered (Model, Processing, Scene, Drawing), the IDrawer visitor and its Skia/SVG backends, RenderOptions and the diagnostics/error policy, the twips-to-pixels convention, and the supported feature matrix."
+---
+
+`ShockwaveFlash.Rendering` turns the characters parsed by `ShockwaveFlash` — shapes, sprites, timelines, morph shapes, buttons, text and bitmaps — into **SVG** and into raster images (**PNG / JPEG / WebP / animated GIF / PDF**) through a native, cross-platform **Skia** backend. There are no external tools: no Inkscape, rsvg or ImageMagick.
+
+The design is a clean layering [inspired](https://github.com/Arakne/ArakneSwf) by Arakne-Swf, but with rasterization pulled in-process via Skia rather than emitting SVG and shelling out. (The credit is recorded in the project's own rendering docs.)
+
+## The pipeline
+
+The library is organized into four layers, each a directory under `ShockwaveFlash.Rendering`:
+
+```text
+ShockwaveFlash                parser / writer (tags, types)
+   └─ ShockwaveFlash.Rendering
+        ├─ Model/       immutable drawable data (Shape, ImageDrawable, MorphShapeDefinition, …)
+        ├─ Processing/  tags → model (ShapeProcessor, TimelineProcessor, TextProcessor, …)
+        ├─ Scene/       display list (Timeline, Frame, FrameObject, BlendMode)
+        └─ Drawing/     IDrawer visitor + Skia & SVG backends
+```
+
+### 1. Entry point: `SwfRenderer`
+
+`SwfRenderer` is the façade you construct from a parsed file. It wraps the tag list and exposes characters as drawables. It implements three resolver interfaces — `ICharacterResolver`, `IImageResolver` and `IFontResolver` — so the processors below can resolve referenced character/image/font ids back through it:
+
+```csharp
+public sealed class SwfRenderer : IImageResolver, ICharacterResolver, IFontResolver
+{
+    public SwfRenderer(ShockwaveFlashFile file, RenderOptions? options = null);
+
+    public MovieDefinition Movie();
+    public IDrawable Character(int characterId);
+    // plus Shape / Sprite / Text / Button / Morph / ResolveImage / ResolveFont
+}
+```
+
+`Movie()` builds a `MovieDefinition` over the root tag list (including any `SetBackgroundColorTag`); `Character(id)` resolves a single character by id, trying shape → sprite → text → button → morph → image in order. Tag indices and decoded results are cached in dictionaries on the renderer, so repeated lookups are cheap and characters are materialized lazily.
+
+### 2. `Processing/` — tags to model
+
+The processors translate raw SWF tags/types into the immutable model:
+
+- `ShapeProcessor` walks `ShapeRecord`s (straight/curved edges, style changes), resolves fill and line style indices, and stitches edges into closed `ShapePath`s grouped by style. It maps core fills to `SolidFill`, `LinearGradientFill`, `RadialGradientFill` (focal gradients also map to `RadialGradientFill` with a `FocalPoint`) and `BitmapFill`. A `PathsBuilder` accumulates open contours per style key and reverses runs for `FillStyle0`.
+- `TimelineProcessor` replays the display-list tags (`PlaceObjectTag` … `PlaceObject4Tag`, `RemoveObject`/`RemoveObject2`, `ShowFrameTag`) into a `Timeline` of `Frame`s. It tracks per-depth `FrameObject` state, applies place/replace/modify semantics, maps the core `BlendMode` to the scene `BlendMode`, and computes per-frame bounds (expanding for filter spread).
+- `TextProcessor` lays out `DefineText` glyph runs; `EditTextProcessor` lays out `DefineEditText` including word-wrap, alignment, leading/margins/indent and a small HTML subset (`<p>`, `<br>`, `<font>` with `color`/`size`, and entity decoding).
+- `BitmapDecoder` decodes bitmap tags into a `RasterImage` (PNG-backed) using Skia.
+- `ResolvedFont` holds resolved glyphs plus em-square/ascent/descent/leading and a code→glyph index map.
+
+### 3. `Scene/` — the display list
+
+`Timeline` is an ordered list of `Frame`s; each `Frame` holds `FrameObject`s ordered by depth. A `FrameObject` carries everything needed to place a character: `Drawable`, `Matrix`, optional `ColorTransform`, `ClipDepth`, `BlendMode`, `Visible`, `Ratio`, `Name` and `Filters`. `Frame.Draw` is where clip masks are realized: objects with a `ClipDepth` open a clip via `StartClip` that stays active until the depth is passed, then `EndClip` closes it. `Timeline.FrameCount(recursive)` is depth-guarded (max nesting 16) to survive self-referential sprites.
+
+### 4. `Drawing/` — the `IDrawer` visitor and backends
+
+Everything drawable implements `IDrawable`:
+
+```csharp
+public interface IDrawable
+{
+    Rectangle Bounds { get; }
+    int FrameCount(bool recursive = false);
+    IDrawer Draw(IDrawer drawer, int frame = 0);
+    IDrawable TransformColors(ColorTransform colorTransform);
+}
+```
+
+A drawable does not know how to make pixels — it **pushes primitives** at an `IDrawer`, the streaming visitor:
+
+```csharp
+public interface IDrawer
+{
+    void Area(Rectangle bounds);
+    void Shape(Shape shape);
+    void Image(IImage image);
+    void Include(IDrawable drawable, Matrix matrix, int frame, IReadOnlyList<Filter> filters, BlendMode blendMode, string? name);
+    string StartClip(IDrawable drawable, Matrix matrix, int frame);
+    void EndClip(string clipId);
+    void Path(ShapePath path);
+}
+
+public interface IDrawer<out TResult> : IDrawer
+{
+    TResult Render();
+}
+```
+
+Two backends consume that stream:
+
+- **`SkiaDrawer : IDrawer<SKImage>`** — the native rasterizer. Static helpers `RenderToPng`, `RenderToJpeg`, `RenderToWebp`, `RenderToPdf` and `RenderToAnimatedGif` (which walks every frame) take an `IDrawable` and return bytes. `Include` concatenates the local matrix, and when a blend mode, layer, or image filter is present it draws into an `SKCanvas.SaveLayer`. Clip masks become real `ClipPath` intersections.
+- **`SvgDrawer : IDrawer<string>`** — emits SVG. `RenderToSvg` returns a string. Fills become solid colours, `linearGradient`/`radialGradient` (with `spreadMethod` and optional focal `fx`/`fy`) or bitmap `pattern`s; filters become `<filter>` primitive chains; blend modes map to CSS `mix-blend-mode`; clips become `clipPath`.
+
+One model, multiple outputs: the same `IDrawable.Draw` call feeds either backend.
+
+## RenderOptions: strict vs. collecting diagnostics
+
+`RenderOptions` is a small immutable record passed to `SwfRenderer` (and threaded into the processors):
+
+```csharp
+public sealed record RenderOptions
+{
+    public bool Strict { get; init; }
+    public IDiagnosticSink? Diagnostics { get; init; }
+}
+```
+
+The error policy has two independent dials:
+
+- **`Strict`** — when `true`, a recoverable problem (an undefined character, a fill/line style index out of range, a failed image decode, an unsupported bitmap format) is escalated to a thrown `RenderingException` (a `SwfException`). When `false` (the default), the renderer degrades gracefully: an undefined character becomes `MissingCharacter.Instance` (a no-op drawable), an unresolved bitmap fill becomes a transparent placeholder, and an unsupported fill is skipped.
+- **`Diagnostics`** — an optional `IDiagnosticSink`. Whether or not `Strict` is set, problems are reported to the sink first, so you can keep going *and* see what was skipped.
+
+```csharp
+public enum RenderSeverity { Info, Warning, Error }
+
+public readonly record struct RenderDiagnostic(RenderSeverity Severity, string Message);
+
+public interface IDiagnosticSink
+{
+    void Report(RenderDiagnostic diagnostic);
+}
+```
+
+A typical "lenient but observable" setup collects warnings without ever throwing:
+
+```csharp
+sealed class ListSink : IDiagnosticSink
+{
+    public List<RenderDiagnostic> Items { get; } = [];
+    public void Report(RenderDiagnostic diagnostic) => Items.Add(diagnostic);
+}
+
+var sink = new ListSink();
+var renderer = new SwfRenderer(swf, new RenderOptions { Strict = false, Diagnostics = sink });
+byte[] png = SkiaDrawer.RenderToPng(renderer.Movie());
+// sink.Items now lists any characters/styles/images that were skipped
+```
+
+Internally, `SwfRenderer.Guard<T>` wraps each resolve so a `SwfException` is reported and either rethrown (strict) or swallowed (lenient), and the processors call the same diagnostics sink for style/bitmap issues.
+
+## Twips to pixels
+
+The model keeps coordinates in **twips** — SWF's native unit, where **20 twips = 1 pixel** — for as long as possible. Bounds, edge endpoints, matrices and line widths all stay in twips through `Model`, `Processing` and `Scene`. Only the backend divides by 20 at the very end:
+
+- `SkiaDrawer` sizes its bitmap as `ceil(bounds.Width / 20 * scale)`, translates by `-bounds.XMin / 20`, and converts every edge coordinate with `edge.FromX / 20f`. Matrix translation components are divided by 20; the linear part (scale/rotation) is unit-less and passes through directly.
+- `SvgDrawer` writes a `Px(twips)` helper (`twips / 20`, rounded) for path data, widths and the `viewBox`.
+
+The optional `scale` parameter on the Skia render helpers multiplies the output resolution without touching the model. Gradients use a fixed gradient-square coordinate space (the SWF `819.2`-twip convention) shared by both backends.
+
+## Supported feature matrix
+
+| Feature | Support | Notes |
+| --- | --- | --- |
+| Shapes | Yes | `DefineShapeTag` → `Shape` of `ShapePath`s; straight & quadratic-curve edges; even-odd fill. |
+| Fill styles | Yes | `SolidFill`, `LinearGradientFill`, `RadialGradientFill` (incl. focal), `BitmapFill` (smoothed/repeating). Unknown fills → transparent placeholder + diagnostic. |
+| Line styles | Yes | Width, caps (`None`/`Square`/`Round`), joins (`Bevel`/`Miter`/`Round`), miter limit; solid colour or fill-stroked lines. |
+| Gradients | Yes | Spread `Pad`/`Reflect`/`Repeat`; interpolation `Rgb` and `LinearRgb` (the latter resampled in linear space via `GradientSampler`); focal point clamped to ±0.98. |
+| Colour transforms | Yes | `TransformColors` flows through shapes, fills, gradients, text, images; `RasterImage` re-tints pixel data. |
+| Blend modes | Yes (mapped) | `BlendMode` enum (Normal…HardLight). Skia maps to `SKBlendMode`; SVG maps the CSS-expressible subset to `mix-blend-mode`. Some modes approximate (Add→Screen, Subtract→Darken). |
+| Clip masks | Yes | `ClipDepth` opens a clip in `Frame.Draw`; Skia uses `ClipPath`, SVG uses `clipPath`. Nested sprite clips supported (depth-limited). |
+| Filters | Yes (Skia & SVG) | Blur, Glow (inc. inner), Drop shadow (inc. inner), Color matrix. Skia builds an `SKImageFilter`; SVG builds `<filter>` primitives. Bounds are expanded for filter spread. |
+| Morph shapes | Yes | `MorphShapeDefinition.AtRatio` interpolates edges, fills, line styles, gradients, matrices and bounds between start/end; driven by the place ratio. |
+| Text — static | Yes | `DefineText` glyph runs positioned per record (font, size, colour, offsets, advances). |
+| Text — edit | Yes | `DefineEditText` with word-wrap, alignment, margins/indent/leading, and an HTML subset (`<p>`, `<br>`, `<font color/size>`, entities). |
+| Bitmaps | Yes | Lossless color-map-8 / RGB15 / RGB32 (`DefineBitsLossless`/`2`), and JPEG (`DefineBits` + `JpegTables`, `DefineBitsJpeg2/3/4`) with separate alpha planes. Unsupported lossless formats throw/diagnose. |
+| Buttons | Yes | `DefineButton`/`DefineButton2` rendered in the `Up` state by default; per-record matrices, colour transforms, filters and blend modes. |
+| Output formats | Yes | Raster: PNG, JPEG, WebP, PDF, animated GIF (Skia). Vector: SVG. |
+
+All of the above is honoured by both the Skia and SVG backends except where the table notes a backend-specific approximation (notably the blend-mode subset that CSS can express). The rendering surface is newer and less battle-tested than the parser and may still evolve.

@@ -1,19 +1,163 @@
 ---
-title: Action tree
-description: Decode DoAction bytecode to a mutable action tree and re-encode it byte-for-byte.
+title: "Action tree"
+description: "Decode DoAction bytecode to a mutable action tree, mutate it, and re-encode byte-for-byte, with lenient vs strict handling of unknown and oversized opcodes."
 ---
 
-For surgical edits that preserve everything else, go through the mutable **action tree** instead of the
-value tree. Every action is a mutable class with settable properties; function/with/try bodies are
-owned, so editing one action never corrupts another.
+When you need surgical edits to a script while preserving everything else, decode the `DoActionTag` payload into a mutable **action tree** instead of evaluating it to a value tree. Each action is a plain mutable class with settable properties; nested function/`with`/`try` bodies are owned as raw `ReadOnlyMemory<byte>`, so editing one action can never corrupt another.
 
 ```csharp
-var actions = tag.DecodeActions(version);       // IReadOnlyList<Action>
+using ShockwaveFlash.Avm1;
+
+var version = swf.Header.Version;
+var tag = swf.Tags.OfType<DoActionTag>().First();
+
+IReadOnlyList<Action> actions = tag.DecodeActions(version); // decode
 // ... inspect or mutate actions in place ...
-var newTag = tag.WithActions(actions, version); // re-encoded; byte-identical when unchanged
+var newTag = tag.WithActions(actions, version);            // re-encode
 ```
 
-`Action.DecodeCollection(bytes, version)` decodes leniently by default — unknown opcodes are kept as
-`ActionUnknown`, an unknown push type stops that push, and a length mismatch is tolerated. Pass
-`strict: true` to promote all of these to a typed `SwfFormatException` (and to reject malformed SWF6+
-UTF-8 strings).
+`DecodeActions` and `WithActions` are extension methods on `DoActionTag` (in `ShockwaveFlash.Avm1.Avm1Extensions`). They forward to the static `Action.DecodeCollection` / `Action.EncodeCollection`, so you can also work directly on a `ReadOnlyMemory<byte>` buffer that isn't attached to a tag.
+
+## The action model
+
+Every action derives from the abstract base `Action`:
+
+```csharp
+public abstract class Action
+{
+    public ActionOpcode Opcode { get; }
+
+    protected Action(ActionOpcode opcode) { Opcode = opcode; }
+
+    public virtual void Encode(MemoryWriter writer, Avm1Context context) { }
+    public virtual void EncodeTrailer(MemoryWriter writer) { }
+}
+```
+
+The `Opcode` is fixed at construction (each subclass passes its own `ActionOpcode` to the base constructor) and is read-only — you change *behavior* by swapping or mutating actions, not by reassigning an opcode. Operand-carrying actions add settable properties; the operand-free ones add nothing. For example `ActionGotoFrame` exposes a `ushort Frame { get; set; }`, `ActionIf` a `short BranchOffset { get; set; }`, and `ActionConstantPool` an `IReadOnlyList<string> Constants { get; set; }`. Operand-free actions such as `ActionStop`, `ActionPlay`, or `ActionPop` are empty marker classes:
+
+```csharp
+public sealed class ActionStop : Action
+{
+    public ActionStop() : base(ActionOpcode.Stop) { }
+}
+```
+
+### Action categories
+
+The concrete classes are organized by the SWF version that introduced each opcode (verified against the source tree). The opcode values live in the `ActionOpcode : byte` enum:
+
+- **Special** (`ShockwaveFlash.Avm1.Special`) — `ActionEnd` (opcode `0x00`, terminates a script) and `ActionUnknown` (the fallback for unrecognized opcodes).
+- **Swf1** — the original playback controls: `ActionNextFrame`, `ActionPreviousFrame`, `ActionPlay`, `ActionStop`, `ActionToggleQuality`, `ActionGotoFrame`, `ActionGetURL`.
+- **Swf2** — `ActionStopSounds`.
+- **Swf3** — frame/label navigation: `ActionGoToLabel`, `ActionSetTarget`, `ActionWaitForFrame`.
+- **Swf4** — the stack machine: arithmetic and comparison (`ActionAdd`, `ActionSubtract`, `ActionMultiply`, `ActionDivide`, `ActionEquals`, `ActionLess`), logic (`ActionAnd`, `ActionOr`, `ActionNot`), string ops (`ActionStringEquals`, `ActionStringLength`, `ActionStringExtract`, `ActionStringAdd`, `ActionStringLess`, the `MB*` multibyte variants), variables/properties (`ActionGetVariable`, `ActionSetVariable`, `ActionGetProperty`, `ActionSetProperty`), sprite ops (`ActionCloneSprite`, `ActionRemoveSprite`, `ActionStartDrag`, `ActionEndDrag`), control flow (`ActionPush`, `ActionPop`, `ActionJump`, `ActionIf`, `ActionCall`, `ActionGotoFrame2`, `ActionWaitForFrame2`), plus `ActionTrace`, `ActionGetTime`, `ActionRandomNumber`, `ActionToInteger`, `ActionGetURL2`, `ActionSetTarget2`, `ActionCharToAscii`/`ActionAsciiToChar`.
+- **Swf5** — ActionScript objects and functions: `ActionDefineFunction`, `ActionDefineLocal`/`ActionDefineLocal2`, `ActionCallFunction`/`ActionCallMethod`/`ActionNewMethod`, `ActionReturn`, `ActionNewObject`, `ActionInitArray`/`ActionInitObject`, `ActionGetMember`/`ActionSetMember`, `ActionDelete`/`ActionDelete2`, `ActionEnumerate`, `ActionWith`, `ActionConstantPool`, `ActionStoreRegister`, the bitwise ops (`ActionBitAnd`, `ActionBitOr`, `ActionBitXor`, `ActionBitLShift`, `ActionBitRShift`, `ActionBitURShift`), the typed comparison/conversion ops (`ActionAdd2`, `ActionLess2`, `ActionEquals2`, `ActionToNumber`, `ActionToString`, `ActionTypeOf`, `ActionTargetPath`, `ActionModulo`, `ActionIncrement`/`ActionDecrement`, `ActionPushDuplicate`, `ActionStackSwap`).
+- **Swf6** — `ActionEnumerate2`, `ActionGreater`, `ActionStringGreater`, `ActionStrictEquals`, `ActionInstanceOf`.
+- **Swf7** — `ActionDefineFunction2`, `ActionTry`, `ActionThrow`, `ActionCastOp`, `ActionImplementsOp`, `ActionExtends`.
+
+## Decoding: lenient by default
+
+`Action.DecodeCollection` walks the buffer one action at a time. For each entry it reads the one-byte opcode; opcodes `>= 128` (`0x80`+) carry a little-endian `UInt16` payload length, so the decoder slices off exactly that many bytes into an inner reader and dispatches on the opcode:
+
+```csharp
+var opcodeRaw = reader.ReadUInt8();
+var opcode = (ActionOpcode)opcodeRaw;
+
+var payloadLength = 0;
+if (opcodeRaw >= 128)
+    payloadLength = reader.ReadUInt16();
+
+var actionReader = new MemoryReader(reader.ReadMemory(payloadLength));
+var action = Decode(actionReader, reader, opcode, context);
+```
+
+Nested-body actions (`ActionWith`, `ActionDefineFunction`, `ActionDefineFunction2`, `ActionTry`) read their declared header fields from `actionReader` and then pull their body bytes from the **outer** reader, because the body lives after the action header rather than inside the declared payload length.
+
+The default mode (`strict: false`) is forgiving in three specific ways:
+
+1. **Unknown opcode** → the `switch` default branch produces an `ActionUnknown` carrying the opcode and the rest of its payload verbatim:
+
+   ```csharp
+   public sealed class ActionUnknown : Action
+   {
+       public ReadOnlyMemory<byte> Data { get; set; }
+
+       public static ActionUnknown Decode(MemoryReader reader, ActionOpcode opcode)
+           => new ActionUnknown(opcode, reader.ReadMemoryToEnd());
+   }
+   ```
+
+2. **Unknown push value type** → `ActionPush.Decode` simply `break`s out of its loop, keeping the values it has decoded so far and discarding the unrecognized tail.
+
+3. **Length mismatch** → if a known action declares more payload than it consumes, the leftover bytes in `actionReader` are ignored.
+
+Decoding stops as soon as an `ActionEnd` is produced, so trailing padding after the terminator is not turned into actions.
+
+## Strict mode
+
+Pass `strict: true` to promote all three lenient cases to a typed `SwfFormatException`:
+
+```csharp
+var actions = Action.DecodeCollection(tag.Data, version, strict: true);
+```
+
+In strict mode:
+
+- An `ActionUnknown` result throws `Unknown AVM1 opcode 0x..`.
+- A declared-vs-consumed length mismatch (`actionReader.Remaining > 0`) throws.
+- `ActionPush` throws on an unknown push value type instead of stopping.
+- String decoding for SWF 6+ uses a throwing UTF-8 decoder (`UTF8Encoding(false, throwOnInvalidBytes: true)`), so malformed UTF-8 raises a `SwfFormatException` (`DecoderFallbackException` is caught and rewrapped as "contains invalid UTF-8"). For SWF 5 and below strings are Latin-1, which can't fail to decode. This encoding choice lives in `Avm1Context`:
+
+  ```csharp
+  Encoding = version >= 6 ? (strict ? s_strictUtf8 : Encoding.UTF8) : Encoding.Latin1;
+  ```
+
+Strict mode only affects *decoding*. `EncodeCollection` always runs without a strict flag.
+
+## Mutating and re-encoding byte-for-byte
+
+`Action.EncodeCollection` writes each action back out. For opcodes below `0x80` it emits just the one-byte opcode. For the rest it asks the action to write its header into a scratch buffer via `Encode`, prefixes the little-endian length, copies the header, and then lets the action append any trailing body via `EncodeTrailer`:
+
+```csharp
+body.Reset();
+action.Encode(body, context);
+writer.WriteUInt16((ushort)body.Position);
+writer.WriteMemory(body.WrittenMemory);
+action.EncodeTrailer(writer);
+```
+
+Because every field is serialized from the action's own properties using the same primitives that decoded it, an **unmodified** tree round-trips byte-identically. Mutating a property and re-encoding produces a faithful new payload for that action while leaving every neighbor untouched, which is exactly why the action tree is preferable to hand-editing bytes. `ActionUnknown` round-trips its raw `Data` unchanged, so even opcodes the library doesn't model survive a decode/encode cycle intact.
+
+Two caveats on exactness:
+
+- The byte-for-byte guarantee holds for a clean decode. If lenient decoding *tolerated* a length mismatch (extra trailing bytes inside a declared payload), those bytes are dropped and the re-encoded action will be shorter than the original. Decode in strict mode first if you need to detect that case before editing.
+- An unknown push value type discards the remainder of that `ActionPush` in lenient mode, so that push won't round-trip; strict mode turns it into an exception instead.
+
+## Oversized opcodes
+
+AVM1 encodes action payload lengths as a `UInt16`, capping any single action body at 65535 bytes. The encoder enforces this rather than silently truncating. The top-level loop throws when a body overflows:
+
+```csharp
+if (body.Position > ushort.MaxValue)
+    throw new SwfFormatException(
+        $"AVM1 action {action.Opcode} body of {body.Position} bytes exceeds the 65535-byte action limit.");
+```
+
+Nested bodies are checked the same way through the protected helper `Action.CheckedBodySize`, used by `ActionWith`, `ActionDefineFunction`, `ActionDefineFunction2`, and `ActionTry` when they write their `code size` fields:
+
+```csharp
+protected static ushort CheckedBodySize(int length)
+{
+    if (length > ushort.MaxValue)
+        throw new SwfFormatException(
+            $"AVM1 nested body of {length} bytes exceeds the 65535-byte limit.");
+    return (ushort)length;
+}
+```
+
+So if you grow a function body, `with` block, or `try`/`catch`/`finally` body past 64 KiB and re-encode, you get a clear `SwfFormatException` instead of a corrupt length field.
+
+## Where this fits
+
+The action tree is the structural counterpart to the [value tree](/docs/avm1/value-tree): the value tree replays a data script to typed globals for content edits, while the action tree exposes the bytecode itself for instruction-level edits. Note that *executing* an action (rather than rewriting it) is a separate concern handled by the evaluator; opcodes the machine can't run surface as `Avm1UnsupportedActionException` during evaluation, not during decode.

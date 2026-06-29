@@ -1,0 +1,252 @@
+---
+title: "Editing & writing"
+description: "Disassemble a SWF into a mutable tag tree, edit or replace tags, re-assemble to bytes, verify the round-trip, and handle the typed SWF exception hierarchy."
+---
+
+## The edit cycle
+
+ShockwaveFlash has no separate "mutator" or "builder" API. The whole editing model is three steps against one plain class, `ShockwaveFlashFile`:
+
+1. **Disassemble** raw bytes into a `ShockwaveFlashFile`.
+2. **Edit** the in-memory tree: the `Header` and `Tags` are public, settable, and fully mutable.
+3. **Assemble** the tree back into bytes.
+
+```csharp
+using ShockwaveFlash;
+
+byte[] bytes = File.ReadAllBytes("movie.swf");
+
+ShockwaveFlashFile swf = ShockwaveFlashFile.Disassemble(bytes);
+
+// ... edit swf.Header / swf.Tags ...
+
+ReadOnlyMemory<byte> output = swf.Assemble();
+File.WriteAllBytes("movie.edited.swf", output.ToArray());
+```
+
+`ShockwaveFlashFile` exposes exactly the state you edit:
+
+```csharp
+public sealed class ShockwaveFlashFile
+{
+    public ShockwaveFlashHeader Header { get; set; }
+    public List<Tag> Tags { get; set; }
+
+    public static ShockwaveFlashFile Disassemble(ReadOnlyMemory<byte> data, bool lenient = false);
+    public ReadOnlyMemory<byte> Assemble();
+}
+```
+
+`Tags` is an ordinary `List<Tag>`, so every standard list operation (`Add`, `Insert`, `RemoveAt`, index assignment, LINQ) is available. The order of the list is the order tags are written on `Assemble`.
+
+## Disassemble
+
+`Disassemble` is static and takes a `ReadOnlyMemory<byte>` — a `byte[]` converts implicitly. It reads the 8-byte file header (`FWS`/`CWS`/`ZWS` signature, version, file length), transparently decompresses the body for zlib (`CWS`) and LZMA (`ZWS`) movies, then decodes every tag into a strongly typed `Tag` subclass.
+
+```csharp
+var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+
+Console.WriteLine(swf.Header.Version);   // e.g. 6
+Console.WriteLine(swf.Tags.Count);
+```
+
+The optional `lenient` flag controls error handling — see [Lenient parsing](#lenient-parsing) below.
+
+## Edit the mutable tree
+
+### Mutate a tag in place
+
+Tag subclasses expose their fields as settable properties. Cast the `Tag` to its concrete type and assign:
+
+```csharp
+using ShockwaveFlash.Tags.Control;
+using ShockwaveFlash.Types;
+
+foreach (var tag in swf.Tags.OfType<SetBackgroundColorTag>())
+    tag.BackgroundColor = new Color(9, 8, 7, 255);
+```
+
+`Color` is a `readonly record struct (byte R, byte G, byte B, byte A)`, so the new value is assigned wholesale. The change is captured the next time you call `Assemble`.
+
+### Append, insert, and remove tags
+
+Because `Tags` is a `List<Tag>`, structural edits are just list calls. Each `Tag` subtype is constructed with a `TagMetadata` plus its payload — for new tags you can reuse an existing tag's metadata (only `Metadata.Code` participates in equality; `Offset`/`Length` are recomputed on encode):
+
+```csharp
+using ShockwaveFlash.Tags.Control;
+using ShockwaveFlash.Types;
+
+var background = swf.Tags.OfType<SetBackgroundColorTag>().First();
+
+// Append a copy
+swf.Tags.Add(new SetBackgroundColorTag(background.Metadata, Color.White));
+
+// Remove the last tag
+swf.Tags.RemoveAt(swf.Tags.Count - 1);
+```
+
+### Edit the header
+
+`ShockwaveFlashHeader` is a `readonly record struct`, so you do not mutate a field directly — you assign a whole new header. Use a `with` expression to change one field:
+
+```csharp
+swf.Header = swf.Header with { FrameRate = swf.Header.FrameRate };
+```
+
+The header carries `Compression`, `Version`, `FileLength`, `FrameSize`, `FrameRate`, and `FrameCount`. Note that on `Assemble` the output `Compression` and `Version` are taken from `Header`, and `FileLength` is recomputed — so the stored `FileLength` is informational and need not be kept in sync by hand.
+
+## Replacing a tag
+
+There is no `ReplaceTag` method; replacement is a list operation. There are two idioms, both verified by the library's own editing tests.
+
+**Replace by index** — swap in a brand-new tag instance:
+
+```csharp
+using ShockwaveFlash.Tags.Control;
+using ShockwaveFlash.Types;
+
+var background = (SetBackgroundColorTag)swf.Tags[0];
+swf.Tags[0] = new SetBackgroundColorTag(background.Metadata, new Color(1, 2, 3, 255));
+```
+
+**Mutate in place** — when you only need to change fields, edit the existing instance instead of allocating a new one:
+
+```csharp
+((SetBackgroundColorTag)swf.Tags[0]).BackgroundColor = new Color(1, 2, 3, 255);
+```
+
+Both are reflected on the next `Assemble`. To replace by identity rather than position, find the index first:
+
+```csharp
+int i = swf.Tags.IndexOf(oldTag);
+if (i >= 0)
+    swf.Tags[i] = newTag;
+```
+
+## Assemble
+
+`Assemble` walks `Header` then every tag in `Tags`, re-encodes the body, applies the compression named by `Header.Compression`, and prepends a fresh 8-byte file header with a recomputed `FileLength`. It returns a `ReadOnlyMemory<byte>`:
+
+```csharp
+ReadOnlyMemory<byte> output = swf.Assemble();
+File.WriteAllBytes("out.swf", output.ToArray());
+```
+
+Tag length prefixes are recomputed during encode: tags shorter than 63 bytes use the short form, larger tags automatically switch to the long (32-bit length) form. You never manage those prefixes yourself.
+
+## Round-trip & byte-identical verification
+
+The most useful correctness check is a **disassemble → assemble → disassemble** round-trip: re-parse the bytes you produced and confirm the model matches. This is exactly what the library's corpus tests do:
+
+```csharp
+var original = ShockwaveFlashFile.Disassemble(File.ReadAllBytes(path));
+var reparsed = ShockwaveFlashFile.Disassemble(original.Assemble());
+
+// Structural check
+original.Tags.Count.ShouldBe(reparsed.Tags.Count);
+```
+
+For a stricter guarantee, compare the raw bytes before and after a no-op round-trip. Because the encoder is deterministic, re-assembling an unedited movie should reproduce the body verbatim:
+
+```csharp
+var swf = ShockwaveFlashFile.Disassemble(bytes);
+ReadOnlyMemory<byte> again = swf.Assemble();
+
+bool identical = again.Span.SequenceEqual(bytes);
+```
+
+When comparing for byte identity, keep these caveats in mind:
+
+- **Compression is re-applied.** A `CWS`/`ZWS` movie is re-compressed on `Assemble`; the compressed bytes can differ from the original even when the decompressed body is identical. For a true byte comparison, compare the decompressed bodies, or set `Header.Compression` to `ShockwaveFlashCompression.None` on both sides.
+- **`FileLength` is recomputed**, so a hand-edited or stale length in the source will not survive a round-trip — by design.
+
+After you make an edit, re-parse the output and assert on the field you changed to confirm it took effect:
+
+```csharp
+var reparsed = ShockwaveFlashFile.Disassemble(swf.Assemble());
+var color = ((SetBackgroundColorTag)reparsed.Tags[0]).BackgroundColor;
+// color now reflects your edit
+```
+
+## Typed error handling
+
+Every parsing and encoding failure throws a type derived from `SwfException`, so you can catch the whole family with one `catch` or discriminate by subtype. The base type:
+
+```csharp
+namespace ShockwaveFlash.Exceptions;
+
+public class SwfException : Exception
+{
+    public SwfException(string message);
+    public SwfException(string message, Exception innerException);
+}
+```
+
+The sealed subtypes and what each one means:
+
+| Exception | Thrown when |
+| --- | --- |
+| `SwfFormatException` | The bytes violate the SWF structure: a bad signature byte (not `F`/`C`/`Z`), missing `WS`, a tag whose decoded length does not match its declared length, or tag nesting past the depth limit. |
+| `SwfTruncatedException` | The reader ran off the end of the buffer — a tag length runs past the data, or a null-terminated string never terminates. |
+| `SwfCompressionException` | A zlib or LZMA body is corrupt, declares an invalid/oversized uncompressed length, or fails to decompress/compress. Wraps the underlying codec error as `InnerException`. |
+| `SwfUnsupportedException` | A well-formed but unhandled construct: an unknown compression mode, an unrecognized bitmap format, or an unsupported fill/filter/shape record on encode. |
+
+Catch the base type to handle any SWF problem uniformly:
+
+```csharp
+using ShockwaveFlash;
+using ShockwaveFlash.Exceptions;
+
+try
+{
+    var swf = ShockwaveFlashFile.Disassemble(bytes);
+    File.WriteAllBytes("out.swf", swf.Assemble().ToArray());
+}
+catch (SwfException ex)
+{
+    Console.Error.WriteLine($"SWF error: {ex.Message}");
+}
+```
+
+Or discriminate to react differently — for example, retrying corrupt input in lenient mode:
+
+```csharp
+try
+{
+    return ShockwaveFlashFile.Disassemble(bytes);
+}
+catch (SwfTruncatedException)
+{
+    // The file is genuinely cut short — nothing to recover.
+    throw;
+}
+catch (SwfCompressionException ex)
+{
+    Console.Error.WriteLine($"Bad container: {ex.Message} ({ex.InnerException?.Message})");
+    throw;
+}
+catch (SwfFormatException)
+{
+    // A structural problem in a tag — retry tolerantly (see below).
+    return ShockwaveFlashFile.Disassemble(bytes, lenient: true);
+}
+```
+
+Note that `SwfCompressionException` and `SwfFormatException` may carry an `InnerException` (e.g. the raw codec failure), whereas `SwfTruncatedException` and `SwfUnsupportedException` only carry a message.
+
+## Lenient parsing
+
+Passing `lenient: true` to `Disassemble` changes how a malformed *known* tag is handled. In strict mode (the default) a tag that throws an `SwfException` while decoding aborts the whole parse. In lenient mode the offending tag is captured as an `UnknownTag` holding its raw body, and parsing continues with the next tag:
+
+```csharp
+// Strict: throws on the corrupt tag
+ShockwaveFlashFile.Disassemble(file);
+
+// Lenient: corrupt tag becomes an UnknownTag, parsing continues
+var swf = ShockwaveFlashFile.Disassemble(file, lenient: true);
+
+var salvaged = swf.Tags.OfType<UnknownTag>().First();
+byte[] raw = salvaged.Data.ToArray();   // the undecoded payload
+```
+
+An `UnknownTag` re-encodes its `Data` byte-for-byte on `Assemble`, so lenient parsing preserves bytes it could not interpret rather than dropping them. This makes lenient mode a safe fallback when you need to edit one well-understood tag inside an otherwise partly-unsupported movie.

@@ -5,22 +5,44 @@ description: Install the packages and load your first SWF.
 
 ## Install
 
+The library ships as three independent packages — add only what you need. All target **.NET 10**.
+
 ```sh
 dotnet add package ShockwaveFlash             # read / write SWF
 dotnet add package ShockwaveFlash.Avm1        # AVM1 bytecode & data scripts
 dotnet add package ShockwaveFlash.Rendering   # render to PNG/JPEG/WebP/GIF/PDF/SVG
 ```
 
-All three target **.NET 10**. On headless Linux, also add
-`SkiaSharp.NativeAssets.Linux.NoDependencies` for rendering.
+<Callout title="Headless Linux">
+For rendering on a server, also add `SkiaSharp.NativeAssets.Linux.NoDependencies` so Skia has a native
+backend.
+</Callout>
 
-## Load and inspect a SWF
+## Your first SWF
+
+<Steps>
+
+<Step>
+
+### Load a file
+
+`ShockwaveFlashFile.Disassemble` parses the bytes into a strongly-typed, mutable movie.
 
 ```csharp
 using ShockwaveFlash;
 
 var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+```
 
+</Step>
+
+<Step>
+
+### Inspect it
+
+The header and the tag list are plain, typed objects.
+
+```csharp
 Console.WriteLine($"SWF v{swf.Header.Version} ({swf.Header.Compression})");
 Console.WriteLine($"Frame size : {swf.Header.FrameSize}");
 Console.WriteLine($"Frame rate : {swf.Header.FrameRate.ToSingle()} fps");
@@ -30,9 +52,27 @@ foreach (var tag in swf.Tags)
     Console.WriteLine($"  {tag.Metadata.Code} ({tag.Metadata.Length} bytes)");
 ```
 
+</Step>
+
+<Step>
+
+### Write it back
+
+Edit the tree in place, then `Assemble` — the round-trip is lossless.
+
+```csharp
+File.WriteAllBytes("copy.swf", swf.Assemble().ToArray());
+```
+
+</Step>
+
+</Steps>
+
 ## Where to next
 
-- [SWF reading & writing](/docs/swf) — disassemble, edit tags, assemble losslessly.
-- [AVM1](/docs/avm1) — disassemble bytecode and evaluate data scripts.
-- [Serialization](/docs/serialization) — map AVM1 globals to your own types, `System.Text.Json` style.
-- [Rendering](/docs/rendering) — render characters to images and SVG.
+<Cards>
+  <Card title="SWF reading & writing" href="/docs/swf" description="The tag model, the wire format, editing and round-trips." />
+  <Card title="AVM1" href="/docs/avm1" description="Disassemble bytecode, evaluate data scripts, edit globals." />
+  <Card title="Serialization" href="/docs/serialization" description="Map AVM1 globals to your own records, reflection-free." />
+  <Card title="Rendering" href="/docs/rendering" description="Render characters to images and SVG." />
+</Cards>

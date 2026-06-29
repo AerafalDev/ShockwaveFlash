@@ -1,0 +1,48 @@
+---
+title: Overview
+description: Render SWF characters to PNG/JPEG/WebP/GIF/PDF via Skia, and to SVG.
+---
+
+The `ShockwaveFlash.Rendering` package turns SWF characters — shapes, sprites, timelines, morph shapes,
+text and images — into **SVG** and into raster images (**PNG / JPEG / WebP / animated GIF / PDF**)
+through a native, cross-platform **Skia** backend. No external tools — no Inkscape, rsvg or ImageMagick.
+
+```sh
+dotnet add package ShockwaveFlash.Rendering
+```
+
+<Callout title="Headless Linux">
+On a server, also add `SkiaSharp.NativeAssets.Linux.NoDependencies` so Skia has a native backend.
+</Callout>
+
+```csharp
+using ShockwaveFlash;
+using ShockwaveFlash.Rendering;
+using ShockwaveFlash.Rendering.Drawing.Skia;
+
+var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+var renderer = new SwfRenderer(swf);
+
+byte[] png = SkiaDrawer.RenderToPng(renderer.Movie(), scale: 2f);
+File.WriteAllBytes("movie.png", png);
+```
+
+<Cards>
+  <Card title="Rendering to images & SVG" href="/docs/rendering/formats" description="Build a drawable, then encode it to PNG, JPEG, WebP, animated GIF, PDF or SVG." />
+  <Card title="Architecture & options" href="/docs/rendering/architecture" description="The Model → Processing → Scene → Drawing layering, the IDrawer visitor, RenderOptions, and the feature matrix." />
+</Cards>
+
+## At a glance
+
+- **Skia is the native rasterizer** — exact gradients, blend modes, filters and anti-aliasing,
+  cross-platform, no shelling out.
+- **`IDrawer` is a streaming visitor** — a drawable pushes primitives; a backend turns them into pixels
+  or SVG. One model, multiple outputs.
+- **Coordinates stay in twips** until the backend converts to pixels; the optional `scale` multiplies
+  output resolution without touching the model.
+- **Tunable error policy** via `RenderOptions` — `Strict` to fail fast, or an `IDiagnosticSink` to
+  collect what was skipped and keep going.
+
+<Callout type="warn" title="Status">
+The rendering surface is newer and less battle-tested than the parser, and may still evolve.
+</Callout>

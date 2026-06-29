@@ -6,13 +6,13 @@ description: Read, edit, write and render SWF files in pure .NET 10.
 Read, edit and write **SWF** (Shockwave Flash) files — their AVM1 ActionScript, and render them to
 images or SVG — entirely in code, on **.NET 10**. Fast, allocation-light, and round-trips losslessly.
 
-## Packages
-
-| Package | What it does |
-| --- | --- |
-| `ShockwaveFlash` | The SWF container: disassemble a `.swf` into a strongly-typed, mutable tag tree and assemble it back losslessly. |
-| `ShockwaveFlash.Avm1` | AVM1 `DoAction` bytecode: decode actions, evaluate data scripts to a typed value tree, edit, write back, and map to your own records. |
-| `ShockwaveFlash.Rendering` | Render shapes, sprites, timelines and text to **PNG / JPEG / WebP / GIF / PDF** (Skia) and **SVG**. |
+<Cards>
+  <Card title="Getting started" href="/docs/getting-started" description="Install the packages and load your first SWF." />
+  <Card title="SWF reading & writing" href="/docs/swf" description="Disassemble a SWF into a mutable tag tree, edit it, assemble it back losslessly." />
+  <Card title="AVM1" href="/docs/avm1" description="Disassemble DoAction bytecode and evaluate data scripts to a typed value tree." />
+  <Card title="Serialization" href="/docs/serialization" description="Map AVM1 globals to your own types, System.Text.Json style." />
+  <Card title="Rendering" href="/docs/rendering" description="Render shapes, sprites and text to images and SVG via Skia." />
+</Cards>
 
 ## Highlights
 
@@ -27,9 +27,9 @@ images or SVG — entirely in code, on **.NET 10**. Fast, allocation-light, and 
 
 ## What it isn't
 
+<Callout type="warn" title="Scope">
 - No AVM2 (`DoABC`) execution — ABC bytecode is preserved verbatim, never run.
 - The AVM1 evaluator is **linear only** (data scripts): no control flow, function calls, or display
   objects.
 - The AS2 listing is best-effort, not a full decompiler.
-
-Continue to [Getting started](/docs/getting-started).
+</Callout>

@@ -1,4 +1,4 @@
 {
   "title": "AVM1",
-  "pages": ["index", "value-tree", "actions"]
+  "pages": ["index", "value-tree", "actions", "disassembler", "machine"]
 }
