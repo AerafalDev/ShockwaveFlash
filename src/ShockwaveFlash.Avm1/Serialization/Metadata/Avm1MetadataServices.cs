@@ -56,6 +56,7 @@ public static class Avm1MetadataServices
             IsConstructorParameter = values.IsConstructorParameter,
             Settable = values.Setter is not null,
             Order = values.Order,
+            IsExtensionData = values.IsExtensionData,
         };
     }
 }

@@ -96,6 +96,7 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
             var (nullable, throwIfMissing, isValueScalar, underlying) = Classify(memberType, member, nullability, attribute is not null);
             var required = throwIfMissing || member.GetCustomAttribute<Avm1RequiredAttribute>() is not null;
             var order = member.GetCustomAttribute<Avm1PropertyOrderAttribute>()?.Order ?? 0;
+            var isExtensionData = member.GetCustomAttribute<Avm1ExtensionDataAttribute>() is not null;
 
             info.Properties.Add(new Avm1PropertyInfo
             {
@@ -112,6 +113,7 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
                 Settable = settable,
                 IsRequired = required,
                 Order = order,
+                IsExtensionData = isExtensionData,
             });
         }
 

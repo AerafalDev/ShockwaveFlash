@@ -172,6 +172,8 @@ internal static class Avm1ContextEmitter
             builder.AppendIndentedLine("IsValueScalar = true,");
         if (member.Order != 0)
             builder.AppendIndentedLine($"Order = {member.Order.ToString(System.Globalization.CultureInfo.InvariantCulture)},");
+        if (member.IsExtensionData)
+            builder.AppendIndentedLine("IsExtensionData = true,");
 
         builder.AppendIndentedLine("IsConstructorParameter = true,");
 

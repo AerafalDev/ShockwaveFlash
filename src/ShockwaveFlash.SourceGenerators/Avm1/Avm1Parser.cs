@@ -87,6 +87,7 @@ internal static class Avm1Parser
                 ConverterTypeFqn = converterTypeFqn,
                 ThrowIfMissing = throwIfMissing,
                 Order = GetPropertyOrder(member),
+                IsExtensionData = HasAttribute(member, Avm1SerializableGenerator.Avm1ExtensionDataAttributeName),
             });
         }
 
@@ -269,7 +270,7 @@ internal static class Avm1Parser
             _ => false,
         };
 
-        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false, null, 0);
+        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false, null, 0, false);
         return true;
     }
 

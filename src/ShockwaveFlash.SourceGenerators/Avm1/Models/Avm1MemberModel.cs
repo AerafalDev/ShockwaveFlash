@@ -10,4 +10,5 @@ internal readonly record struct Avm1MemberModel(
     bool IsConstructorParameter,
     bool IsSettable,
     string? ConverterTypeFqn,
-    int Order);
+    int Order,
+    bool IsExtensionData);

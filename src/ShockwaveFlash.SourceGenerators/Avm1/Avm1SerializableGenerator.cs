@@ -16,6 +16,7 @@ public sealed class Avm1SerializableGenerator : IIncrementalGenerator
     internal const string Avm1RequiredAttributeName = "ShockwaveFlash.Avm1.Serialization.Avm1RequiredAttribute";
     internal const string Avm1ConstructorAttributeName = "ShockwaveFlash.Avm1.Serialization.Avm1ConstructorAttribute";
     internal const string Avm1PropertyOrderAttributeName = "ShockwaveFlash.Avm1.Serialization.Avm1PropertyOrderAttribute";
+    internal const string Avm1ExtensionDataAttributeName = "ShockwaveFlash.Avm1.Serialization.Avm1ExtensionDataAttribute";
     internal const string Avm1SerializableAttributeName = "ShockwaveFlash.Avm1.Serialization.Avm1SerializableAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

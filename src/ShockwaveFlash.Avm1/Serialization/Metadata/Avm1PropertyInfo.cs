@@ -16,6 +16,8 @@ public sealed class Avm1PropertyInfo
 
     internal bool Settable { get; set; }
 
+    internal bool IsExtensionData { get; set; }
+
     public string Name { get; set; } = string.Empty;
 
     public string MemberName { get; set; } = string.Empty;

@@ -22,5 +22,7 @@ public sealed class Avm1PropertyInfoValues<T>
 
     public int Order { get; init; }
 
+    public bool IsExtensionData { get; init; }
+
     public Type? ConverterType { get; init; }
 }
