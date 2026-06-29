@@ -10,18 +10,37 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
 {
     public Avm1TypeInfo? GetTypeInfo(Type type, Avm1SerializerOptions options)
     {
-        var converter = options.ResolveConverter(type);
         var info = CreateTypeInfo(type);
-        info.Converter = converter;
-        info.Kind = KindOf(converter);
         info.Options = options;
 
         var globalName = type.GetCustomAttribute<Avm1ObjectAttribute>()?.GlobalName;
         if (!string.IsNullOrEmpty(globalName))
             info.BindingPath = globalName!.Split('.');
 
+        if (type.GetCustomAttribute<Avm1PolymorphicAttribute>() is { } polymorphic)
+        {
+            info.Converter = (Avm1Converter)Activator.CreateInstance(typeof(Avm1PolymorphicConverter<>).MakeGenericType(type))!;
+            info.Kind = Avm1TypeInfoKind.None;
+            info.Polymorphism = BuildPolymorphism(type, polymorphic);
+            return info;
+        }
+
+        var converter = options.ResolveConverter(type);
+        info.Converter = converter;
+        info.Kind = KindOf(converter);
+
         if (info.Kind is Avm1TypeInfoKind.Object)
             info.SetPopulate(target => Populate(target, type, options));
+
+        return info;
+    }
+
+    private static Avm1PolymorphismInfo BuildPolymorphism(Type type, Avm1PolymorphicAttribute attribute)
+    {
+        var info = new Avm1PolymorphismInfo { DiscriminatorName = attribute.TypeDiscriminatorPropertyName };
+
+        foreach (var derived in type.GetCustomAttributes<Avm1DerivedTypeAttribute>())
+            info.Add(derived.DerivedType, derived.TypeDiscriminator);
 
         return info;
     }

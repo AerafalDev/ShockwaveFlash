@@ -19,6 +19,8 @@ public abstract class Avm1TypeInfo
 
     internal Avm1SerializerOptions? Options { get; set; }
 
+    internal Avm1PolymorphismInfo? Polymorphism { get; set; }
+
     internal Avm1Converter Converter { get; set; } = null!;
 
     internal Func<object?[], object>? ConstructorFactory { get; set; }
