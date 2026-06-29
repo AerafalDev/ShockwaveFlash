@@ -64,3 +64,5 @@ public sealed class Settings
 
     public bool Mute { get; init; }
 }
+
+public sealed record TreeNode(string Label, TreeNode? Next);
