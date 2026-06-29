@@ -117,6 +117,7 @@ A type with no usable constructor reports [AVM1003](diagnostics.md#avm1003).
 | `[Avm1PropertyOrder(n)]` | Set the write order (ascending; ties keep declaration order). |
 | `[Avm1Converter(typeof(C))]` | Use a custom converter for this member (wins over everything). |
 | `[Avm1ExtensionData]` | Capture unknown keys (see [Extension data](#extension-data)). |
+| `[Avm1Include]` | Serialize a get-only member that would otherwise be skipped (written, not read back). |
 
 ```csharp
 public record Quest(
@@ -197,6 +198,32 @@ public record Monster(
     [property: Avm1ExtensionData] Dictionary<string, Avm1Value> Rest);
 ```
 
+## Polymorphism
+
+A base type marked `[Avm1Polymorphic]` with `[Avm1DerivedType(typeof(D), "disc")]` entries dispatches
+to a derived type by a **discriminator**. This is deliberately AVM1-shaped, not JSON:
+
+```csharp
+[Avm1Polymorphic(TypeDiscriminatorPropertyName = "t")]   // "t" is a REAL field in the data
+[Avm1DerivedType(typeof(Dog), "dog")]
+[Avm1DerivedType(typeof(Cat), "cat")]
+public abstract record Animal;
+
+public record Dog([property: Avm1Property("n")] string Name) : Animal;
+public record Cat([property: Avm1Property("l")] int Lives) : Animal;
+```
+
+- On **read** the discriminator is taken from the existing member named by
+  `TypeDiscriminatorPropertyName` (coerced with AVM1 string semantics, so a numeric or string field both
+  work) — there is no injected `$type` convention.
+- On **write** the discriminator is only added when the serialized object does not already contain that
+  key, so AVM1 data that already carries the field round-trips byte-faithfully.
+- Register the base on the context (`[Avm1Serializable(typeof(Animal))]`); the generator registers each
+  derived type automatically. Reflection mode needs no context.
+
+For unions distinguished by **key/position** rather than a discriminator field (e.g. `g1`, `g2`, …),
+model each as its own member, or capture the lot with `[Avm1ExtensionData]`.
+
 ## Binding to globals
 
 A SWF's globals are one big `Avm1Object` keyed by variable name. A type's **binding path** says which
@@ -235,8 +262,10 @@ var options = new Avm1SerializerOptions
 {
     DefaultIgnoreCondition = Avm1IgnoreCondition.Never,
     NumberHandling = Avm1NumberHandling.AllowReadingFromString,
+    PropertyNamingPolicy = Avm1NamingPolicy.CamelCase,   // applied to members without [Avm1Property]
 };
 options.Converters.Add(new CoordConverter());
+options.Modifiers.Add(info => { /* reshape the contract: rename, reorder, drop properties */ });
 
 var tree = Avm1Serializer.Serialize(value, options);
 ```
