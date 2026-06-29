@@ -14,6 +14,7 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
         var info = CreateTypeInfo(type);
         info.Converter = converter;
         info.Kind = KindOf(converter);
+        info.Options = options;
 
         if (info.Kind is Avm1TypeInfoKind.Object)
             info.SetPopulate(target => Populate(target, type, options));

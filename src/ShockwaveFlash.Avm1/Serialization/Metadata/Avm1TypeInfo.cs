@@ -14,6 +14,10 @@ public abstract class Avm1TypeInfo
 
     public IList<Avm1PropertyInfo> Properties { get; } = [];
 
+    public string[]? BindingPath { get; set; }
+
+    internal Avm1SerializerOptions? Options { get; set; }
+
     internal Avm1Converter Converter { get; set; } = null!;
 
     internal Func<object?[], object>? ConstructorFactory { get; set; }
