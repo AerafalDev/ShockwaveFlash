@@ -84,7 +84,8 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
             if (!isConstructorParameter && !settable)
                 continue;
 
-            var key = member.GetCustomAttribute<Avm1PropertyAttribute>()?.Key ?? memberName;
+            var explicitKey = member.GetCustomAttribute<Avm1PropertyAttribute>()?.Key;
+            var key = explicitKey ?? (options.PropertyNamingPolicy?.ConvertName(memberName) ?? memberName);
             if (!keys.Add(key))
                 continue;
 

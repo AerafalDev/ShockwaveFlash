@@ -48,6 +48,11 @@ public abstract class Avm1TypeInfo
                 return;
 
             _populate?.Invoke(this);
+
+            if (Options is { Modifiers.Count: > 0 } options)
+                foreach (var modifier in options.Modifiers)
+                    modifier(this);
+
             Reorder();
             _populated = true;
         }

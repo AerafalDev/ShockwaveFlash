@@ -6,6 +6,9 @@ namespace ShockwaveFlash.Avm1.Serialization;
 
 public static class Avm1Serializer
 {
+    public static bool IsReflectionEnabledByDefault { get; } =
+        !AppContext.TryGetSwitch("ShockwaveFlash.Avm1.Serialization.IsReflectionEnabledByDefault", out var enabled) || enabled;
+
     public static Avm1Value Serialize<T>(T value, Avm1TypeInfo<T> typeInfo)
     {
         ArgumentNullException.ThrowIfNull(typeInfo);

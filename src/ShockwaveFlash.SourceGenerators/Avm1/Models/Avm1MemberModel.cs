@@ -11,4 +11,5 @@ internal readonly record struct Avm1MemberModel(
     bool IsSettable,
     string? ConverterTypeFqn,
     int Order,
-    bool IsExtensionData);
+    bool IsExtensionData,
+    bool IsKeyExplicit);

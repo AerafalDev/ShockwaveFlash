@@ -51,7 +51,8 @@ internal static class Avm1Parser
             if (!isConstructorParameter && !isSettable)
                 continue;
 
-            var key = GetPropertyKey(member) ?? name;
+            var explicitKey = GetPropertyKey(member);
+            var key = explicitKey ?? name;
             if (keyOwners.TryGetValue(key, out var existing))
             {
                 diagnostics.Add(Diag(Avm1Diagnostics.DuplicateMemberKey, memberLocation, symbol.Name, existing, name, key));
@@ -88,6 +89,7 @@ internal static class Avm1Parser
                 ThrowIfMissing = throwIfMissing,
                 Order = GetPropertyOrder(member),
                 IsExtensionData = HasAttribute(member, Avm1SerializableGenerator.Avm1ExtensionDataAttributeName),
+                IsKeyExplicit = explicitKey is not null,
             });
         }
 
@@ -270,7 +272,7 @@ internal static class Avm1Parser
             _ => false,
         };
 
-        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false, null, 0, false);
+        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false, null, 0, false, false);
         return true;
     }
 

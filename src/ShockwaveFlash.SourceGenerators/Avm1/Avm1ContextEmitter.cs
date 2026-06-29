@@ -158,7 +158,8 @@ internal static class Avm1ContextEmitter
         builder.Indent();
 
         builder.AppendIndentedLine($"MemberName = {Literal(member.CSharpName)},");
-        builder.AppendIndentedLine($"Avm1PropertyName = {Literal(member.Avm1Key)},");
+        if (member.IsKeyExplicit)
+            builder.AppendIndentedLine($"Avm1PropertyName = {Literal(member.Avm1Key)},");
         builder.AppendIndentedLine($"MemberType = typeof({member.DeclaredType}),");
         builder.AppendIndentedLine($"Getter = static __obj => (({type})__obj).{member.CSharpName},");
 

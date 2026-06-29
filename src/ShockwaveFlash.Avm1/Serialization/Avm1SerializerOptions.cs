@@ -19,9 +19,13 @@ public sealed class Avm1SerializerOptions
 
     public IList<Avm1Converter> Converters { get; } = [];
 
+    public IList<Action<Avm1TypeInfo>> Modifiers { get; } = [];
+
     public IAvm1TypeInfoResolver? TypeInfoResolver { get; set; }
 
     public Avm1NumberHandling NumberHandling { get; set; }
+
+    public Avm1NamingPolicy? PropertyNamingPolicy { get; set; }
 
     public Avm1IgnoreCondition DefaultIgnoreCondition { get; set; } = Avm1IgnoreCondition.WhenWritingNull;
 

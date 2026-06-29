@@ -41,9 +41,13 @@ public static class Avm1MetadataServices
             ? options.GetConverterFromAttribute(values.ConverterType, values.MemberType)
             : options.GetConverter(values.MemberType);
 
+        var name = !string.IsNullOrEmpty(values.Avm1PropertyName)
+            ? values.Avm1PropertyName
+            : options.PropertyNamingPolicy?.ConvertName(values.MemberName) ?? values.MemberName;
+
         return new Avm1PropertyInfo
         {
-            Name = values.Avm1PropertyName,
+            Name = name,
             MemberName = values.MemberName,
             Get = values.Getter,
             Set = values.Setter,
