@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ShockwaveFlash.Avm1.Serialization.Metadata;
 
@@ -47,7 +48,20 @@ public abstract class Avm1TypeInfo
                 return;
 
             _populate?.Invoke(this);
+            Reorder();
             _populated = true;
         }
+    }
+
+    private void Reorder()
+    {
+        if (Properties.Count < 2)
+            return;
+
+        var ordered = Properties.OrderBy(static property => property.Order).ToArray();
+        Properties.Clear();
+
+        foreach (var property in ordered)
+            Properties.Add(property);
     }
 }

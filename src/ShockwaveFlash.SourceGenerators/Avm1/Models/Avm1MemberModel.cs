@@ -9,4 +9,5 @@ internal readonly record struct Avm1MemberModel(
     bool ThrowIfMissing,
     bool IsConstructorParameter,
     bool IsSettable,
-    string? ConverterTypeFqn);
+    string? ConverterTypeFqn,
+    int Order);

@@ -170,6 +170,8 @@ internal static class Avm1ContextEmitter
             builder.AppendIndentedLine("ThrowIfMissing = true,");
         if (IsValueScalar(member))
             builder.AppendIndentedLine("IsValueScalar = true,");
+        if (member.Order != 0)
+            builder.AppendIndentedLine($"Order = {member.Order.ToString(System.Globalization.CultureInfo.InvariantCulture)},");
 
         builder.AppendIndentedLine("IsConstructorParameter = true,");
 

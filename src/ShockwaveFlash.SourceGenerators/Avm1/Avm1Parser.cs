@@ -76,6 +76,8 @@ internal static class Avm1Parser
                     Value = classified.Value with { Kind = ValueKind.Passthrough, IsValueType = false },
                 };
 
+            var throwIfMissing = classified.ThrowIfMissing || HasAttribute(member, Avm1SerializableGenerator.Avm1RequiredAttributeName);
+
             members.Add(classified with
             {
                 CSharpName = name,
@@ -83,6 +85,8 @@ internal static class Avm1Parser
                 IsConstructorParameter = isConstructorParameter,
                 IsSettable = isSettable,
                 ConverterTypeFqn = converterTypeFqn,
+                ThrowIfMissing = throwIfMissing,
+                Order = GetPropertyOrder(member),
             });
         }
 
@@ -155,6 +159,19 @@ internal static class Avm1Parser
         var constructors = symbol.InstanceConstructors
             .Where(c => !c.IsStatic && IsAccessible(c.DeclaredAccessibility) && !IsCopyConstructor(symbol, c))
             .ToList();
+
+        var marked = constructors.FirstOrDefault(c => HasAttribute(c, Avm1SerializableGenerator.Avm1ConstructorAttributeName));
+        if (marked is not null)
+        {
+            if (marked.Parameters.Length == 0)
+            {
+                constructorParameters = ImmutableArray<IParameterSymbol>.Empty;
+                return ConstructionKind.ObjectInitializer;
+            }
+
+            constructorParameters = marked.Parameters;
+            return ConstructionKind.Constructor;
+        }
 
         if (symbol.IsRecord)
         {
@@ -252,7 +269,7 @@ internal static class Avm1Parser
             _ => false,
         };
 
-        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false, null);
+        model = new Avm1MemberModel(string.Empty, string.Empty, declaredType, spec, memberNullable, throwIfMissing, false, false, null, 0);
         return true;
     }
 
@@ -425,6 +442,12 @@ internal static class Avm1Parser
         return attribute is { ConstructorArguments.Length: > 0 } && attribute.ConstructorArguments[0].Value is INamedTypeSymbol converterType
             ? converterType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
             : null;
+    }
+
+    private static int GetPropertyOrder(ISymbol member)
+    {
+        var attribute = member.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is Avm1SerializableGenerator.Avm1PropertyOrderAttributeName);
+        return attribute is { ConstructorArguments.Length: > 0 } && attribute.ConstructorArguments[0].Value is int order ? order : 0;
     }
 
     private static bool IsAccessible(Accessibility? accessibility)

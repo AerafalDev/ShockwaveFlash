@@ -55,4 +55,18 @@ public static class Avm1Serializer
         options ??= Avm1SerializerOptions.Default;
         Avm1GlobalBinding.Write(globals, value, (Avm1TypeInfo<T>)options.GetTypeInfo(typeof(T)));
     }
+
+    public static T? ReadGlobal<T>(Avm1Object globals, Avm1TypeInfo<T> typeInfo)
+    {
+        ArgumentNullException.ThrowIfNull(globals);
+        ArgumentNullException.ThrowIfNull(typeInfo);
+        return Avm1GlobalBinding.Read(globals, typeInfo);
+    }
+
+    public static void WriteGlobal<T>(Avm1Object globals, T value, Avm1TypeInfo<T> typeInfo)
+    {
+        ArgumentNullException.ThrowIfNull(globals);
+        ArgumentNullException.ThrowIfNull(typeInfo);
+        Avm1GlobalBinding.Write(globals, value, typeInfo);
+    }
 }

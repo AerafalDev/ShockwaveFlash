@@ -20,5 +20,7 @@ public sealed class Avm1PropertyInfoValues<T>
 
     public bool IsConstructorParameter { get; init; }
 
+    public int Order { get; init; }
+
     public Type? ConverterType { get; init; }
 }

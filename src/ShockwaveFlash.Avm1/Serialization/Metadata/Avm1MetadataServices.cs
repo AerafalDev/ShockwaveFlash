@@ -55,6 +55,7 @@ public static class Avm1MetadataServices
             UnderlyingType = Nullable.GetUnderlyingType(values.MemberType) ?? values.MemberType,
             IsConstructorParameter = values.IsConstructorParameter,
             Settable = values.Setter is not null,
+            Order = values.Order,
         };
     }
 }

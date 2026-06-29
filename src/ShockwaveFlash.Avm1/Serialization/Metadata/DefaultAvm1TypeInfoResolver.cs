@@ -60,7 +60,10 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
         var parameterless = constructors.FirstOrDefault(c => c.GetParameters().Length == 0);
 
         ConstructorInfo? constructor;
-        if (isRecord && parameterized.Count > 0)
+        var marked = constructors.FirstOrDefault(c => c.GetCustomAttribute<Avm1ConstructorAttribute>() is not null);
+        if (marked is not null)
+            constructor = marked.GetParameters().Length == 0 ? null : marked;
+        else if (isRecord && parameterized.Count > 0)
             constructor = parameterized.OrderByDescending(c => c.GetParameters().Length).First();
         else if (parameterless is not null || type.IsValueType)
             constructor = null;
@@ -91,6 +94,8 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
                 : options.GetConverter(memberType);
 
             var (nullable, throwIfMissing, isValueScalar, underlying) = Classify(memberType, member, nullability, attribute is not null);
+            var required = throwIfMissing || member.GetCustomAttribute<Avm1RequiredAttribute>() is not null;
+            var order = member.GetCustomAttribute<Avm1PropertyOrderAttribute>()?.Order ?? 0;
 
             info.Properties.Add(new Avm1PropertyInfo
             {
@@ -100,12 +105,13 @@ public sealed class DefaultAvm1TypeInfoResolver : IAvm1TypeInfoResolver
                 Set = settable ? BuildSetter(member) : null,
                 Converter = converter,
                 Nullable = nullable,
-                ThrowIfMissing = throwIfMissing,
+                ThrowIfMissing = required,
                 IsValueScalar = isValueScalar,
                 UnderlyingType = underlying,
                 IsConstructorParameter = isConstructorParameter,
                 Settable = settable,
-                IsRequired = throwIfMissing,
+                IsRequired = required,
+                Order = order,
             });
         }
 

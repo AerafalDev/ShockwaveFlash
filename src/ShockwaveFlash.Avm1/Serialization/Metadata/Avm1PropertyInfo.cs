@@ -25,4 +25,6 @@ public sealed class Avm1PropertyInfo
     public Action<object, object?>? Set { get; set; }
 
     public bool IsRequired { get; set; }
+
+    public int Order { get; set; }
 }
