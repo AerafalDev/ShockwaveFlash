@@ -235,7 +235,6 @@ var options = new Avm1SerializerOptions
 {
     DefaultIgnoreCondition = Avm1IgnoreCondition.Never,
     NumberHandling = Avm1NumberHandling.AllowReadingFromString,
-    IncludeFields = true,
 };
 options.Converters.Add(new CoordConverter());
 

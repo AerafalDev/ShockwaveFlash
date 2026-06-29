@@ -25,8 +25,6 @@ public sealed class Avm1SerializerOptions
 
     public Avm1IgnoreCondition DefaultIgnoreCondition { get; set; } = Avm1IgnoreCondition.WhenWritingNull;
 
-    public bool IncludeFields { get; set; }
-
     internal Avm1TypeInfo GetTypeInfo(Type type)
     {
         return _typeInfos.GetOrAdd(type, BuildTypeInfo);
