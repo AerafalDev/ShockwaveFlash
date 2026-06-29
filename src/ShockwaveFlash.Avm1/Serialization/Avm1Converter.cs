@@ -4,13 +4,17 @@ namespace ShockwaveFlash.Avm1.Serialization;
 
 public abstract class Avm1Converter
 {
+    public abstract Type Type { get; }
+
     internal Avm1Converter()
     {
     }
 
-    public abstract Type Type { get; }
+    public virtual bool CanConvert(Type typeToConvert)
+    {
+        return typeToConvert == Type;
+    }
 
-    public virtual bool CanConvert(Type typeToConvert) => typeToConvert == Type;
 
     internal abstract object? ReadBoxed(Avm1Value value, Avm1SerializerOptions options);
 

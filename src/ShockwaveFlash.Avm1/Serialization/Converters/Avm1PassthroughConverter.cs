@@ -11,7 +11,15 @@ internal sealed class Avm1PassthroughConverter : Avm1Converter
 
     public override Type Type { get; }
 
-    internal override object? ReadBoxed(Avm1Value value, Avm1SerializerOptions options) => value;
+    internal override object? ReadBoxed(Avm1Value value, Avm1SerializerOptions options)
+    {
+        return value;
+    }
 
-    internal override Avm1Value WriteBoxed(object? value, Avm1SerializerOptions options) => (Avm1Value)value!;
+
+    internal override Avm1Value WriteBoxed(object? value, Avm1SerializerOptions options)
+    {
+        return (Avm1Value)value!;
+    }
+
 }

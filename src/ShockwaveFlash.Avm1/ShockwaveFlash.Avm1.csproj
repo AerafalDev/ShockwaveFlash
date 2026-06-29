@@ -28,4 +28,8 @@
           Visible="false" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="ShockwaveFlash.IO.Binary" />
+  </ItemGroup>
+
 </Project>

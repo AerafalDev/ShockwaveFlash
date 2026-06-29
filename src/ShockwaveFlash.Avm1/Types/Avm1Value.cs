@@ -20,19 +20,40 @@ public abstract record Avm1Value
 
     public bool IsUndefined => this is Avm1Undefined;
 
-    public static implicit operator Avm1Value(string value) => new Avm1String(value);
+    public static implicit operator Avm1Value(string value)
+    {
+        return new Avm1String(value);
+    }
 
-    public static implicit operator Avm1Value(double value) => new Avm1Number(value);
+    public static implicit operator Avm1Value(double value)
+    {
+        return new Avm1Number(value);
+    }
 
-    public static implicit operator Avm1Value(int value) => new Avm1Number(value);
+    public static implicit operator Avm1Value(int value)
+    {
+        return new Avm1Number(value);
+    }
 
-    public static implicit operator Avm1Value(bool value) => new Avm1Boolean(value);
+    public static implicit operator Avm1Value(bool value)
+    {
+        return new Avm1Boolean(value);
+    }
 
-    public static Avm1Value From(string value) => new Avm1String(value);
+    public static Avm1Value From(string value)
+    {
+        return new Avm1String(value);
+    }
 
-    public static Avm1Value From(double value) => new Avm1Number(value);
+    public static Avm1Value From(double value)
+    {
+        return new Avm1Number(value);
+    }
 
-    public static Avm1Value From(bool value) => new Avm1Boolean(value);
+    public static Avm1Value From(bool value)
+    {
+        return new Avm1Boolean(value);
+    }
 }
 
 public sealed record Avm1String(string Value) : Avm1Value;
@@ -55,7 +76,10 @@ public sealed record Avm1Object : Avm1Value
         set => Members[key] = value;
     }
 
-    public override string ToString() => "[object Object]";
+    public override string ToString()
+    {
+        return "[object Object]";
+    }
 }
 
 public sealed record Avm1Array : Avm1Value
@@ -68,5 +92,8 @@ public sealed record Avm1Array : Avm1Value
         set => Items[index] = value;
     }
 
-    public override string ToString() => "[object Array]";
+    public override string ToString()
+    {
+        return "[object Array]";
+    }
 }
