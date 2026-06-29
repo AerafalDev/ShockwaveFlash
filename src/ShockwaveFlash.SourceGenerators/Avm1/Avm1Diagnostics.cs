@@ -5,7 +5,7 @@ namespace ShockwaveFlash.SourceGenerators.Avm1;
 internal static class Avm1Diagnostics
 {
     private const string Category = "Usage";
-    private const string HelpRoot = "https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md#";
+    private const string HelpRoot = "https://github.com/AerafalDev/ShockwaveFlash/blob/main/references/diagnostics.md#";
 
     public static readonly DiagnosticDescriptor UnsupportedMemberType = new(
         "AVM1002",

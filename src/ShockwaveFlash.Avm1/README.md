@@ -135,9 +135,9 @@ Customize members with `[Avm1Property("k")]` (key override), `[Avm1Ignore]`, `[A
 type), and `[Avm1ExtensionData]` (a `Dictionary<string, Avm1Value>` capturing unknown keys); pick a
 constructor with `[Avm1Constructor]`. `Avm1SerializerOptions` tunes `NumberHandling`,
 `DefaultIgnoreCondition`, and custom `Converters`. The
-**[serialization guide](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/avm1-serialization.md)**
+**[serialization guide](https://github.com/AerafalDev/ShockwaveFlash/blob/main/references/avm1-serialization.md)**
 walks through every case; mapping problems surface as
-[`AVM1xxx` diagnostics](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md).
+[`AVM1xxx` diagnostics](https://github.com/AerafalDev/ShockwaveFlash/blob/main/references/diagnostics.md).
 
 Supported member types: scalars (`string`, `bool`, any numeric — widened to `double` — and `enum`),
 nested objects (any record/class/struct), collections (`T[]`, `List<T>`, `Dictionary<string, V>`) that
