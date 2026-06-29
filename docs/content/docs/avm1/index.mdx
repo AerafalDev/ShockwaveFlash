@@ -1,0 +1,56 @@
+---
+title: Overview
+description: Disassemble DoAction bytecode to p-code or AS2, and the linear data-script evaluator.
+---
+
+AVM1 (ActionScript 1/2 bytecode) support: disassemble `DoAction` bytecode to a mutable, strongly-typed
+action tree and assemble it back losslessly; dump it as **p-code** or best-effort **AS2**; and evaluate
+linear data scripts to a typed value tree you can edit and write back — or map them to your own records
+with the [serializer](/docs/serialization).
+
+## Disassemble to p-code or AS2
+
+```csharp
+using ShockwaveFlash;
+using ShockwaveFlash.Avm1.Text;
+using ShockwaveFlash.Tags.Action;
+
+var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+var version = swf.Header.Version;
+var tag = swf.Tags.OfType<DoActionTag>().First();
+
+string pcode = Avm1Disassembler.Disassemble(tag.Data, version, Avm1DisassemblyKind.Pcode);
+string as2 = Avm1Disassembler.Disassemble(tag.Data, version, Avm1DisassemblyKind.As2);
+```
+
+**P-code** is a faithful, complete listing — every opcode with its operands, constant-pool references
+resolved, and function/with/try bodies decoded and indented:
+
+```text
+ConstantPool "VERSION", "DU", "Object", "n", "m", ...
+Push "VERSION"
+Push 1258
+SetVariable
+Push "DU"
+Push 0
+Push "Object"
+NewObject
+SetVariable
+```
+
+**AS2** is a best-effort reconstruction over the linear subset (push literals, get/set variable and
+member, object/array literals, operators, `new`/calls, function bodies). It is *not* a full decompiler:
+control flow and registers holding complex expressions fall back to their p-code line.
+
+```text
+VERSION = 1258;
+DU = new Object();
+DU[1] = {n: "Donjon Bouftou", m: new Object()};
+```
+
+## Scope
+
+The evaluator is a **data-script interpreter**: it runs the pure, branch-free operators over
+version-accurate value coercion — no control flow, no function calls, no host/display objects. Opcodes
+outside that subset are recorded in `UnsupportedOpcodes` (or throw when `strict`). AVM2 (`DoABC`) is out
+of scope and kept raw.

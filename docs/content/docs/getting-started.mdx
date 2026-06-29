@@ -1,0 +1,38 @@
+---
+title: Getting started
+description: Install the packages and load your first SWF.
+---
+
+## Install
+
+```sh
+dotnet add package ShockwaveFlash             # read / write SWF
+dotnet add package ShockwaveFlash.Avm1        # AVM1 bytecode & data scripts
+dotnet add package ShockwaveFlash.Rendering   # render to PNG/JPEG/WebP/GIF/PDF/SVG
+```
+
+All three target **.NET 10**. On headless Linux, also add
+`SkiaSharp.NativeAssets.Linux.NoDependencies` for rendering.
+
+## Load and inspect a SWF
+
+```csharp
+using ShockwaveFlash;
+
+var swf = ShockwaveFlashFile.Disassemble(File.ReadAllBytes("movie.swf"));
+
+Console.WriteLine($"SWF v{swf.Header.Version} ({swf.Header.Compression})");
+Console.WriteLine($"Frame size : {swf.Header.FrameSize}");
+Console.WriteLine($"Frame rate : {swf.Header.FrameRate.ToSingle()} fps");
+Console.WriteLine($"Tags       : {swf.Tags.Count}");
+
+foreach (var tag in swf.Tags)
+    Console.WriteLine($"  {tag.Metadata.Code} ({tag.Metadata.Length} bytes)");
+```
+
+## Where to next
+
+- [SWF reading & writing](/docs/swf) — disassemble, edit tags, assemble losslessly.
+- [AVM1](/docs/avm1) — disassemble bytecode and evaluate data scripts.
+- [Serialization](/docs/serialization) — map AVM1 globals to your own types, `System.Text.Json` style.
+- [Rendering](/docs/rendering) — render characters to images and SVG.

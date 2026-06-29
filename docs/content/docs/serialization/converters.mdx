@@ -1,0 +1,33 @@
+---
+title: Custom converters
+description: "Own the read/write of a type with Avm1Converter<T>: how to attach it, resolution precedence, and factories."
+---
+
+Subclass `Avm1Converter<T>` to own the read/write of a type:
+
+```csharp
+public sealed class CoordConverter : Avm1Converter<Coord>
+{
+    public override Coord Read(Avm1Value v, Avm1SerializerOptions o)
+    {
+        var parts = v.AsString.Split(',');
+        return new Coord(int.Parse(parts[0]), int.Parse(parts[1]));
+    }
+
+    public override Avm1Value Write(Coord c, Avm1SerializerOptions o) => new Avm1String($"{c.X},{c.Y}");
+}
+```
+
+Attach it to a **type** or a **member**, or register it on the options.
+
+## Resolution order
+
+Resolution order (highest first):
+
+1. `[Avm1Converter]` on the **member**.
+2. a converter in `Options.Converters` (first whose `CanConvert` matches; `Avm1ConverterFactory` instances are asked to create one).
+3. `[Avm1Converter]` on the **type**.
+4. the built-in converter.
+
+A type handled by a custom converter is **opaque**: it has no configurable properties and is
+read/written wholly by the converter — the same rule `System.Text.Json` uses.

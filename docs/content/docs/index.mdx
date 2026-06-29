@@ -1,0 +1,35 @@
+---
+title: Introduction
+description: Read, edit, write and render SWF files in pure .NET 10.
+---
+
+Read, edit and write **SWF** (Shockwave Flash) files — their AVM1 ActionScript, and render them to
+images or SVG — entirely in code, on **.NET 10**. Fast, allocation-light, and round-trips losslessly.
+
+## Packages
+
+| Package | What it does |
+| --- | --- |
+| `ShockwaveFlash` | The SWF container: disassemble a `.swf` into a strongly-typed, mutable tag tree and assemble it back losslessly. |
+| `ShockwaveFlash.Avm1` | AVM1 `DoAction` bytecode: decode actions, evaluate data scripts to a typed value tree, edit, write back, and map to your own records. |
+| `ShockwaveFlash.Rendering` | Render shapes, sprites, timelines and text to **PNG / JPEG / WebP / GIF / PDF** (Skia) and **SVG**. |
+
+## Highlights
+
+- **Lossless round-trip** — parse a real-world `.swf` and re-assemble it without losing data;
+  byte-identical for canonically-encoded files, validated on 20k+ production SWFs.
+- **Broad tag coverage** — shapes, fonts, text, sounds, bitmaps, sprites, buttons, morph shapes, video,
+  ABC, filters; unknown tags are kept verbatim.
+- **AVM1 data scripts** — evaluate localization/config bytecode into a typed value tree, edit it, write
+  it back, or map it to typed records.
+- **Typed & allocation-light** — a mutable tag tree over `ReadOnlyMemory<byte>`, exact fixed-point value
+  types, and typed exceptions.
+
+## What it isn't
+
+- No AVM2 (`DoABC`) execution — ABC bytecode is preserved verbatim, never run.
+- The AVM1 evaluator is **linear only** (data scripts): no control flow, function calls, or display
+  objects.
+- The AS2 listing is best-effort, not a full decompiler.
+
+Continue to [Getting started](/docs/getting-started).

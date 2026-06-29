@@ -1,0 +1,55 @@
+---
+title: Overview
+description: "Map AVM1 global variables to and from your own C# types: the two modes and a quick start."
+---
+
+Map AVM1 global variables (the AS2 data inside a `DoAction` tag) to and from your own C# types. The
+serializer is modeled on `System.Text.Json`: a converter core, a per-type `Avm1TypeInfo`, and two
+interchangeable front-ends — a **source-generated context** (reflection-free, AOT-safe) and a
+**reflection** fallback. Both funnel through the same converters, so they always agree.
+
+## Quick start
+
+```csharp
+using ShockwaveFlash.Avm1.Serialization;
+using ShockwaveFlash.Avm1.Serialization.Metadata;
+
+public record Emote(
+    [property: Avm1Property("s")] string Shortcut,
+    [property: Avm1Property("n")] string Name);
+
+[Avm1Serializable(typeof(Emote), "EM")]   // Emote is bound to the global at globals.EM
+public partial class LangContext : Avm1SerializerContext;
+```
+
+```csharp
+var globals = tag.Evaluate(version);                 // an Avm1Object of all globals
+
+Emote emote = LangContext.Default.Read<Emote>(globals)!;          // reads globals.EM
+LangContext.Default.Write(globals, emote with { Name = "Hi" });   // writes globals.EM
+```
+
+`Avm1Serializer.Serialize(value, LangContext.Default.Emote)` / `Deserialize(tree, …)` convert a value to
+and from an `Avm1Value` **directly**, with no global path.
+
+## The two modes
+
+| | Source-generated context | Reflection |
+|---|---|---|
+| Entry point | `MyContext.Default` | `Avm1Serializer` with default options |
+| Value ⟷ tree | `Avm1Serializer.Serialize/Deserialize(value, ctx.T)` | `Avm1Serializer.Serialize/Deserialize<T>(value)` |
+| Global ⟷ tree | `ctx.Read<T>/Write<T>(globals)` | `Avm1Serializer.ReadGlobal/WriteGlobal<T>(globals)` |
+| Path source | `[Avm1Serializable(typeof(T), "EM")]` | `[Avm1Object("EM")]` on the type |
+| AOT / trimming | safe | not safe (`[RequiresDynamicCode]`) |
+
+A context is a `partial class : Avm1SerializerContext` with one or more `[Avm1Serializable]` attributes;
+the generator fills in `Default`, the constructors, a typed `Avm1TypeInfo<T>` accessor per type, and the
+`GetTypeInfo` dispatch. `MyContext.Default.Options` exposes its `Avm1SerializerOptions`; the context
+resolves its registered types itself and falls back to reflection for everything else (collections,
+scalars, types you did not register).
+
+Reflection mode needs no context — call `Avm1Serializer` directly. It is the convenient default; the
+context is the AOT-safe, allocation-light option.
+
+When a registered type cannot be mapped the source generator reports an `AVM1xxx` error instead of
+emitting broken code. See [Diagnostics](./diagnostics).

@@ -1,0 +1,52 @@
+---
+title: Options
+description: "Avm1SerializerOptions: NumberHandling, DefaultIgnoreCondition, naming policy, converters, modifiers, and AOT."
+---
+
+`Avm1SerializerOptions` carries the cross-cutting settings:
+
+```csharp
+var options = new Avm1SerializerOptions
+{
+    DefaultIgnoreCondition = Avm1IgnoreCondition.Never,
+    NumberHandling = Avm1NumberHandling.AllowReadingFromString,
+    PropertyNamingPolicy = Avm1NamingPolicy.CamelCase,   // applied to members without [Avm1Property]
+};
+options.Converters.Add(new CoordConverter());
+options.Modifiers.Add(info => { /* reshape the contract: rename, reorder, drop properties */ });
+
+var tree = Avm1Serializer.Serialize(value, options);
+```
+
+`Avm1SerializerOptions.Default` is the shared reflection instance. A context exposes its own configured
+`Options`. `TypeInfoResolver` selects the metadata source (a context, the reflection resolver, or
+`Avm1TypeInfoResolver.Combine(MyContext.Default, new DefaultAvm1TypeInfoResolver())` to chain them).
+
+## Null and default handling
+
+Write behaviour is controlled by `DefaultIgnoreCondition`:
+
+| `Avm1IgnoreCondition` | On write |
+|-----------------------|----------|
+| `WhenWritingNull` (default) | omit `null` members |
+| `Never` | write `null` members as `Avm1Null` |
+| `WhenWritingDefault` | omit members equal to their type's default |
+| `Always` | omit every member |
+
+## Numbers
+
+`Avm1Number` wraps a `double`. `NumberHandling` (a `[Flags]` enum) tunes conversion, mirroring how AVM1
+itself coerces:
+
+| Flag | Effect |
+|------|--------|
+| `Strict` (default) | numbers are numbers |
+| `AllowReadingFromString` | read a number from an `Avm1String` (`"42"` → `42`) |
+| `WriteAsString` | write numbers as strings |
+| `AllowNamedFloatingPointLiterals` | read/write `NaN`/`Infinity`/`-Infinity` (real AVM1 values) |
+
+## Naming, modifiers, AOT
+
+- `PropertyNamingPolicy` (e.g. `Avm1NamingPolicy.CamelCase`) is applied to members without an explicit `[Avm1Property]`.
+- `Modifiers` lets you reshape the contract at runtime — rename, reorder, or drop properties.
+- For AOT / trimming, use a source-generated context (`MyContext.Default`); reflection mode is not AOT-safe (`[RequiresDynamicCode]`).

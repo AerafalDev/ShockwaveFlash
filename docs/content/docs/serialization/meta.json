@@ -1,0 +1,4 @@
+{
+  "title": "Serialization",
+  "pages": ["index", "mapping", "attributes", "converters", "global-binding", "polymorphism", "options", "diagnostics"]
+}

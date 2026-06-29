@@ -1,0 +1,19 @@
+---
+title: Action tree
+description: Decode DoAction bytecode to a mutable action tree and re-encode it byte-for-byte.
+---
+
+For surgical edits that preserve everything else, go through the mutable **action tree** instead of the
+value tree. Every action is a mutable class with settable properties; function/with/try bodies are
+owned, so editing one action never corrupts another.
+
+```csharp
+var actions = tag.DecodeActions(version);       // IReadOnlyList<Action>
+// ... inspect or mutate actions in place ...
+var newTag = tag.WithActions(actions, version); // re-encoded; byte-identical when unchanged
+```
+
+`Action.DecodeCollection(bytes, version)` decodes leniently by default — unknown opcodes are kept as
+`ActionUnknown`, an unknown push type stops that push, and a length mismatch is tolerated. Pass
+`strict: true` to promote all of these to a typed `SwfFormatException` (and to reject malformed SWF6+
+UTF-8 strings).

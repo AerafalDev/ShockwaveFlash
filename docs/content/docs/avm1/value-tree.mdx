@@ -1,0 +1,41 @@
+---
+title: Value tree
+description: Evaluate a data table to a typed Avm1Object, edit it in place, and write it back.
+---
+
+Linear data scripts (localization / config tables, common in older games) are replayed to their global
+variables, with version-accurate value coercion.
+
+## Evaluate
+
+```csharp
+using ShockwaveFlash.Avm1.Types;
+
+var version = swf.Header.Version;
+var tag = swf.Tags.OfType<DoActionTag>().First();
+
+Avm1Object globals = tag.Evaluate(version);
+string name = globals["EM"].AsObject["1"].AsObject["n"].AsString;
+```
+
+The value tree is `Avm1Value` and its cases — `Avm1Object` (keyed members), `Avm1Array`, `Avm1String`,
+`Avm1Number` (a `double`), `Avm1Boolean`, plus `Avm1Null` / `Avm1Undefined`. Read through the casts
+`.AsObject` / `.AsArray` / `.AsString` / `.AsNumber` / `.AsBoolean`.
+
+## Edit & write back
+
+`Avm1Object` / `Avm1Array` are editable in place, and primitives convert implicitly:
+
+```csharp
+var globals = tag.Evaluate(version);
+var emotes = globals["EM"].AsObject;
+
+emotes["1"].AsObject["n"] = "New name";                                             // change
+emotes["24"] = new Avm1Object { Members = { ["n"] = "New emote", ["s"] = "new" } }; // add
+
+var output = swf.ReplaceTag(tag, tag.WithGlobals(globals, version)).Assemble();
+File.WriteAllBytes("emotes.swf", output.ToArray());
+```
+
+To map globals to your own records instead of walking keys by hand, see
+[Serialization](/docs/serialization).

@@ -1,0 +1,36 @@
+---
+title: Binding to globals
+description: "Binding paths into the globals container: Avm1Serializable / Avm1Object paths, Segments, TypeInfoPropertyName, Read/Write vs ReadGlobal/WriteGlobal."
+---
+
+A SWF's globals are one big `Avm1Object` keyed by variable name. A type's **binding path** says which
+variable (and, with a dotted path, which nested member) it occupies.
+
+```csharp
+[Avm1Serializable(typeof(Emotes), "EM")]          // globals.EM
+[Avm1Serializable(typeof(HouseList), "H.h")]      // globals.H.h
+[Avm1Serializable(typeof(Foo), Segments = new[] { "a.b", "c" })]   // escapes a key containing '.'
+public partial class DofusLangContext : Avm1SerializerContext;
+```
+
+- `ctx.Read<T>(globals)` walks the path and deserializes the leaf (returns `default`/`null` if a segment is absent). `ctx.Write(globals, value)` serializes and stores it, creating intermediate `Avm1Object`s.
+- In reflection mode the path comes from `[Avm1Object("EM")]` on the type, used by `Avm1Serializer.ReadGlobal/WriteGlobal<T>`.
+- A type registered with no path maps the **whole** globals object (use `Serialize`/`Deserialize`, not `Read`/`Write`).
+
+Registered types do **not** need to be `partial` or carry `[Avm1Object]` — the context binds their
+members through generated delegates and never reopens the type. The optional second `[Avm1Serializable]`
+argument is the binding path; `[Avm1Object("EM")]` on the type itself supplies the same path as a
+fallback and is what the reflection-mode `Avm1Serializer.ReadGlobal`/`WriteGlobal` read.
+
+## Multiple paths: TypeInfoPropertyName
+
+**`TypeInfoPropertyName`** registers one type at several paths under distinct accessors; serialize a
+specific one with `Avm1Serializer.ReadGlobal/WriteGlobal(globals, value, ctx.Accessor)`.
+
+```csharp
+[Avm1Serializable(typeof(Coord), "p1", TypeInfoPropertyName = "First")]
+[Avm1Serializable(typeof(Coord), "p2", TypeInfoPropertyName = "Second")]
+public partial class C : Avm1SerializerContext;
+
+Avm1Serializer.WriteGlobal(globals, coord, C.Default.First);   // globals.p1
+```

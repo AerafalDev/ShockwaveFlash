@@ -1,0 +1,37 @@
+---
+title: Attributes
+description: "Member attributes: Avm1Property, Ignore, Required, Constructor, PropertyOrder, Converter, Include, ExtensionData."
+---
+
+Customize how members map with these attributes.
+
+| Attribute | Effect |
+|-----------|--------|
+| `[Avm1Property("k")]` | Override the AVM1 key (default: the member name). |
+| `[Avm1Ignore]` | Exclude the member entirely. |
+| `[Avm1Required]` | Throw if the key is missing on read, even for a type that would otherwise default. |
+| `[Avm1Constructor]` | Select the constructor to bind on read when the choice is ambiguous (see [Construction](./mapping#construction)). |
+| `[Avm1PropertyOrder(n)]` | Set the write order (ascending; ties keep declaration order). |
+| `[Avm1Converter(typeof(C))]` | Use a custom converter for this member (wins over everything). |
+| `[Avm1Include]` | Serialize a get-only member that would otherwise be skipped (written, not read back). |
+| `[Avm1ExtensionData]` | Capture unknown keys into a catch-all bag (see below). |
+
+```csharp
+public record Quest(
+    [property: Avm1Property("n")] string Name,
+    [property: Avm1Required] int Level,
+    [property: Avm1PropertyOrder(-1)] string Id);     // written first
+```
+
+## Extension data
+
+A `Dictionary<string, Avm1Value>` member marked `[Avm1ExtensionData]` is the catch-all: on read every
+key not claimed by a declared member is collected into it; on write its entries are flattened back into
+the object verbatim. A typed partial model plus an extension bag round-trips losslessly — ideal for the
+heterogeneous langs globals (`monsters.g1..g10`, `quests.r`, …).
+
+```csharp
+public record Monster(
+    [property: Avm1Property("n")] string Name,
+    [property: Avm1ExtensionData] Dictionary<string, Avm1Value> Rest);
+```

@@ -1,0 +1,52 @@
+---
+title: What maps
+description: "Which member types map: scalars, nested objects, collections, pass-through, custom — plus construction on read."
+---
+
+A member maps when its type is one of:
+
+- **Scalars** — `string`, `bool`, every numeric type (`byte`/`sbyte`/`short`/`ushort`/`int`/`uint`/`long`/`ulong`/`float`/`double`/`decimal`), and `enum` (written as its numeric value). All numbers are widened to `double` in the AVM1 tree.
+- **Nested objects** — any other `class`/`record`/`struct`. Its members are bound the same way; no marker attribute is needed.
+- **Collections** — `T[]`, `List<T>` (or `IList<T>`/`IReadOnlyList<T>`/`IEnumerable<T>`), and `Dictionary<string, V>` (or `IDictionary`/`IReadOnlyDictionary`). Elements and values may be any supported type, so `int[][]` and `Dictionary<string, Dictionary<string, int[]>>` nest freely.
+- **Pass-through** — `Avm1Value`, `Avm1Object`, `Avm1Array`: stored and restored verbatim, the escape hatch for irreducibly heterogeneous data.
+- **Custom** — anything, via `[Avm1Converter]` (see [Converters](./converters)).
+
+Only `public` and `internal` members participate; `static`, `const`, and `[Avm1Ignore]` members are
+skipped.
+
+## Construction
+
+On read the serializer builds the instance one of two ways:
+
+- **Constructor binding** — a positional `record`, or a type with a single parameterized constructor: each parameter is matched to a member by name (case-insensitive) and supplied from the tree.
+- **Object initializer** — a type with an accessible parameterless constructor (or a `struct`): the instance is created, then each settable member (`set` or `init`) is assigned.
+
+```csharp
+public record Job(int Group, string Name);                 // constructor binding
+
+public class Settings { public string? Theme { get; init; } public bool Mute { get; init; } }
+```
+
+If a type has several constructors and the choice is ambiguous, mark one with **`[Avm1Constructor]`**:
+
+```csharp
+public class Box
+{
+    public Box(int a) { ... }
+    [Avm1Constructor] public Box(int a, int b) { ... }   // this one is used
+}
+```
+
+A type with no usable constructor reports [AVM1003](./diagnostics#avm1003).
+
+## Optional members, null, and defaults
+
+A **nullable** member (`int?`, `string?`, `Weapon?`, `List<int>?`, …) is optional: a `null` value is
+omitted on write, and a missing key reads back as `null`.
+
+A **non-nullable reference / nested / pass-through** member is required-on-read — a missing key throws
+(a runtime `Avm1SerializationException`). A non-nullable **numeric/`bool`/`enum`** silently defaults to
+`0`/`false` on a missing key unless you add `[Avm1Required]`. Collections default to empty.
+
+Write behaviour for `null` is controlled by `Avm1SerializerOptions.DefaultIgnoreCondition` — see
+[Options](./options).
