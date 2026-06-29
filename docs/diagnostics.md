@@ -1,22 +1,39 @@
 # AVM1 serializer diagnostics
 
-The `ShockwaveFlash.SourceGenerators` source generator emits an `IAvm1Serializable<TSelf>`
-implementation for every type annotated with `[Avm1Object]`. When a type cannot be mapped it
-reports one of the diagnostics below instead of producing broken code.
+The `ShockwaveFlash.SourceGenerators` source generator turns a `partial class` annotated with
+`[Avm1Serializable(typeof(T), …)]` into a reflection-free `Avm1SerializerContext`: a `Default`
+singleton, a lazily-built `Avm1TypeInfo<T>` per registered type, and a `GetTypeInfo` dispatch. When a
+registered type cannot be mapped it reports one of the diagnostics below instead of producing broken
+code.
 
-All diagnostics are `Error` severity (generation is skipped for the offending type) and belong to
-the `Usage` category. The IDs are a permanent contract: suppress one with
-`#pragma warning disable AVM1002`, an `.editorconfig` entry
-(`dotnet_diagnostic.AVM1002.severity = none`), or `<NoWarn>AVM1002</NoWarn>`.
+All diagnostics are `Error` severity (the offending type is skipped) and belong to the `Usage`
+category. The IDs are a permanent contract: suppress one with `#pragma warning disable AVM1002`, an
+`.editorconfig` entry (`dotnet_diagnostic.AVM1002.severity = none`), or `<NoWarn>AVM1002</NoWarn>`.
 
 | ID | Title |
 |----|-------|
-| [AVM1001](#avm1001) | Type must be partial |
 | [AVM1002](#avm1002) | Unsupported member type |
 | [AVM1003](#avm1003) | No usable constructor |
 | [AVM1004](#avm1004) | Duplicate member key |
 | [AVM1005](#avm1005) | Containing type must be partial |
 | [AVM1006](#avm1006) | Unsupported declaration |
+| [AVM1007](#avm1007) | Context must be partial |
+
+## Registering types
+
+A context registers each type it can serialize with one `[Avm1Serializable]` attribute. The optional
+second argument is the **binding path** into the globals container (`.`-separated, or `Segments = […]`
+to escape keys that contain a `.`); `[Avm1Object("EM")]` on the type itself supplies the same path as
+a fallback and is what the reflection-mode `Avm1Serializer.ReadGlobal`/`WriteGlobal` read.
+
+```csharp
+[Avm1Serializable(typeof(Emotes), "EM")]   // globals.EM
+[Avm1Serializable(typeof(EmotesFile))]      // maps the whole globals object
+public partial class DofusLangContext : Avm1SerializerContext;
+```
+
+Registered types do **not** need to be `partial` or carry `[Avm1Object]` — the context binds their
+members through generated delegates and never reopens the type.
 
 ## Supported member types
 
@@ -24,59 +41,40 @@ A member maps when its type is one of:
 
 - **Scalars** — `string`, `bool`, any numeric type (`byte`/`int`/`long`/`float`/`double`/`decimal`/…),
   and `enum` (stored as its numeric value). Numbers are widened to `double` in the AVM1 tree.
-- **Nested objects** — another type annotated with `[Avm1Object]`.
+- **Nested objects** — any other class/record/struct. Its members are bound the same way; no marker
+  attribute is required.
 - **Collections** — `T[]`, `List<T>` (or `IList<T>`/`IReadOnlyList<T>`/`IEnumerable<T>`), and
   `Dictionary<string, V>` (or the read-only/interface variants). Elements/values may themselves be
   any supported type, so nested containers such as `int[][]` or
   `Dictionary<string, Dictionary<string, int[]>>` are allowed.
 - **Pass-through** — `Avm1Value`, `Avm1Object` or `Avm1Array`. The value is stored and restored
-  verbatim, which is the escape hatch for irreducibly heterogeneous data (unions, variable-length
-  tuples, …).
+  verbatim, the escape hatch for irreducibly heterogeneous data (unions, variable-length tuples, …).
+- **Custom** — any type, when the member or its type carries `[Avm1Converter(typeof(MyConverter))]`.
+  The converter owns the read/write entirely.
 
 Nullable members (`int?`, `string?`, `Weapon?`, `List<int>?`, …) are optional: a `null` value is
-**omitted** from the object on write, and a missing key reads back as `null`.
-
-Mark a member with `[Avm1Ignore]` to exclude it. Only `public` and `internal` members participate.
-
-## AVM1001
-
-**Type must be partial.**
-
-> Type '{0}' is annotated with [Avm1Object] but is not declared 'partial'; the generator cannot add
-> the IAvm1Serializable implementation.
-
-The generator adds `ToAvm1Object`/`FromAvm1Object` in a second partial declaration, so the type has
-to be `partial`.
-
-```csharp
-// ❌ AVM1001
-[Avm1Object]
-public record Emote(string Shortcut, string Name);
-
-// ✅
-[Avm1Object]
-public partial record Emote(string Shortcut, string Name);
-```
+**omitted** on write, and a missing key reads back as `null`. Mark a member with `[Avm1Ignore]` to
+exclude it. Only `public` and `internal` members participate.
 
 ## AVM1002
 
 **Unsupported member type.**
 
-> Member '{0}.{1}' has type '{2}' which the AVM1 serializer cannot map; mark it with [Avm1Ignore] or
-> use a supported type.
+> Member '{0}.{1}' has type '{2}' which the AVM1 serializer cannot map; mark it with [Avm1Ignore],
+> attach an [Avm1Converter], or use a supported type.
 
-The member's type is not one of the [supported member types](#supported-member-types) — for
-example `object`, `DateTime`, a tuple, or a `Dictionary<int, …>` (only `string` keys are allowed).
+The member's type is not one of the [supported member types](#supported-member-types) — for example a
+pointer, a `Dictionary<int, …>` (only `string` keys are allowed), or an array of an unmappable
+element.
 
 Fixes:
 
-- Use a supported type, or model the value as a nested `[Avm1Object]` type.
-- For genuinely dynamic data (a key that holds different shapes per entry, a heterogeneous array),
-  type the member as `Avm1Value`, `Avm1Array` or `Avm1Object` to round-trip it verbatim.
+- Use a supported type, or attach `[Avm1Converter(typeof(MyConverter))]` to own the mapping.
+- For genuinely dynamic data, type the member as `Avm1Value`, `Avm1Array` or `Avm1Object` to
+  round-trip it verbatim.
 - Mark it `[Avm1Ignore]` if it should not be (de)serialized.
 
 ```csharp
-[Avm1Object]
 public partial record Quest(
     [property: Avm1Property("n")] string Name,
     [property: Avm1Property("r")] Avm1Array Rewards); // heterogeneous → pass-through
@@ -89,17 +87,15 @@ public partial record Quest(
 > Type '{0}' has no accessible parameterless constructor and no single constructor whose parameters
 > all match (de)serialized members.
 
-`FromAvm1Object` builds the instance either through a public parameterless constructor (then sets
-the `init`/`set` members) or by binding a single constructor's parameters to members by name. A type
-with only a multi-parameter constructor whose parameters do not all map to members cannot be built.
+The context builds the instance either through a public parameterless constructor (then sets the
+`init`/`set` members) or by binding a single constructor's parameters to members by name. A type with
+only a multi-parameter constructor whose parameters do not all map to members cannot be built.
 
 ```csharp
 // ✅ positional record: the primary constructor binds to the members
-[Avm1Object]
 public partial record Job(int Group, string Name, int Specialization);
 
 // ✅ mutable type: parameterless ctor + init members
-[Avm1Object]
 public partial class Settings
 {
     public string? Theme { get; init; }
@@ -118,13 +114,11 @@ another member's name or attribute.
 
 ```csharp
 // ❌ AVM1004: both map to "n"
-[Avm1Object]
 public partial record Bad(
     [property: Avm1Property("n")] string Name,
     string N);
 
 // ✅
-[Avm1Object]
 public partial record Good(
     [property: Avm1Property("n")] string Name,
     [property: Avm1Property("note")] string N);
@@ -137,15 +131,15 @@ public partial record Good(
 > Type '{0}' is nested in '{1}' which is not declared 'partial'; every containing type must be
 > partial for generation to succeed.
 
-A nested `[Avm1Object]` type is emitted inside its containing type(s), so each enclosing type must
-also be `partial`.
+The generated context is emitted inside its containing type(s), so each type that encloses the
+`Avm1SerializerContext` class must also be `partial`.
 
 ```csharp
 // ✅
 public partial class Catalog
 {
-    [Avm1Object]
-    public partial record Entry(string Name);
+    [Avm1Serializable(typeof(Entry))]
+    public partial class Context : Avm1SerializerContext;
 }
 ```
 
@@ -155,5 +149,25 @@ public partial class Catalog
 
 > Type '{0}' cannot be made AVM1 serializable; generic types and ref-like types are not supported.
 
-`[Avm1Object]` cannot be applied to a generic type (`Foo<T>`) or a `ref struct`. Use a non-generic,
+A registered type cannot be generic (`Foo<T>`) or ref-like (`ref struct`). Register a non-generic,
 non-ref type.
+
+## AVM1007
+
+**Context must be partial.**
+
+> Context '{0}' is annotated with [Avm1Serializable] but is not declared 'partial'; the generator
+> cannot complete the Avm1SerializerContext.
+
+The generator completes the context in a second partial declaration (the `Default` singleton,
+constructors, accessors and `GetTypeInfo`), so the context class has to be `partial`.
+
+```csharp
+// ❌ AVM1007
+[Avm1Serializable(typeof(Emote))]
+public class DemoContext : Avm1SerializerContext;
+
+// ✅
+[Avm1Serializable(typeof(Emote))]
+public partial class DemoContext : Avm1SerializerContext;
+```

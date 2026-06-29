@@ -13,31 +13,19 @@ namespace ShockwaveFlash.SourceGenerators.Avm1;
 
 internal static class Avm1Parser
 {
-    internal static Avm1TypeModel? BuildTypeModel(INamedTypeSymbol symbol, Location location, CancellationToken cancellationToken, List<DiagnosticInfo> diagnostics, bool requirePartial)
+    internal static Avm1TypeModel? BuildTypeModel(INamedTypeSymbol symbol, Location location, CancellationToken cancellationToken, List<DiagnosticInfo> diagnostics)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (symbol.IsGenericType || symbol.IsStatic || symbol.IsRefLikeType)
         {
             diagnostics.Add(Diag(Avm1Diagnostics.UnsupportedDeclaration, location, symbol.Name));
             return null;
         }
 
-        if (requirePartial && !IsPartial(symbol, cancellationToken))
-        {
-            diagnostics.Add(Diag(Avm1Diagnostics.TypeMustBePartial, location, symbol.Name));
-            return null;
-        }
-
         var containingTypes = new List<string>();
         for (var outer = symbol.ContainingType; outer is not null; outer = outer.ContainingType)
-        {
-            if (requirePartial && !IsPartial(outer, cancellationToken))
-            {
-                diagnostics.Add(Diag(Avm1Diagnostics.ContainingTypeMustBePartial, location, symbol.Name, outer.Name));
-                return null;
-            }
-
             containingTypes.Insert(0, $"{TypeKeyword(outer)} {outer.Name}");
-        }
 
         var construction = ResolveConstruction(symbol, out var constructorParameters);
 

@@ -176,8 +176,11 @@ per-property converters) via an internal `Avm1MetadataServices.CreateObjectInfo<
 — the same flat-DTO → type-info bridge STJ uses. The context is the resolver; `MyContext.Default` is the
 singleton.
 
-- The current `[Avm1Object]` + generated `ToAvm1Object/FromAvm1Object` keep working: the generator just
-  wires the type info; the methods become a facade over `Avm1ObjectConverter<T>`.
+- `[Avm1Object("EM")]` is now purely a **type-level binding path** read by the reflection resolver into
+  `Avm1TypeInfo.BindingPath`; it no longer triggers generation. The per-type `ToAvm1Object/FromAvm1Object`
+  facade and `IAvm1Serializable<T>`/`Avm1Convert` are **retired** — the context and `Avm1Serializer`
+  (incl. `Read/WriteGlobal`) are the single entry points. Nested members no longer need a marker: any
+  named non-scalar/non-collection type is treated as an object (reflection parity).
 - **No fast-path.** STJ needs a separate serialize-only "fast-path" because it streams UTF-8. Over a value
   tree there is no async/buffering/positional dimension, so metadata mode is already allocation-light —
   we emit a single (metadata) path. The STJ rule "a custom converter forces the metadata path" is moot
@@ -205,7 +208,8 @@ public partial class DofusLangContext : Avm1SerializerContext { }
   segment on read.
 - It **decouples a type from its location**: the same type can be registered at several paths, and a leaf
   type no longer needs to carry a global name.
-- `[Avm1Object("EM")]` remains a one-segment shorthand; the context path wins when both are present.
+- `[Avm1Object("EM")]` on the type supplies the path for reflection mode and as a fallback for context
+  registration; an explicit `[Avm1Serializable]` path wins when both are present.
 - Optional `TypeInfoPropertyName` names the generated accessor (`ctx.Emotes`) when a type is registered
   more than once.
 

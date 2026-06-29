@@ -53,7 +53,7 @@ internal static class Avm1ContextParser
             if (attribute.ConstructorArguments.Length == 0 || attribute.ConstructorArguments[0].Value is not INamedTypeSymbol type)
                 continue;
 
-            var typeModel = Avm1Parser.BuildTypeModel(type, type.Locations.FirstOrDefault() ?? location, cancellationToken, diagnostics, requirePartial: false);
+            var typeModel = Avm1Parser.BuildTypeModel(type, type.Locations.FirstOrDefault() ?? location, cancellationToken, diagnostics);
             if (typeModel is not { } model)
                 continue;
 

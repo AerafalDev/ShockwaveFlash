@@ -81,52 +81,62 @@ File.WriteAllBytes("emotes.swf", output.ToArray());
 
 ## Typed models (source generator)
 
-Instead of walking the value tree by string keys, map a global to your own records. Annotate a
-`partial` type with `[Avm1Object]` and the bundled source generator emits a reflection-free,
-AOT-friendly `ToAvm1Object` / `FromAvm1Object` (no extra package reference required):
+Instead of walking the value tree by string keys, map globals to your own records. Register the types
+on a `partial` **serializer context** and the bundled source generator emits a reflection-free,
+AOT-friendly resolver (no extra package reference required):
 
 ```csharp
 using ShockwaveFlash.Avm1.Serialization;
+using ShockwaveFlash.Avm1.Serialization.Metadata;
 
-[Avm1Object]
-public partial record Emote(
+public record Emote(
     [property: Avm1Property("s")] string Shortcut,
     [property: Avm1Property("n")] string Name);
+
+public record Alignment(
+    [property: Avm1Property("a")] Dictionary<string, AlignmentSide> Sides,
+    [property: Avm1Property("fe")] Dictionary<string, string> FeatEffects);
+
+[Avm1Serializable(typeof(Emote))]
+[Avm1Serializable(typeof(Alignment), "A")]   // bound to the global at globals.A
+public partial class LangContext : Avm1SerializerContext;
 ```
 
-`EM` is an object keyed by id, so read it as a map, edit, and write it back:
+`LangContext.Default` is the singleton resolver. A global that is a fixed-shape object reads and writes
+through its binding path:
 
 ```csharp
 var globals = tag.Evaluate(version);
 
-Dictionary<string, Emote> emotes = Avm1Convert.ReadMap<Emote>(globals["EM"].AsObject);
+Alignment alignment = LangContext.Default.Read<Alignment>(globals)!;   // reads globals.A
+LangContext.Default.Write(globals, alignment);                         // writes globals.A
+```
+
+`EM` is an object keyed by id, so deserialize it as a map, edit, and serialize it back:
+
+```csharp
+var options = LangContext.Default.Options;
+
+var emotes = Avm1Serializer.Deserialize<Dictionary<string, Emote>>(globals["EM"].AsObject, options);
 emotes["1"] = emotes["1"] with { Name = "New name" };
 emotes["24"] = new Emote("new", "New emote");
-globals["EM"] = Avm1Convert.WriteMap(emotes);
+globals["EM"] = Avm1Serializer.Serialize(emotes, options);
 
 var output = swf.ReplaceTag(tag, tag.WithGlobals(globals, version)).Assemble();
 ```
 
-For a global that is a fixed-shape object, give the type a global name and use `ReadGlobal` /
-`WriteGlobal` (or `TryReadGlobal`):
-
-```csharp
-[Avm1Object("A")]
-public partial record Alignment(
-    [property: Avm1Property("a")] Dictionary<string, AlignmentSide> Sides,
-    [property: Avm1Property("fe")] Dictionary<string, string> FeatEffects);
-
-var alignment = Avm1Convert.ReadGlobal<Alignment>(globals);
-Avm1Convert.WriteGlobal(globals, alignment);
-```
+Without a context the reflection serializer works the same — annotate the type's path with
+`[Avm1Object("A")]` and call `Avm1Serializer.ReadGlobal<Alignment>(globals)` /
+`WriteGlobal(globals, alignment)`, or plain `Avm1Serializer.Serialize`/`Deserialize` for a value with
+no global binding.
 
 Supported member types: scalars (`string`, `bool`, any numeric — widened to `double` — and `enum`),
-nested `[Avm1Object]` types, collections (`T[]`, `List<T>`, `Dictionary<string, V>`) that nest to any
-depth (`int[][]`, `Dictionary<string, Dictionary<string, int[]>>`, …), and the verbatim escape hatch
-`Avm1Value` / `Avm1Array` / `Avm1Object` for irreducibly heterogeneous fields (unions, tuples).
-Nullable members are optional — a `null` is omitted on write and a missing key reads back as `null`.
-Use `[Avm1Ignore]` to skip a member. Mapping problems are reported as
-[`AVM1xxx` diagnostics](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md).
+nested objects (any record/class/struct), collections (`T[]`, `List<T>`, `Dictionary<string, V>`) that
+nest to any depth (`int[][]`, `Dictionary<string, Dictionary<string, int[]>>`, …), custom
+`[Avm1Converter]` members, and the verbatim escape hatch `Avm1Value` / `Avm1Array` / `Avm1Object` for
+irreducibly heterogeneous fields (unions, tuples). Nullable members are optional — a `null` is omitted
+on write and a missing key reads back as `null`. Use `[Avm1Ignore]` to skip a member. Mapping problems
+are reported as [`AVM1xxx` diagnostics](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md).
 
 ## Raw actions
 

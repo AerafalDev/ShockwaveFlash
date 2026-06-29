@@ -7,19 +7,10 @@ internal static class Avm1Diagnostics
     private const string Category = "Usage";
     private const string HelpRoot = "https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md#";
 
-    public static readonly DiagnosticDescriptor TypeMustBePartial = new(
-        "AVM1001",
-        "Avm1 type must be partial",
-        "Type '{0}' is annotated with [Avm1Object] but is not declared 'partial'; the generator cannot add the IAvm1Serializable implementation",
-        Category,
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true,
-        helpLinkUri: HelpRoot + "avm1001");
-
     public static readonly DiagnosticDescriptor UnsupportedMemberType = new(
         "AVM1002",
         "Unsupported Avm1 member type",
-        "Member '{0}.{1}' has type '{2}' which the AVM1 serializer cannot map; mark it with [Avm1Ignore] or use a supported type",
+        "Member '{0}.{1}' has type '{2}' which the AVM1 serializer cannot map; mark it with [Avm1Ignore], attach an [Avm1Converter], or use a supported type",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
