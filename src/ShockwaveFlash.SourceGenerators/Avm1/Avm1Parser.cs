@@ -20,17 +20,32 @@ internal static class Avm1Parser
         var node = (TypeDeclarationSyntax)context.TargetNode;
         var location = node.Identifier.GetLocation();
 
-        if (symbol.IsGenericType || symbol.IsStatic || symbol.IsRefLikeType)
-            return Fail(diagnostics, Avm1Diagnostics.UnsupportedDeclaration, location, symbol.Name);
+        var model = BuildTypeModel(symbol, location, cancellationToken, diagnostics, requirePartial: true);
+        return new Avm1ParseResult(model, ToArray(diagnostics));
+    }
 
-        if (!IsPartial(symbol, cancellationToken))
-            return Fail(diagnostics, Avm1Diagnostics.TypeMustBePartial, location, symbol.Name);
+    internal static Avm1TypeModel? BuildTypeModel(INamedTypeSymbol symbol, Location location, CancellationToken cancellationToken, List<DiagnosticInfo> diagnostics, bool requirePartial)
+    {
+        if (symbol.IsGenericType || symbol.IsStatic || symbol.IsRefLikeType)
+        {
+            diagnostics.Add(Diag(Avm1Diagnostics.UnsupportedDeclaration, location, symbol.Name));
+            return null;
+        }
+
+        if (requirePartial && !IsPartial(symbol, cancellationToken))
+        {
+            diagnostics.Add(Diag(Avm1Diagnostics.TypeMustBePartial, location, symbol.Name));
+            return null;
+        }
 
         var containingTypes = new List<string>();
         for (var outer = symbol.ContainingType; outer is not null; outer = outer.ContainingType)
         {
-            if (!IsPartial(outer, cancellationToken))
-                return Fail(diagnostics, Avm1Diagnostics.ContainingTypeMustBePartial, location, symbol.Name, outer.Name);
+            if (requirePartial && !IsPartial(outer, cancellationToken))
+            {
+                diagnostics.Add(Diag(Avm1Diagnostics.ContainingTypeMustBePartial, location, symbol.Name, outer.Name));
+                return null;
+            }
 
             containingTypes.Insert(0, $"{TypeKeyword(outer)} {outer.Name}");
         }
@@ -40,12 +55,13 @@ internal static class Avm1Parser
         if (construction is null)
         {
             diagnostics.Add(Diag(Avm1Diagnostics.NoAccessibleConstructor, location, symbol.Name));
-            return new Avm1ParseResult(null, ToArray(diagnostics));
+            return null;
         }
 
         var members = new List<Avm1MemberModel>();
         var keyOwners = new Dictionary<string, string>(StringComparer.Ordinal);
         var parameterNames = constructorParameters.Select(static p => p.Name).ToArray();
+        var hasMemberDiagnostics = false;
 
         foreach (var member in symbol.GetMembers())
         {
@@ -62,12 +78,14 @@ internal static class Avm1Parser
             if (keyOwners.TryGetValue(key, out var existing))
             {
                 diagnostics.Add(Diag(Avm1Diagnostics.DuplicateMemberKey, memberLocation, symbol.Name, existing, name, key));
+                hasMemberDiagnostics = true;
                 continue;
             }
 
             if (!TryClassifyMember(memberType, out var classified))
             {
                 diagnostics.Add(Diag(Avm1Diagnostics.UnsupportedMemberType, memberLocation, symbol.Name, name, memberType.ToDisplayString()));
+                hasMemberDiagnostics = true;
                 continue;
             }
 
@@ -93,53 +111,41 @@ internal static class Avm1Parser
                 if (match.CSharpName is null)
                 {
                     diagnostics.Add(Diag(Avm1Diagnostics.NoAccessibleConstructor, location, symbol.Name));
-                    return new Avm1ParseResult(null, ToArray(diagnostics));
+                    return null;
                 }
 
                 constructorOrder.Add(match.CSharpName);
             }
         }
 
-        if (diagnostics.Count > 0)
-            return new Avm1ParseResult(null, ToArray(diagnostics));
+        if (hasMemberDiagnostics)
+            return null;
 
-        var globalName = context.Attributes.Length > 0 && context.Attributes[0].ConstructorArguments.Length > 0
-            ? context.Attributes[0].ConstructorArguments[0].Value as string
-            : null;
-
-        var model = new Avm1TypeModel(
+        return new Avm1TypeModel(
             symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString(),
             new EquatableArray<string>(containingTypes.ToArray()),
             TypeKeyword(symbol),
             symbol.Name,
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             HintNameFor(symbol),
-            globalName,
+            GetGlobalName(symbol),
             construction.Value,
             new EquatableArray<string>(constructorOrder.ToArray()),
             new EquatableArray<Avm1MemberModel>(members.ToArray()));
-
-        return new Avm1ParseResult(model, ToArray(diagnostics));
     }
 
-    private static Avm1ParseResult Fail(List<DiagnosticInfo> diagnostics, DiagnosticDescriptor descriptor, Location location, params string[] arguments)
-    {
-        diagnostics.Add(Diag(descriptor, location, arguments));
-        return new Avm1ParseResult(null, ToArray(diagnostics));
-    }
-
-    private static EquatableArray<DiagnosticInfo> ToArray(List<DiagnosticInfo> diagnostics)
+    internal static EquatableArray<DiagnosticInfo> ToArray(List<DiagnosticInfo> diagnostics)
     {
         return new(diagnostics.ToArray());
     }
 
-    private static DiagnosticInfo Diag(DiagnosticDescriptor descriptor, Location location, params string[] arguments)
+    internal static DiagnosticInfo Diag(DiagnosticDescriptor descriptor, Location location, params string[] arguments)
     {
         return new(descriptor, LocationInfo.CreateFrom(location), new EquatableArray<string>(arguments));
     }
 
 
-    private static bool IsPartial(INamedTypeSymbol symbol, CancellationToken cancellationToken)
+    internal static bool IsPartial(INamedTypeSymbol symbol, CancellationToken cancellationToken)
     {
         foreach (var reference in symbol.DeclaringSyntaxReferences)
         {
@@ -150,7 +156,7 @@ internal static class Avm1Parser
         return false;
     }
 
-    private static string TypeKeyword(INamedTypeSymbol symbol)
+    internal static string TypeKeyword(INamedTypeSymbol symbol)
     {
         if (symbol.IsRecord)
             return symbol.IsValueType ? "record struct" : "record";
@@ -418,6 +424,12 @@ internal static class Avm1Parser
     private static string? GetPropertyKey(ISymbol symbol)
     {
         var attribute = symbol.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is Avm1SerializableGenerator.Avm1PropertyAttributeName);
+        return attribute is { ConstructorArguments.Length: > 0 } ? attribute.ConstructorArguments[0].Value as string : null;
+    }
+
+    private static string? GetGlobalName(INamedTypeSymbol symbol)
+    {
+        var attribute = symbol.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is Avm1SerializableGenerator.Avm1ObjectAttributeName);
         return attribute is { ConstructorArguments.Length: > 0 } ? attribute.ConstructorArguments[0].Value as string : null;
     }
 

@@ -60,4 +60,13 @@ internal static class Avm1Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         helpLinkUri: HelpRoot + "avm1006");
+
+    public static readonly DiagnosticDescriptor ContextMustBePartial = new(
+        "AVM1007",
+        "Avm1 serializer context must be partial",
+        "Context '{0}' is annotated with [Avm1Serializable] but is not declared 'partial'; the generator cannot complete the Avm1SerializerContext",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: HelpRoot + "avm1007");
 }

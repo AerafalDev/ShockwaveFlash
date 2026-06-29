@@ -19,6 +19,19 @@ public sealed class Avm1GeneratorDriverTests
         public partial record Item([property: Avm1Property("n")] string Name, int Count);
         """;
 
+    private const string ContextSource = """
+        using ShockwaveFlash.Avm1.Serialization;
+        using ShockwaveFlash.Avm1.Serialization.Metadata;
+
+        namespace Demo;
+
+        [Avm1Object]
+        public partial record Item([property: Avm1Property("n")] string Name, int Count);
+
+        [Avm1Serializable(typeof(Item), "it")]
+        public partial class DemoContext : Avm1SerializerContext;
+        """;
+
     [Fact]
     public void Generates_a_serializer_for_a_valid_type()
     {
@@ -75,6 +88,61 @@ public sealed class Avm1GeneratorDriverTests
         var tracked = driver.GetRunResult().Results[0].TrackedSteps;
         tracked.ShouldContainKey("Avm1Parse");
         tracked["Avm1Parse"]
+            .SelectMany(step => step.Outputs)
+            .ShouldAllBe(output => output.Reason == IncrementalStepRunReason.Cached || output.Reason == IncrementalStepRunReason.Unchanged);
+    }
+
+    [Fact]
+    public void Generates_a_serializer_context_for_a_registered_type()
+    {
+        var (result, diagnostics) = Run(ContextSource);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generated = result.GeneratedSources.Single(s => s.HintName.EndsWith(".Avm1Context.g.cs", StringComparison.Ordinal));
+        var text = generated.SourceText.ToString();
+
+        text.ShouldContain("public static DemoContext Default");
+        text.ShouldContain("public override");
+        text.ShouldContain("GetTypeInfo(global::System.Type type)");
+        text.ShouldContain("Avm1MetadataServices.CreateObjectInfo");
+        text.ShouldContain("BindingPath = new string[] { \"it\" }");
+    }
+
+    [Fact]
+    public void Reports_AVM1007_for_a_non_partial_context()
+    {
+        var (_, diagnostics) = Run("""
+            using ShockwaveFlash.Avm1.Serialization;
+            using ShockwaveFlash.Avm1.Serialization.Metadata;
+
+            [Avm1Object]
+            public partial record Item(string Name);
+
+            [Avm1Serializable(typeof(Item))]
+            public class NotPartialContext : Avm1SerializerContext;
+            """);
+
+        diagnostics.Select(d => d.Id).ShouldContain("AVM1007");
+    }
+
+    [Fact]
+    public void Context_pipeline_output_is_cached_on_an_unrelated_edit()
+    {
+        var compilation = Compile(ContextSource);
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            [new Avm1SerializableGenerator().AsSourceGenerator()],
+            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+
+        driver = driver.RunGenerators(compilation);
+
+        var edited = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace Other { class Extra { } }"));
+        driver = driver.RunGenerators(edited);
+
+        var tracked = driver.GetRunResult().Results[0].TrackedSteps;
+        tracked.ShouldContainKey("Avm1ParseContext");
+        tracked["Avm1ParseContext"]
             .SelectMany(step => step.Outputs)
             .ShouldAllBe(output => output.Reason == IncrementalStepRunReason.Cached || output.Reason == IncrementalStepRunReason.Unchanged);
     }
