@@ -32,6 +32,27 @@ public static class Avm1MetadataServices
         return info;
     }
 
+    public static Avm1TypeInfo<TBase> CreatePolymorphicInfo<TBase>(Avm1SerializerOptions options, Avm1PolymorphicInfoValues<TBase> values)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(values);
+
+        var info = new Avm1TypeInfo<TBase>
+        {
+            Kind = Avm1TypeInfoKind.None,
+            Converter = new Avm1PolymorphicConverter<TBase>(),
+            Options = options,
+            BindingPath = values.BindingPath,
+        };
+
+        var polymorphism = new Avm1PolymorphismInfo { DiscriminatorName = values.DiscriminatorName };
+        foreach (var (type, discriminator) in values.DerivedTypes)
+            polymorphism.Add(type, discriminator);
+
+        info.Polymorphism = polymorphism;
+        return info;
+    }
+
     public static Avm1PropertyInfo CreatePropertyInfo<T>(Avm1SerializerOptions options, Avm1PropertyInfoValues<T> values)
     {
         ArgumentNullException.ThrowIfNull(options);

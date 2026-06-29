@@ -1,6 +1,9 @@
 namespace ShockwaveFlash.SourceGenerators.Avm1.Models;
 
 internal readonly record struct Avm1RegistrationModel(
-    Avm1TypeModel TypeModel,
+    string FullyQualifiedName,
+    string AccessorName,
     EquatableArray<string> BindingPath,
-    string AccessorName);
+    Avm1TypeModel? ObjectModel,
+    string? DiscriminatorName,
+    EquatableArray<Avm1DerivedTypeModel> Derived);

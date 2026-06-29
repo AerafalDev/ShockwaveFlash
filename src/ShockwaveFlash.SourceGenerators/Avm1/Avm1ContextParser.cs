@@ -46,7 +46,9 @@ internal static class Avm1ContextParser
         var registrations = new List<Avm1RegistrationModel>();
         var accessorNames = new HashSet<string>(StringComparer.Ordinal);
         var registeredSymbols = new List<INamedTypeSymbol>();
+        var derivedRoots = new List<INamedTypeSymbol>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        var noDerived = new EquatableArray<Avm1DerivedTypeModel>(Array.Empty<Avm1DerivedTypeModel>());
 
         foreach (var attribute in context.Attributes)
         {
@@ -55,17 +57,57 @@ internal static class Avm1ContextParser
             if (attribute.ConstructorArguments.Length == 0 || attribute.ConstructorArguments[0].Value is not INamedTypeSymbol type)
                 continue;
 
+            var bindingPath = attribute.ConstructorArguments.Length > 1 ? attribute.ConstructorArguments[1].Value as string : null;
+            var polymorphic = type.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == Avm1SerializableGenerator.Avm1PolymorphicAttributeName);
+
+            if (polymorphic is not null)
+            {
+                var fqn = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var discriminatorName = NamedString(polymorphic, "TypeDiscriminatorPropertyName") ?? "$type";
+                var derived = new List<Avm1DerivedTypeModel>();
+
+                foreach (var derivedAttribute in type.GetAttributes().Where(a => a.AttributeClass?.ToDisplayString() == Avm1SerializableGenerator.Avm1DerivedTypeAttributeName))
+                {
+                    if (derivedAttribute.ConstructorArguments.Length >= 2
+                        && derivedAttribute.ConstructorArguments[0].Value is INamedTypeSymbol derivedType
+                        && derivedAttribute.ConstructorArguments[1].Value is string discriminator)
+                    {
+                        derived.Add(new Avm1DerivedTypeModel(derivedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), discriminator));
+                        derivedRoots.Add(derivedType);
+                    }
+                }
+
+                var polymorphicSegments = ResolveSegments(attribute, bindingPath, null);
+                var polymorphicAccessor = UniqueAccessor(NamedString(attribute, "TypeInfoPropertyName") ?? type.Name, accessorNames);
+
+                registrations.Add(new Avm1RegistrationModel(fqn, polymorphicAccessor, new EquatableArray<string>(polymorphicSegments), null, discriminatorName, new EquatableArray<Avm1DerivedTypeModel>(derived.ToArray())));
+                seen.Add(fqn);
+                continue;
+            }
+
             var typeModel = Avm1Parser.BuildTypeModel(type, type.Locations.FirstOrDefault() ?? location, cancellationToken, diagnostics);
             if (typeModel is not { } model)
                 continue;
 
-            var bindingPath = attribute.ConstructorArguments.Length > 1 ? attribute.ConstructorArguments[1].Value as string : null;
             var segments = ResolveSegments(attribute, bindingPath, model.GlobalName);
             var accessor = UniqueAccessor(NamedString(attribute, "TypeInfoPropertyName") ?? model.TypeName, accessorNames);
 
-            registrations.Add(new Avm1RegistrationModel(model, new EquatableArray<string>(segments), accessor));
+            registrations.Add(new Avm1RegistrationModel(model.FullyQualifiedName, accessor, new EquatableArray<string>(segments), model, null, noDerived));
             registeredSymbols.Add(type);
             seen.Add(model.FullyQualifiedName);
+        }
+
+        foreach (var derivedType in derivedRoots)
+        {
+            var fqn = derivedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            if (!seen.Add(fqn))
+                continue;
+
+            if (Avm1Parser.BuildTypeModel(derivedType, derivedType.Locations.FirstOrDefault() ?? location, cancellationToken, diagnostics) is { } derivedModel)
+            {
+                registrations.Add(new Avm1RegistrationModel(derivedModel.FullyQualifiedName, UniqueAccessor(derivedModel.TypeName, accessorNames), new EquatableArray<string>(Array.Empty<string>()), derivedModel, null, noDerived));
+                registeredSymbols.Add(derivedType);
+            }
         }
 
         var nested = new List<INamedTypeSymbol>();
@@ -76,7 +118,7 @@ internal static class Avm1ContextParser
         {
             var ignored = new List<DiagnosticInfo>();
             if (Avm1Parser.BuildTypeModel(nestedType, nestedType.Locations.FirstOrDefault() ?? location, cancellationToken, ignored) is { } nestedModel)
-                registrations.Add(new Avm1RegistrationModel(nestedModel, new EquatableArray<string>(Array.Empty<string>()), UniqueAccessor(nestedModel.TypeName, accessorNames)));
+                registrations.Add(new Avm1RegistrationModel(nestedModel.FullyQualifiedName, UniqueAccessor(nestedModel.TypeName, accessorNames), new EquatableArray<string>(Array.Empty<string>()), nestedModel, null, noDerived));
         }
 
         var contextModel = new Avm1ContextModel(

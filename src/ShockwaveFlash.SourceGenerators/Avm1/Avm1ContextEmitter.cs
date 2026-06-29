@@ -15,6 +15,7 @@ internal static class Avm1ContextEmitter
     private const string Services = Meta + ".Avm1MetadataServices";
     private const string ObjectValues = Meta + ".Avm1ObjectInfoValues";
     private const string PropertyValues = Meta + ".Avm1PropertyInfoValues";
+    private const string PolymorphicValues = Meta + ".Avm1PolymorphicInfoValues";
     private const string Options = "global::ShockwaveFlash.Avm1.Serialization.Avm1SerializerOptions";
     private const string GeneratedCode = "[global::System.CodeDom.Compiler.GeneratedCode(\"ShockwaveFlash.SourceGenerators\", \"1.0.0\")]";
 
@@ -51,7 +52,7 @@ internal static class Avm1ContextEmitter
             builder.AppendLine();
             EmitAccessor(builder, registration);
 
-            if (seenTypes.Add(registration.TypeModel.FullyQualifiedName))
+            if (seenTypes.Add(registration.FullyQualifiedName))
                 dispatch.Add(registration);
         }
 
@@ -89,7 +90,7 @@ internal static class Avm1ContextEmitter
 
     private static void EmitAccessor(IndentedStringBuilder builder, Avm1RegistrationModel registration)
     {
-        var type = registration.TypeModel.FullyQualifiedName;
+        var type = registration.FullyQualifiedName;
         var accessor = registration.AccessorName;
 
         builder
@@ -107,7 +108,7 @@ internal static class Avm1ContextEmitter
         using (builder.CreateScope())
         {
             foreach (var registration in dispatch)
-                builder.AppendIndentedLine($"if (type == typeof({registration.TypeModel.FullyQualifiedName})) return {registration.AccessorName};");
+                builder.AppendIndentedLine($"if (type == typeof({registration.FullyQualifiedName})) return {registration.AccessorName};");
 
             builder.AppendLine();
             builder.AppendIndentedLine("return null;");
@@ -116,13 +117,20 @@ internal static class Avm1ContextEmitter
 
     private static void EmitCreate(IndentedStringBuilder builder, Avm1RegistrationModel registration)
     {
-        var model = registration.TypeModel;
-        var type = model.FullyQualifiedName;
-        var argMembers = BuildArgumentOrder(model);
+        var type = registration.FullyQualifiedName;
 
         builder
             .AppendIndentedLine(GeneratedCode)
             .AppendIndentedLine($"private static {TypeInfo}<{type}> Create_{registration.AccessorName}({Options} options)");
+
+        if (registration.DiscriminatorName is not null)
+        {
+            EmitCreatePolymorphic(builder, registration, type);
+            return;
+        }
+
+        var model = registration.ObjectModel!.Value;
+        var argMembers = BuildArgumentOrder(model);
 
         using (builder.CreateScope())
         {
@@ -142,6 +150,34 @@ internal static class Avm1ContextEmitter
 
             foreach (var member in model.Members)
                 EmitProperty(builder, type, member);
+
+            builder.Unindent();
+            builder.AppendIndentedLine("},");
+
+            builder.Unindent();
+            builder.AppendIndentedLine("});");
+        }
+    }
+
+    private static void EmitCreatePolymorphic(IndentedStringBuilder builder, Avm1RegistrationModel registration, string type)
+    {
+        using (builder.CreateScope())
+        {
+            builder.AppendIndentedLine($"return {Services}.CreatePolymorphicInfo(options, new {PolymorphicValues}<{type}>");
+            builder.AppendIndentedLine("{");
+            builder.Indent();
+
+            builder.AppendIndentedLine($"DiscriminatorName = {Literal(registration.DiscriminatorName!)},");
+
+            if (registration.BindingPath.Count > 0)
+                builder.AppendIndentedLine($"BindingPath = {StringArray(registration.BindingPath)},");
+
+            builder.AppendIndentedLine("DerivedTypes = new (global::System.Type, string)[]");
+            builder.AppendIndentedLine("{");
+            builder.Indent();
+
+            foreach (var derived in registration.Derived)
+                builder.AppendIndentedLine($"(typeof({derived.TypeFqn}), {Literal(derived.Discriminator)}),");
 
             builder.Unindent();
             builder.AppendIndentedLine("},");
