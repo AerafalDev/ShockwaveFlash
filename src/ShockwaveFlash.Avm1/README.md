@@ -130,13 +130,21 @@ Without a context the reflection serializer works the same — annotate the type
 `WriteGlobal(globals, alignment)`, or plain `Avm1Serializer.Serialize`/`Deserialize` for a value with
 no global binding.
 
+Customize members with `[Avm1Property("k")]` (key override), `[Avm1Ignore]`, `[Avm1Required]`,
+`[Avm1PropertyOrder(n)]`, `[Avm1Converter(typeof(C))]` (a custom `Avm1Converter<T>`, on a member or a
+type), and `[Avm1ExtensionData]` (a `Dictionary<string, Avm1Value>` capturing unknown keys); pick a
+constructor with `[Avm1Constructor]`. `Avm1SerializerOptions` tunes `NumberHandling`,
+`DefaultIgnoreCondition`, and custom `Converters`. The
+**[serialization guide](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/avm1-serialization.md)**
+walks through every case; mapping problems surface as
+[`AVM1xxx` diagnostics](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md).
+
 Supported member types: scalars (`string`, `bool`, any numeric — widened to `double` — and `enum`),
 nested objects (any record/class/struct), collections (`T[]`, `List<T>`, `Dictionary<string, V>`) that
 nest to any depth (`int[][]`, `Dictionary<string, Dictionary<string, int[]>>`, …), custom
 `[Avm1Converter]` members, and the verbatim escape hatch `Avm1Value` / `Avm1Array` / `Avm1Object` for
 irreducibly heterogeneous fields (unions, tuples). Nullable members are optional — a `null` is omitted
-on write and a missing key reads back as `null`. Use `[Avm1Ignore]` to skip a member. Mapping problems
-are reported as [`AVM1xxx` diagnostics](https://github.com/AerafalDev/ShockwaveFlash/blob/main/docs/diagnostics.md).
+on write and a missing key reads back as `null`.
 
 ## Raw actions
 
