@@ -16,6 +16,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ShockwaveFlash\ShockwaveFlash.csproj" />
+    <ProjectReference Include="..\ShockwaveFlash.SourceGenerators\ShockwaveFlash.SourceGenerators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\ShockwaveFlash.SourceGenerators\bin\$(Configuration)\netstandard2.0\ShockwaveFlash.SourceGenerators.dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
+          Visible="false" />
   </ItemGroup>
 
 </Project>
