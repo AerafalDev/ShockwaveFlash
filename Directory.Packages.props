@@ -22,7 +22,7 @@
   <ItemGroup>
     <PackageVersion Include="Basic.Reference.Assemblies.Net100" Version="1.8.9" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="CsCheck" Version="4.2.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
