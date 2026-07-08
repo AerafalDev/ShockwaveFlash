@@ -27,7 +27,7 @@ internal static class Lzma
         try
         {
             using var input = new MemoryStream(data, writable: false);
-            using var lzma = new LzmaStream(properties, input, data.Length, uncompressedLength);
+            using var lzma = LzmaStream.Create(properties, input, data.Length, uncompressedLength);
 
             var output = new byte[uncompressedLength];
             var read = 0;
@@ -60,7 +60,7 @@ internal static class Lzma
             using var output = new MemoryStream();
             byte[] properties;
 
-            using (var lzma = new LzmaStream(new LzmaEncoderProperties(), false, output))
+            using (var lzma = LzmaStream.Create(new LzmaEncoderProperties(), false, output))
             {
                 properties = lzma.Properties;
 
