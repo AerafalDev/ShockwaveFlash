@@ -158,7 +158,7 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         using var skImage = SKImage.FromEncodedData(image.ToPng().ToArray());
 
         if (skImage is not null)
-            _canvas.DrawImage(skImage, 0, 0);
+            _canvas.DrawImage(skImage, 0, 0, SKSamplingOptions.Default);
     }
 
     public void Include(IDrawable drawable, Matrix matrix, int frame, IReadOnlyList<Filter> filters, BlendMode blendMode, string? name)
@@ -166,7 +166,7 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         var local = LocalMatrix(matrix);
 
         _canvas.Save();
-        _canvas.Concat(ref local);
+        _canvas.Concat(in local);
 
         var created = new List<IDisposable>();
         var imageFilter = BuildImageFilter(filters, created);
@@ -434,12 +434,12 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
 
     private static SKPath BuildPath(IReadOnlyList<IEdge> edges, bool closeContours)
     {
-        var skPath = new SKPath { FillType = SKPathFillType.EvenOdd };
-        AppendEdges(skPath, edges, closeContours);
-        return skPath;
+        using var builder = new SKPathBuilder { FillType = SKPathFillType.EvenOdd };
+        AppendEdges(builder, edges, closeContours);
+        return builder.Detach();
     }
 
-    private static void AppendEdges(SKPath skPath, IReadOnlyList<IEdge> edges, bool closeContours = false)
+    private static void AppendEdges(SKPathBuilder builder, IReadOnlyList<IEdge> edges, bool closeContours = false)
     {
         var startX = float.NaN;
         var startY = float.NaN;
@@ -454,35 +454,41 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
             if (fromX != lastX || fromY != lastY)
             {
                 if (closeContours && startX == lastX && startY == lastY)
-                    skPath.Close();
+                    builder.Close();
 
-                skPath.MoveTo(fromX, fromY);
+                builder.MoveTo(fromX, fromY);
                 startX = fromX;
                 startY = fromY;
             }
 
             if (edge is CurvedEdge curve)
-                skPath.QuadTo(curve.ControlX / 20f, curve.ControlY / 20f, curve.ToX / 20f, curve.ToY / 20f);
+                builder.QuadTo(curve.ControlX / 20f, curve.ControlY / 20f, curve.ToX / 20f, curve.ToY / 20f);
             else
-                skPath.LineTo(edge.ToX / 20f, edge.ToY / 20f);
+                builder.LineTo(edge.ToX / 20f, edge.ToY / 20f);
 
             lastX = edge.ToX / 20f;
             lastY = edge.ToY / 20f;
         }
 
         if (closeContours && startX == lastX && startY == lastY)
-            skPath.Close();
+            builder.Close();
     }
 
     private static SKPath? BuildClipPath(IDrawable drawable)
     {
-        var skPath = new SKPath { FillType = SKPathFillType.Winding };
-        AppendClip(skPath, drawable, SKMatrix.CreateIdentity(), 0);
+        using var builder = new SKPathBuilder { FillType = SKPathFillType.Winding };
+        AppendClip(builder, drawable, SKMatrix.CreateIdentity(), 0);
 
-        return skPath.IsEmpty ? null : skPath;
+        var skPath = builder.Detach();
+
+        if (!skPath.IsEmpty)
+            return skPath;
+
+        skPath.Dispose();
+        return null;
     }
 
-    private static void AppendClip(SKPath skPath, IDrawable drawable, SKMatrix matrix, int depth)
+    private static void AppendClip(SKPathBuilder builder, IDrawable drawable, SKMatrix matrix, int depth)
     {
         if (depth > 8)
             return;
@@ -490,14 +496,14 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
         switch (drawable)
         {
             case ShapeDefinition definition:
-                using (var sub = new SKPath())
+                using (var sub = new SKPathBuilder())
                 {
                     foreach (var path in definition.Shape.Paths)
                         if (path.Style.Fill is not null)
                             AppendEdges(sub, path.Edges);
 
-                    sub.Transform(matrix);
-                    skPath.AddPath(sub);
+                    using var subPath = sub.Detach();
+                    builder.AddPath(subPath, in matrix, SKPathAddMode.Append);
                 }
 
                 break;
@@ -508,7 +514,7 @@ public sealed class SkiaDrawer : IDrawer<SKImage>, IDisposable
                 if (frames.Count > 0)
                     foreach (var item in frames[0].Objects)
                         if (item.ClipDepth is null)
-                            AppendClip(skPath, item.Drawable, SKMatrix.Concat(matrix, LocalMatrix(item.Matrix)), depth + 1);
+                            AppendClip(builder, item.Drawable, SKMatrix.Concat(matrix, LocalMatrix(item.Matrix)), depth + 1);
 
                 break;
 

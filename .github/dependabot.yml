@@ -9,3 +9,7 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "build(deps)"
+    ignore:
+      # The AVM1 source generator ships inside ShockwaveFlash.Avm1, so it must load in the compiler of
+      # every .NET 10 SDK band; it stays on the Roslyn 5.0 baseline that shipped with .NET 10.0.100.
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
