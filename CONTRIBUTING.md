@@ -56,7 +56,7 @@ points that matter most here:
 - **Warnings are errors** — the build runs with `TreatWarningsAsErrors`, so a green
   build means zero warnings.
 
-Files are **UTF-8 (no BOM) with CRLF** line endings, normalized by `.gitattributes`.
+Files are **UTF-8 (no BOM)**, stored with LF line endings and checked out with your platform's native ones (see `.gitattributes`).
 
 ## Tests
 
