@@ -6,10 +6,72 @@ updates:
     target-branch: "main"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "build(deps)"
+    groups:
+      skiasharp:
+        patterns: ["SkiaSharp", "SkiaSharp.*"]
+      nuget-minor-and-patch:
+        update-types: ["minor", "patch"]
     ignore:
       # The AVM1 source generator ships inside ShockwaveFlash.Avm1, so it must load in the compiler of
       # every .NET 10 SDK band; it stays on the Roslyn 5.0 baseline that shipped with .NET 10.0.100.
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+      # 1.0.0 exports public types without a namespace (BitReader, ArcLzwStream), which leaks into
+      # every consumer's global namespace and collides with ShockwaveFlash.IO.Bits.BitReader.
+      - dependency-name: "SharpCompress"
+        versions: ["1.0.0"]
+
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    target-branch: "main"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      # Packages that must move together.
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      next:
+        patterns: ["next", "eslint-config-next"]
+      fumadocs:
+        patterns: ["fumadocs-*"]
+      tailwind:
+        patterns: ["tailwindcss", "@tailwindcss/*"]
+      docs-minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # eslint-config-next still bundles plugins that only support ESLint 9.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      # Next.js and typescript-eslint do not support the native TypeScript 7 compiler yet.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "main"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      github-actions:
+        patterns: ["*"]
+    ignore:
+      # Track the floating major tag (@v4) instead of pinning every minor/patch release.
+      - dependency-name: "github/codeql-action"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]

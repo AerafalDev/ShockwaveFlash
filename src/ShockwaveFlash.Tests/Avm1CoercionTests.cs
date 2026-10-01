@@ -8,7 +8,6 @@ public sealed class Avm1CoercionTests
 {
     [Theory]
     [InlineData(0.0, "0")]
-    [InlineData(-0.0, "0")]
     [InlineData(1.0, "1")]
     [InlineData(5.0, "5")]
     [InlineData(1.4, "1.4")]
@@ -47,6 +46,13 @@ public sealed class Avm1CoercionTests
     public void FormatNumber_matches_flash_oracle(double value, string expected)
     {
         Avm1Machine.FormatNumber(value).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void FormatNumber_formats_negative_zero_as_zero()
+    {
+        // -0.0 == 0.0, so xunit would treat it as a duplicate of the 0.0 theory row.
+        Avm1Machine.FormatNumber(-0.0).ShouldBe("0");
     }
 
     [Fact]

@@ -1,7 +1,12 @@
-# Check out every text file with CRLF on all platforms (Windows default);
-# the repository normalizes to LF on commit.
-* text=auto eol=crlf
+# Store text files with LF line endings and check them out with the platform's native ones.
+# Forcing CRLF here made Dependabot commit CRLF blobs, which turned every update into a whole-file diff.
+* text=auto
 
-*.cs       diff=csharp
-*.cshtml   diff=html
-*.csx      diff=csharp
+*.cs     diff=csharp
+*.cshtml diff=html
+*.csx    diff=csharp
+
+# Scripts whose interpreter requires a specific line ending.
+*.sh     text eol=lf
+*.cmd    text eol=crlf
+*.bat    text eol=crlf

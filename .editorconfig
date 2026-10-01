@@ -1,8 +1,9 @@
 root = true
 
+# Line endings are left to git: LF in the repository, native on checkout (see .gitattributes).
+
 [*]
 charset = utf-8
-end_of_line = crlf
 indent_style = space
 indent_size = 4
 tab_width = 4
@@ -10,7 +11,7 @@ trim_trailing_whitespace = true
 insert_final_newline = true
 max_line_length = 180
 
-[*.md]
+[*.{md,mdx}]
 max_line_length = off
 trim_trailing_whitespace = false
 
@@ -18,28 +19,97 @@ trim_trailing_whitespace = false
 indent_size = 2
 tab_width = 2
 
-[*.{xml,csproj,props,targets,resx,config}]
+[*.{js,mjs,cjs,ts,mts,tsx,css}]
 indent_size = 2
 tab_width = 2
 
-[*.{sln,slnx}]
-end_of_line = crlf
-indent_style = space
-indent_size = 4
-insert_final_newline = false
+[*.{xml,csproj,props,targets,resx,config,slnx}]
+indent_size = 2
+tab_width = 2
 
 [*.cs]
 indent_size = 4
 tab_width = 4
 
-# Analyzer suppressions: rules that clash with this library's deliberate design
-dotnet_diagnostic.CA1711.severity = none
+# .NET code style (IDE suggestions; not enforced by the build)
+csharp_new_line_before_members_in_object_initializers = false
+csharp_preferred_modifier_order = private, protected, internal, public, file, new, static, abstract, virtual, sealed, readonly, override, extern, unsafe, volatile, async, required:suggestion
+csharp_prefer_braces = false:none
+csharp_style_prefer_utf8_string_literals = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_parentheses_in_arithmetic_binary_operators = never_if_unnecessary:none
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:none
+dotnet_style_parentheses_in_relational_binary_operators = never_if_unnecessary:none
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+dotnet_style_predefined_type_for_member_access = true:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
+
+# ReSharper / Rider formatting
+resharper_autodetect_indent_settings = true
+resharper_blank_lines_after_control_transfer_statements = 1
+resharper_blank_lines_after_multiline_statements = 1
+resharper_blank_lines_around_block_case_section = 1
+resharper_blank_lines_around_multiline_case_section = 1
+resharper_blank_lines_around_single_line_local_method = 1
+resharper_blank_lines_before_block_statements = 1
+resharper_blank_lines_before_control_transfer_statements = 1
+resharper_blank_lines_before_multiline_statements = 1
+resharper_braces_redundant = true
+resharper_builtin_type_apply_to_native_integer = true
+resharper_csharp_keep_blank_lines_in_declarations = 1
+resharper_default_value_when_type_evident = default_expression
+resharper_default_value_when_type_not_evident = default_expression
+resharper_empty_string = string_empty
+resharper_formatter_off_tag = @formatter:off
+resharper_formatter_on_tag = @formatter:on
+resharper_formatter_tags_enabled = true
+resharper_new_line_before_while = true
+resharper_object_creation_when_type_evident = explicitly_typed
+resharper_place_accessorholder_attribute_on_same_line = false
+resharper_place_accessor_attribute_on_same_line = false
+resharper_place_expr_method_on_single_line = false
+resharper_place_expr_property_on_single_line = false
+resharper_place_field_attribute_on_same_line = false
+resharper_place_simple_embedded_statement_on_same_line = false
+resharper_show_autodetect_configure_formatting_tip = false
+resharper_use_indent_from_vs = false
+resharper_wrap_after_property_in_chained_method_calls = true
+resharper_wrap_array_initializer_style = chop_always
+resharper_wrap_before_first_method_call = true
+
+# ReSharper / Rider inspection severities
+resharper_arrange_redundant_parentheses_highlighting = hint
+resharper_arrange_this_qualifier_highlighting = hint
+resharper_arrange_type_member_modifiers_highlighting = hint
+resharper_arrange_type_modifiers_highlighting = hint
+resharper_built_in_type_reference_style_for_member_access_highlighting = hint
+resharper_built_in_type_reference_style_highlighting = hint
+resharper_redundant_base_qualifier_highlighting = warning
+resharper_suggest_var_or_type_built_in_types_highlighting = hint
+resharper_suggest_var_or_type_elsewhere_highlighting = hint
+resharper_suggest_var_or_type_simple_types_highlighting = hint
+
+# Test projects: xunit naming conventions use underscores.
+[{src,tests}/*.Tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+
+[*.{g.cs,generated.cs}]
+generated_code = true
+
+#### Repository-specific ####
+
+[*.cs]
+# SWF tag and record names mirror the format specification.
 dotnet_diagnostic.CA1708.severity = none
+dotnet_diagnostic.CA1711.severity = none
 dotnet_diagnostic.CA1720.severity = none
 
 # This library uses explicit constructors, never C# primary constructors.
 csharp_style_prefer_primary_constructors = false
 dotnet_diagnostic.IDE0290.severity = none
-
-[*.{g.cs,generated.cs}]
-generated_code = true
