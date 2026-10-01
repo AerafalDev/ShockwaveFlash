@@ -100,10 +100,10 @@ public sealed class Avm1GeneratorDriverTests
             [new Avm1SerializableGenerator().AsSourceGenerator()],
             driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
 
-        driver = driver.RunGenerators(compilation);
+        driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
 
-        var edited = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace Other { class Extra { } }"));
-        driver = driver.RunGenerators(edited);
+        var edited = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace Other { class Extra { } }", cancellationToken: TestContext.Current.CancellationToken));
+        driver = driver.RunGenerators(edited, TestContext.Current.CancellationToken);
 
         var tracked = driver.GetRunResult().Results[0].TrackedSteps;
         tracked.ShouldContainKey("Avm1ParseContext");

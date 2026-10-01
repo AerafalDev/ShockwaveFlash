@@ -61,7 +61,7 @@ Files are **UTF-8 (no BOM)**, stored with LF line endings and checked out with y
 ## Tests
 
 New behaviour ships with a test. The suite lives in `src/ShockwaveFlash.Tests`
-(xUnit + Shouldly, with CsCheck for property-based round-trip checks). The guiding
+(xUnit v3 + Shouldly, with CsCheck for property-based round-trip checks). The guiding
 invariant is **lossless round-trip**: disassembling and re-assembling a SWF must
 preserve the model, and a second pass must be byte-stable. Run `dotnet test -c Release`
 before opening a pull request.
