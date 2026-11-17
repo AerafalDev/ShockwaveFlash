@@ -128,9 +128,13 @@ public sealed class Avm1Machine
 
                 case ActionCallFunction:
                     {
-                        _ = ToStr(Pop());
-                        DropArguments();
-                        _stack.Push(Avm1Value.Undefined);
+                        var name = ToStr(Pop());
+                        var count = (int)ToNum(Pop());
+                        var argument = count > 0 ? Pop() : null;
+                        for (var i = 1; i < count; i++)
+                            Pop();
+
+                        _stack.Push(CallFunction(name, argument));
                         break;
                     }
 
@@ -457,6 +461,22 @@ public sealed class Avm1Machine
         var count = (int)ToNum(Pop());
         for (var i = 0; i < count; i++)
             Pop();
+    }
+
+    private Avm1Value CallFunction(string name, Avm1Value? argument)
+    {
+        var comparison = _version < 7 ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+        if (string.Equals(name, "String", comparison))
+            return argument is null ? string.Empty : ToStr(argument);
+
+        if (string.Equals(name, "Number", comparison))
+            return argument is null ? 0.0 : ToNum(argument);
+
+        if (string.Equals(name, "Boolean", comparison))
+            return argument is null ? Avm1Value.Undefined : ToBool(argument);
+
+        return Avm1Value.Undefined;
     }
 
     internal double ToNum(Avm1Value value)

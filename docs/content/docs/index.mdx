@@ -29,7 +29,8 @@ images or SVG — entirely in code, on **.NET 10**. Fast, allocation-light, and 
 
 <Callout type="warn" title="Scope">
 - No AVM2 (`DoABC`) execution — ABC bytecode is preserved verbatim, never run.
-- The AVM1 evaluator is **linear only** (data scripts): no control flow, function calls, or display
+- The AVM1 evaluator is **linear only** (data scripts): no control flow, user function calls (only the
+  `String`, `Number` and `Boolean` conversions), or display
   objects.
 - The AS2 listing is best-effort, not a full decompiler.
 </Callout>
