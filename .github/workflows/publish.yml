@@ -21,6 +21,9 @@ jobs:
   publish:
     name: Pack and push to NuGet
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -46,10 +49,16 @@ jobs:
       - name: Pack
         run: dotnet pack ShockwaveFlash.slnx --no-build --configuration Release --output artifacts
 
+      - name: NuGet login
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: jimmy-mll
+
       - name: Push
         shell: pwsh
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
           Get-ChildItem artifacts/*.nupkg | ForEach-Object {
             dotnet nuget push $_.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
