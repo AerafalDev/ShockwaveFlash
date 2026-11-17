@@ -51,6 +51,7 @@ DU[1] = {n: "Donjon Bouftou", m: new Object()};
 ## Scope
 
 The evaluator is a **data-script interpreter**: it runs the pure, branch-free operators over
-version-accurate value coercion — no control flow, no function calls, no host/display objects. Opcodes
+version-accurate value coercion — no control flow, no user function calls (only the `String`, `Number` and
+`Boolean` conversions), no host/display objects. Opcodes
 outside that subset are recorded in `UnsupportedOpcodes` (or throw when `strict`). AVM2 (`DoABC`) is out
 of scope and kept raw.
